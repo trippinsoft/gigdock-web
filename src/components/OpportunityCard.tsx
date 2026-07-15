@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { Opportunity } from "@/lib/types";
 
 function Badge({
@@ -52,25 +53,42 @@ export default function OpportunityCard({
   showRawText?: string | null;
 }) {
   const specs = opp.casting_specs;
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-              {opp.title || "(No title)"}
-            </h3>
-            <Badge color={statusColor(opp.status)}>{opp.status}</Badge>
-            {opp.source_type && (
-              <Badge color="zinc">{opp.source_type}</Badge>
+        <div className="flex items-start gap-3 min-w-0 flex-1">
+          {opp.image_url && (
+            <button
+              type="button"
+              onClick={() => setLightboxOpen(true)}
+              className="shrink-0 w-14 h-14 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={opp.image_url}
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            </button>
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                {opp.title || "(No title)"}
+              </h3>
+              <Badge color={statusColor(opp.status)}>{opp.status}</Badge>
+              {opp.source_type && (
+                <Badge color="zinc">{opp.source_type}</Badge>
+              )}
+            </div>
+            {opp.source && (
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                Source: {opp.source}
+              </p>
             )}
           </div>
-          {opp.source && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-              Source: {opp.source}
-            </p>
-          )}
         </div>
         {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
       </div>
@@ -144,6 +162,28 @@ export default function OpportunityCard({
             {showRawText}
           </pre>
         </details>
+      )}
+
+      {lightboxOpen && opp.image_url && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setLightboxOpen(false)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={opp.image_url}
+            alt=""
+            className="max-w-full max-h-full rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            type="button"
+            onClick={() => setLightboxOpen(false)}
+            className="absolute top-4 right-4 text-white text-3xl leading-none"
+          >
+            ×
+          </button>
+        </div>
       )}
     </div>
   );
