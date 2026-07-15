@@ -142,16 +142,28 @@ export default function OpportunityCard({
         </p>
       )}
 
-      {opp.link && (
-        <a
-          href={opp.link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-        >
-          View original →
-        </a>
-      )}
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {opp.link && (
+          <a
+            href={opp.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+          >
+            Apply here →
+          </a>
+        )}
+        {opp.source_url && (
+          <a
+            href={opp.source_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+          >
+            View original post →
+          </a>
+        )}
+      </div>
 
       {showRawText && (
         <details className="mt-2">

@@ -16,11 +16,13 @@ export default function ActivePage() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    const todayStr = new Date().toISOString().slice(0, 10);
     const { data } = await supabase
       .from("opportunities")
       .select("*")
       .eq("status", "active")
       .is("deleted_at", null)
+      .or(`work_date.is.null,work_date.gte.${todayStr}`)
       .order("posted_at", { ascending: false });
     setOpps(data ?? []);
     setLoading(false);

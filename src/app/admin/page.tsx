@@ -18,11 +18,13 @@ export default function ReviewPage() {
 
   const loadDrafts = useCallback(async () => {
     setLoading(true);
+    const todayStr = new Date().toISOString().slice(0, 10);
     const { data: opps } = await supabase
       .from("opportunities")
       .select("*")
       .eq("status", "draft")
       .is("deleted_at", null)
+      .or(`work_date.is.null,work_date.gte.${todayStr}`)
       .order("created_at", { ascending: false });
 
     if (opps && opps.length > 0) {

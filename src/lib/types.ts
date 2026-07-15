@@ -14,6 +14,7 @@ export interface Opportunity {
   apply_by: string | null;
   application_info: string | null;
   link: string | null;
+  source_url: string | null;
   notes: string | null;
   type: string | null;
   posted_at: string;
