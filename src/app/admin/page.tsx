@@ -25,7 +25,7 @@ export default function ReviewPage() {
       .eq("status", "draft")
       .is("deleted_at", null)
       .or(`work_date.is.null,work_date.gte.${todayStr}`)
-      .order("created_at", { ascending: false });
+      .order("posted_at", { ascending: false });
 
     if (opps && opps.length > 0) {
       const oppIds = opps.map((o) => o.id);

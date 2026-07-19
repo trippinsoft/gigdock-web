@@ -18,7 +18,7 @@ export default function HiddenPage() {
     let query = supabase
       .from("opportunities")
       .select("*")
-      .order("updated_at", { ascending: false })
+      .order("posted_at", { ascending: false })
       .limit(100);
 
     if (filter === "all") {

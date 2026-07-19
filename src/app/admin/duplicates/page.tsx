@@ -17,7 +17,7 @@ export default function DuplicatesPage() {
       .from("raw_ingestions")
       .select("*")
       .eq("status", "duplicate")
-      .order("created_at", { ascending: false })
+      .order("published_at", { ascending: false, nullsFirst: false })
       .limit(100);
     setDupes(data ?? []);
     setLoading(false);

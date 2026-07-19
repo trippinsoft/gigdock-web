@@ -17,7 +17,7 @@ export default function DiscardsPage() {
       .from("raw_ingestions")
       .select("*")
       .eq("status", "discarded")
-      .order("created_at", { ascending: false })
+      .order("published_at", { ascending: false, nullsFirst: false })
       .limit(100);
     setDiscards(data ?? []);
     setLoading(false);
