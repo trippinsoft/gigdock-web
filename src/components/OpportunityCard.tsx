@@ -43,6 +43,50 @@ function statusColor(status: string): "green" | "blue" | "amber" | "red" | "zinc
   }
 }
 
+/* ---------- date formatting helpers ---------- */
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** "Tue, Aug 25" — appends ", 2027" only if the year differs from the current year */
+function formatDate(input: string | null): string | null {
+  if (!input) return null;
+  const [y, m, d] = input.split("T")[0].split("-").map(Number);
+  if (!y || !m || !d) return input;
+  const dt = new Date(y, m - 1, d);
+  const currentYear = new Date().getFullYear();
+  const base = `${WEEKDAYS[dt.getDay()]}, ${MONTHS[dt.getMonth()]} ${dt.getDate()}`;
+  return y === currentYear ? base : `${base}, ${y}`;
+}
+
+/** "3 days ago" / "12 minutes ago" / "just now" */
+function relativeTime(iso: string | null): string | null {
+  if (!iso) return null;
+  const then = new Date(iso).getTime();
+  const now = Date.now();
+  const secs = Math.max(0, Math.floor((now - then) / 1000));
+  if (secs < 60) return "just now";
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days} day${days === 1 ? "" : "s"} ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} month${months === 1 ? "" : "s"} ago`;
+  const years = Math.floor(days / 365);
+  return `${years} year${years === 1 ? "" : "s"} ago`;
+}
+
+/** Absolute short date for parenthetical after relative time */
+function shortDate(iso: string | null): string | null {
+  if (!iso) return null;
+  const dt = new Date(iso);
+  const currentYear = new Date().getFullYear();
+  const base = `${MONTHS[dt.getMonth()]} ${dt.getDate()}`;
+  return dt.getFullYear() === currentYear ? base : `${base}, ${dt.getFullYear()}`;
+}
+
 export default function OpportunityCard({
   opp,
   actions,
@@ -54,6 +98,11 @@ export default function OpportunityCard({
 }) {
   const specs = opp.casting_specs;
   const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  const postedAgo = relativeTime(opp.posted_at);
+  const postedAbs = shortDate(opp.posted_at);
+  const workDate = formatDate(opp.work_date);
+  const applyBy = formatDate(opp.apply_by);
 
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-3">
@@ -98,10 +147,18 @@ export default function OpportunityCard({
       )}
 
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-600 dark:text-zinc-400">
-        {opp.location && <span>📍 {opp.location}</span>}
-        {opp.work_date && <span>📅 {opp.work_date}</span>}
-        {opp.pay_rate && <span>💰 {opp.pay_rate}</span>}
-        {opp.apply_by && <span>⏰ Apply by: {opp.apply_by}</span>}
+        {postedAgo && (
+          <span>
+            🕐 Posted: <span className="text-zinc-800 dark:text-zinc-200">{postedAgo}</span>
+            {postedAbs && (
+              <span className="text-zinc-400 dark:text-zinc-500"> ({postedAbs})</span>
+            )}
+          </span>
+        )}
+        {opp.location && <span>📍 Location: <span className="text-zinc-800 dark:text-zinc-200">{opp.location}</span></span>}
+        {workDate && <span>📅 Shoot date: <span className="text-zinc-800 dark:text-zinc-200">{workDate}</span></span>}
+        {applyBy && <span>⏰ Apply by: <span className="text-zinc-800 dark:text-zinc-200">{applyBy}</span></span>}
+        {opp.pay_rate && <span>💰 Pay: <span className="text-zinc-800 dark:text-zinc-200">{opp.pay_rate}</span></span>}
       </div>
 
       {opp.pay_bumps && (
