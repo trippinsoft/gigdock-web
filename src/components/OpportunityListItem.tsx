@@ -81,30 +81,32 @@ export default function OpportunityListItem({
         </span>
       </div>
 
-      {/* Row 2: Thumbnail (if present) + source */}
-      <div className="flex items-center gap-2 mt-1.5">
-        {opp.image_url && (
-          <span className="shrink-0 w-8 h-8 rounded overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={opp.image_url}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-          </span>
-        )}
-        {opp.source && (
-          <p className="text-xs text-zinc-600 dark:text-zinc-400 truncate flex-1 min-w-0">
-            {opp.source}
-          </p>
-        )}
-      </div>
-
-      {/* Row 3: Location + shoot date */}
-      {(opp.location || shoot) && (
-        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-          {opp.location && <span className="truncate">📍 {opp.location}</span>}
-          {shoot && <span>📅 {shoot}</span>}
+      {/* Row 2: Thumbnail (if present) + source (top) & location (bottom) stacked */}
+      {(opp.source || opp.location || shoot) && (
+        <div className="flex items-start gap-2 mt-1.5">
+          {opp.image_url && (
+            <span className="shrink-0 w-10 h-10 rounded overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={opp.image_url}
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            </span>
+          )}
+          <div className="min-w-0 flex-1">
+            {opp.source && (
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 truncate">
+                {opp.source}
+              </p>
+            )}
+            {(opp.location || shoot) && (
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+                {opp.location && <span className="truncate">📍 {opp.location}</span>}
+                {shoot && <span>📅 {shoot}</span>}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
