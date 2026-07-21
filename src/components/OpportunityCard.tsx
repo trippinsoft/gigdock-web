@@ -48,7 +48,7 @@ function statusColor(status: string): "green" | "blue" | "amber" | "red" | "zinc
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function formatDate(input: string | null): string | null {
+function formatDate(input: string | null): string | null {
   if (!input) return null;
   const [y, m, d] = input.split("T")[0].split("-").map(Number);
   if (!y || !m || !d) return input;
@@ -119,12 +119,6 @@ function freshnessBadge(f: NonNullable<Freshness>) {
     case "deadline-soon":
       return <Badge color="red">{f.label}</Badge>;
   }
-}
-
-export function FreshnessBadge({ opp }: { opp: Opportunity }) {
-  const f = freshness(opp);
-  if (!f) return null;
-  return freshnessBadge(f);
 }
 
 /* ---------- component ---------- */
