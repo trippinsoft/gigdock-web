@@ -4,13 +4,13 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import type { Opportunity } from "@/lib/types";
 import OpportunityCard from "@/components/OpportunityCard";
+import OpportunityListItem from "@/components/OpportunityListItem";
 import EditOpportunityModal from "@/components/EditOpportunityModal";
-import FilterSidebar, {
+import FilterChips, {
   EMPTY_FILTERS,
   applyFilters,
-  activeFilterCount,
   type Filters,
-} from "@/components/FilterSidebar";
+} from "@/components/FilterChips";
 
 type SortKey = "recent" | "shoot-date" | "apply-by";
 
@@ -20,9 +20,6 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "apply-by", label: "Apply deadline (soonest)" },
 ];
 
-/**
- * Compare two nullable ISO date strings ascending, with nulls sorted last.
- */
 function cmpDateAsc(a: string | null, b: string | null): number {
   if (a === b) return 0;
   if (a === null) return 1;
@@ -36,12 +33,12 @@ export default function ActivePage() {
   const [editing, setEditing] = useState<Opportunity | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // UI state
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("recent");
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
   const supabase = createSupabaseBrowser();
 
@@ -63,41 +60,26 @@ export default function ActivePage() {
     load();
   }, [load]);
 
-  // Debounce search input
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 250);
     return () => clearTimeout(t);
   }, [search]);
 
-  // Derive unique location list from data (for the filter sidebar)
   const availableLocations = useMemo(() => {
     const set = new Set<string>();
     for (const o of opps) if (o.location) set.add(o.location);
     return Array.from(set).sort();
   }, [opps]);
 
-  // Filtered + searched + sorted view
   const visible = useMemo(() => {
     let list = applyFilters(opps, filters);
-
     if (debouncedSearch.trim()) {
       const q = debouncedSearch.toLowerCase().trim();
-      list = list.filter((o) => {
-        const hay = [
-          o.title,
-          o.summary,
-          o.location,
-          o.source,
-          o.requirements,
-          o.type,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        return hay.includes(q);
-      });
+      list = list.filter((o) =>
+        [o.title, o.summary, o.location, o.source, o.requirements, o.type]
+          .filter(Boolean).join(" ").toLowerCase().includes(q)
+      );
     }
-
     const sorted = [...list];
     if (sort === "recent") {
       sorted.sort((a, b) => (b.posted_at ?? "").localeCompare(a.posted_at ?? ""));
@@ -109,11 +91,28 @@ export default function ActivePage() {
     return sorted;
   }, [opps, filters, debouncedSearch, sort]);
 
+  // Auto-select first visible if nothing selected (or selection filtered out)
+  useEffect(() => {
+    if (visible.length === 0) {
+      setSelectedId(null);
+      return;
+    }
+    if (!selectedId || !visible.some((o) => o.id === selectedId)) {
+      setSelectedId(visible[0].id);
+    }
+  }, [visible, selectedId]);
+
+  const selected = useMemo(
+    () => visible.find((o) => o.id === selectedId) ?? null,
+    [visible, selectedId]
+  );
+
   async function hide(id: string) {
     setActionLoading(id);
     await supabase.from("opportunities").update({ status: "hidden" }).eq("id", id);
     setOpps((prev) => prev.filter((o) => o.id !== id));
     setActionLoading(null);
+    setMobileDetailOpen(false);
   }
 
   async function markExpired(id: string) {
@@ -121,20 +120,42 @@ export default function ActivePage() {
     await supabase.from("opportunities").update({ status: "expired" }).eq("id", id);
     setOpps((prev) => prev.filter((o) => o.id !== id));
     setActionLoading(null);
+    setMobileDetailOpen(false);
   }
 
-  const filterCount = activeFilterCount(filters);
+  const actionButtons = selected && (
+    <>
+      <button
+        onClick={() => setEditing(selected)}
+        disabled={actionLoading === selected.id}
+        className="px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800"
+      >
+        Edit
+      </button>
+      <button
+        onClick={() => markExpired(selected.id)}
+        disabled={actionLoading === selected.id}
+        className="px-3 py-1.5 text-xs font-medium text-amber-600 dark:text-amber-400 border border-amber-300 dark:border-amber-800 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/30"
+      >
+        Expired
+      </button>
+      <button
+        onClick={() => hide(selected.id)}
+        disabled={actionLoading === selected.id}
+        className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30"
+      >
+        Hide
+      </button>
+    </>
+  );
 
   return (
-    <div>
-      {/* Top toolbar — search + sort + result count + mobile filter button */}
-      <div className="sticky top-0 z-10 bg-zinc-50 dark:bg-zinc-950 py-3 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 border-b border-zinc-200 dark:border-zinc-800 mb-4">
-        <div className="flex flex-col sm:flex-row gap-2">
-          {/* Search */}
+    <div className="flex flex-col h-[calc(100vh-8rem)]">
+      {/* Toolbar */}
+      <div className="space-y-3 pb-3 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="flex gap-2">
           <div className="relative flex-1 min-w-0">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
-              🔍
-            </span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">🔍</span>
             <input
               type="search"
               value={search}
@@ -143,37 +164,24 @@ export default function ActivePage() {
               className="w-full pl-9 pr-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-
-          {/* Sort + Mobile filter button */}
-          <div className="flex gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => setMobileFiltersOpen(true)}
-              className="md:hidden inline-flex items-center gap-1 px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-sm text-zinc-700 dark:text-zinc-300"
-            >
-              Filters
-              {filterCount > 0 && (
-                <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-medium bg-blue-600 text-white rounded-full">
-                  {filterCount}
-                </span>
-              )}
-            </button>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortKey)}
-              className="px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {SORT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  Sort: {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortKey)}
+            className="px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
         </div>
 
-        {/* Result count */}
-        <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+        <FilterChips
+          filters={filters}
+          onChange={setFilters}
+          availableLocations={availableLocations}
+        />
+
+        <div className="text-xs text-zinc-500 dark:text-zinc-400">
           {loading
             ? "Loading..."
             : `${visible.length} of ${opps.length} active ${
@@ -182,108 +190,68 @@ export default function ActivePage() {
         </div>
       </div>
 
-      {/* Two-column layout: sidebar + results */}
-      <div className="flex gap-6">
-        {/* Desktop sidebar */}
-        <aside className="hidden md:block w-60 shrink-0">
-          <div className="sticky top-32">
-            <FilterSidebar
-              filters={filters}
-              onChange={setFilters}
-              availableLocations={availableLocations}
-            />
-          </div>
-        </aside>
-
-        {/* Results */}
-        <div className="flex-1 min-w-0 space-y-4">
+      {/* Two-pane split (desktop) / list only (mobile) */}
+      <div className="flex-1 flex min-h-0 mt-4 gap-4">
+        {/* Left: compact list */}
+        <div className="w-full md:w-96 md:shrink-0 flex flex-col min-h-0">
           {loading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
             </div>
           ) : visible.length === 0 ? (
             <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">
-              {opps.length === 0
-                ? "No active opportunities yet."
-                : "No opportunities match your filters."}
-              {opps.length > 0 && (
-                <div className="mt-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFilters(EMPTY_FILTERS);
-                      setSearch("");
-                    }}
-                    className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                  >
-                    Clear filters and search
-                  </button>
-                </div>
-              )}
+              {opps.length === 0 ? "No active opportunities yet." : "No opportunities match your filters."}
             </div>
           ) : (
-            visible.map((opp) => (
-              <OpportunityCard
-                key={opp.id}
-                opp={opp}
-                actions={
-                  <>
-                    <button
-                      onClick={() => setEditing(opp)}
-                      disabled={actionLoading === opp.id}
-                      className="px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => markExpired(opp.id)}
-                      disabled={actionLoading === opp.id}
-                      className="px-3 py-1.5 text-xs font-medium text-amber-600 dark:text-amber-400 border border-amber-300 dark:border-amber-800 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors"
-                    >
-                      Expired
-                    </button>
-                    <button
-                      onClick={() => hide(opp.id)}
-                      disabled={actionLoading === opp.id}
-                      className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-                    >
-                      Hide
-                    </button>
-                  </>
-                }
-              />
-            ))
+            <div className="overflow-y-auto pr-1 space-y-2">
+              {visible.map((opp) => (
+                <OpportunityListItem
+                  key={opp.id}
+                  opp={opp}
+                  selected={opp.id === selectedId}
+                  onSelect={() => {
+                    setSelectedId(opp.id);
+                    setMobileDetailOpen(true);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Right: detail pane (desktop only) */}
+        <div className="hidden md:block flex-1 min-w-0 overflow-y-auto">
+          {selected ? (
+            <OpportunityCard opp={selected} actions={actionButtons} />
+          ) : (
+            <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400 text-sm">
+              Select an opportunity to view details
+            </div>
           )}
         </div>
       </div>
 
-      {/* Mobile filter drawer */}
-      {mobileFiltersOpen && (
-        <div
-          className="fixed inset-0 z-40 md:hidden"
-          role="dialog"
-          aria-modal="true"
-        >
-          {/* Backdrop */}
+      {/* Mobile bottom sheet — only shown on mobile when a card is tapped */}
+      {mobileDetailOpen && selected && (
+        <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true">
           <div
             className="absolute inset-0 bg-black/40"
-            onClick={() => setMobileFiltersOpen(false)}
+            onClick={() => setMobileDetailOpen(false)}
           />
-          {/* Bottom sheet */}
-          <div className="absolute inset-x-0 bottom-0 bg-white dark:bg-zinc-900 rounded-t-2xl p-5 max-h-[80vh] overflow-y-auto shadow-2xl">
-            <FilterSidebar
-              filters={filters}
-              onChange={setFilters}
-              availableLocations={availableLocations}
-              onClose={() => setMobileFiltersOpen(false)}
-            />
-            <button
-              type="button"
-              onClick={() => setMobileFiltersOpen(false)}
-              className="mt-6 w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
-            >
-              Show {visible.length} {visible.length === 1 ? "result" : "results"}
-            </button>
+          <div className="absolute inset-x-0 bottom-0 top-16 bg-zinc-50 dark:bg-zinc-950 rounded-t-2xl overflow-hidden flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+              <button
+                type="button"
+                onClick={() => setMobileDetailOpen(false)}
+                className="text-sm text-blue-600 dark:text-blue-400 font-medium"
+              >
+                ← Back
+              </button>
+              <div className="flex gap-2">{actionButtons}</div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              <OpportunityCard opp={selected} />
+            </div>
           </div>
         </div>
       )}
