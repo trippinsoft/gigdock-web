@@ -6,18 +6,52 @@ export type WorkDateRange = "all" | "today" | "week" | "two-weeks" | "month";
 export type DatePostedRange = "any" | "today" | "3days" | "week";
 
 export type Filters = {
-  location: string | null;
+  state: string | null; // 2-letter US state / CA province code, or null = all
   datePosted: DatePostedRange;
   workDateRange: WorkDateRange;
   sources: string[]; // empty array = all sources
 };
 
 export const EMPTY_FILTERS: Filters = {
-  location: null,
+  state: null,
   datePosted: "any",
   workDateRange: "all",
   sources: [],
 };
+
+/**
+ * Extract 2-letter state/province code from a location string.
+ * Handles "Chicago, IL", "Midtown, Atlanta, GA", "Toronto, ON",
+ * "Atlanta, GA (in-studio) / Nationwide" etc. Returns the LAST match.
+ */
+export function extractState(location: string | null): string | null {
+  if (!location) return null;
+  const matches = [...location.matchAll(/,\s*([A-Z]{2})(?=[\s,\-\/\(\)]|$)/g)];
+  return matches.length > 0 ? matches[matches.length - 1][1] : null;
+}
+
+/** Friendly state name lookup (US + CA). Falls back to code alone. */
+const STATE_NAMES: Record<string, string> = {
+  AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California",
+  CO: "Colorado", CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia",
+  HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa",
+  KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland",
+  MA: "Massachusetts", MI: "Michigan", MN: "Minnesota", MS: "Mississippi", MO: "Missouri",
+  MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey",
+  NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio",
+  OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina",
+  SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont",
+  VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming",
+  DC: "Washington, D.C.",
+  AB: "Alberta", BC: "British Columbia", MB: "Manitoba", NB: "New Brunswick",
+  NL: "Newfoundland & Labrador", NS: "Nova Scotia", NT: "Northwest Territories",
+  NU: "Nunavut", ON: "Ontario", PE: "Prince Edward Island", QC: "Quebec",
+  SK: "Saskatchewan", YT: "Yukon",
+};
+
+export function stateLabel(code: string): string {
+  return STATE_NAMES[code] ? `${STATE_NAMES[code]} (${code})` : code;
+}
 
 const DATE_POSTED_OPTIONS: { value: DatePostedRange; label: string }[] = [
   { value: "any", label: "Any time" },
@@ -36,7 +70,7 @@ const WORK_DATE_OPTIONS: { value: WorkDateRange; label: string }[] = [
 
 export function activeFilterCount(f: Filters): number {
   return (
-    (f.location ? 1 : 0) +
+    (f.state ? 1 : 0) +
     (f.datePosted === "any" ? 0 : 1) +
     (f.workDateRange === "all" ? 0 : 1) +
     (f.sources.length > 0 ? 1 : 0)
@@ -139,24 +173,24 @@ function SourceFilter({
 export default function FilterChips({
   filters,
   onChange,
-  availableLocations,
+  availableStates,
   availableSources,
 }: {
   filters: Filters;
   onChange: (f: Filters) => void;
-  availableLocations: string[];
+  availableStates: string[];
   availableSources: string[];
 }) {
   return (
     <div className="flex flex-wrap gap-2 items-center">
       <select
-        value={filters.location ?? ""}
-        onChange={(e) => onChange({ ...filters, location: e.target.value || null })}
-        className={chipClass(!!filters.location)}
+        value={filters.state ?? ""}
+        onChange={(e) => onChange({ ...filters, state: e.target.value || null })}
+        className={chipClass(!!filters.state)}
       >
-        <option value="">📍 Any location</option>
-        {availableLocations.map((loc) => (
-          <option key={loc} value={loc}>{loc}</option>
+        <option value="">📍 Any state</option>
+        {availableStates.map((code) => (
+          <option key={code} value={code}>{stateLabel(code)}</option>
         ))}
       </select>
 
@@ -236,7 +270,10 @@ export function applyFilters<
   const sourceSet = filters.sources.length > 0 ? new Set(filters.sources) : null;
 
   return items.filter((item) => {
-    if (filters.location && item.location !== filters.location) return false;
+    if (filters.state) {
+      const st = extractState(item.location);
+      if (st !== filters.state) return false;
+    }
     if (workEnd && filters.workDateRange !== "all") {
       if (!item.work_date) return false;
       if (item.work_date < todayStr || item.work_date > workEnd) return false;

@@ -9,6 +9,7 @@ import EditOpportunityModal from "@/components/EditOpportunityModal";
 import FilterChips, {
   EMPTY_FILTERS,
   applyFilters,
+  extractState,
   type Filters,
 } from "@/components/FilterChips";
 
@@ -65,9 +66,12 @@ export default function ActivePage() {
     return () => clearTimeout(t);
   }, [search]);
 
-  const availableLocations = useMemo(() => {
+  const availableStates = useMemo(() => {
     const set = new Set<string>();
-    for (const o of opps) if (o.location) set.add(o.location);
+    for (const o of opps) {
+      const st = extractState(o.location);
+      if (st) set.add(st);
+    }
     return Array.from(set).sort();
   }, [opps]);
 
@@ -184,7 +188,7 @@ export default function ActivePage() {
         <FilterChips
           filters={filters}
           onChange={setFilters}
-          availableLocations={availableLocations}
+          availableStates={availableStates}
           availableSources={availableSources}
         />
 
