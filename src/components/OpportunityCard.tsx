@@ -48,7 +48,6 @@ function statusColor(status: string): "green" | "blue" | "amber" | "red" | "zinc
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-/** "Tue, Aug 25" — appends ", 2027" only if the year differs from the current year */
 function formatDate(input: string | null): string | null {
   if (!input) return null;
   const [y, m, d] = input.split("T")[0].split("-").map(Number);
@@ -59,7 +58,6 @@ function formatDate(input: string | null): string | null {
   return y === currentYear ? base : `${base}, ${y}`;
 }
 
-/** "3 days ago" / "12 minutes ago" / "just now" */
 function relativeTime(iso: string | null): string | null {
   if (!iso) return null;
   const then = new Date(iso).getTime();
@@ -78,7 +76,6 @@ function relativeTime(iso: string | null): string | null {
   return `${years} year${years === 1 ? "" : "s"} ago`;
 }
 
-/** Absolute short date for parenthetical after relative time */
 function shortDate(iso: string | null): string | null {
   if (!iso) return null;
   const dt = new Date(iso);
@@ -86,6 +83,45 @@ function shortDate(iso: string | null): string | null {
   const base = `${MONTHS[dt.getMonth()]} ${dt.getDate()}`;
   return dt.getFullYear() === currentYear ? base : `${base}, ${dt.getFullYear()}`;
 }
+
+/* ---------- freshness pill logic ---------- */
+
+type Freshness =
+  | { kind: "new"; label: string }
+  | { kind: "today"; label: string }
+  | { kind: "deadline-soon"; label: string }
+  | null;
+
+function freshness(opp: Opportunity): Freshness {
+  // Priority: apply-by deadline (most actionable) > new/today
+  if (opp.apply_by) {
+    const deadline = new Date(opp.apply_by + "T23:59:59").getTime();
+    const hoursUntilDeadline = (deadline - Date.now()) / (1000 * 60 * 60);
+    if (hoursUntilDeadline > 0 && hoursUntilDeadline <= 24) {
+      return { kind: "deadline-soon", label: "🔥 Deadline today" };
+    }
+  }
+  if (opp.posted_at) {
+    const posted = new Date(opp.posted_at).getTime();
+    const hoursOld = (Date.now() - posted) / (1000 * 60 * 60);
+    if (hoursOld <= 6) return { kind: "new", label: "🆕 NEW" };
+    if (hoursOld <= 24) return { kind: "today", label: "Today" };
+  }
+  return null;
+}
+
+function freshnessBadge(f: NonNullable<Freshness>) {
+  switch (f.kind) {
+    case "new":
+      return <Badge color="green">{f.label}</Badge>;
+    case "today":
+      return <Badge color="blue">{f.label}</Badge>;
+    case "deadline-soon":
+      return <Badge color="red">{f.label}</Badge>;
+  }
+}
+
+/* ---------- component ---------- */
 
 export default function OpportunityCard({
   opp,
@@ -103,6 +139,7 @@ export default function OpportunityCard({
   const postedAbs = shortDate(opp.posted_at);
   const workDate = formatDate(opp.work_date);
   const applyBy = formatDate(opp.apply_by);
+  const fresh = freshness(opp);
 
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-3">
@@ -127,6 +164,7 @@ export default function OpportunityCard({
               <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
                 {opp.title || "(No title)"}
               </h3>
+              {fresh && freshnessBadge(fresh)}
               <Badge color={statusColor(opp.status)}>{opp.status}</Badge>
               {opp.source_type && (
                 <Badge color="zinc">{opp.source_type}</Badge>
