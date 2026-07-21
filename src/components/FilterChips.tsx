@@ -1,18 +1,22 @@
 "use client";
 
+import { useState } from "react";
+
 export type WorkDateRange = "all" | "today" | "week" | "two-weeks" | "month";
 export type DatePostedRange = "any" | "today" | "3days" | "week";
 
 export type Filters = {
-  location: string | null; // null = All
+  location: string | null;
   datePosted: DatePostedRange;
   workDateRange: WorkDateRange;
+  sources: string[]; // empty array = all sources
 };
 
 export const EMPTY_FILTERS: Filters = {
   location: null,
   datePosted: "any",
   workDateRange: "all",
+  sources: [],
 };
 
 const DATE_POSTED_OPTIONS: { value: DatePostedRange; label: string }[] = [
@@ -34,7 +38,8 @@ export function activeFilterCount(f: Filters): number {
   return (
     (f.location ? 1 : 0) +
     (f.datePosted === "any" ? 0 : 1) +
-    (f.workDateRange === "all" ? 0 : 1)
+    (f.workDateRange === "all" ? 0 : 1) +
+    (f.sources.length > 0 ? 1 : 0)
   );
 }
 
@@ -46,14 +51,101 @@ function chipClass(selected: boolean) {
   }`;
 }
 
+/** Multi-select dropdown for sources — chip button that opens a checkbox popover */
+function SourceFilter({
+  available,
+  selected,
+  onChange,
+}: {
+  available: string[];
+  selected: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  function toggle(src: string) {
+    const set = new Set(selected);
+    if (set.has(src)) set.delete(src);
+    else set.add(src);
+    onChange(Array.from(set));
+  }
+
+  const label =
+    selected.length === 0
+      ? "📰 All sources"
+      : selected.length === 1
+      ? `📰 ${selected[0]}`
+      : `📰 Sources (${selected.length})`;
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={chipClass(selected.length > 0)}
+      >
+        {label} ▾
+      </button>
+      {open && (
+        <>
+          {/* Click-out backdrop */}
+          <div
+            className="fixed inset-0 z-30"
+            onClick={() => setOpen(false)}
+          />
+          <div className="absolute z-40 mt-2 left-0 min-w-[240px] max-w-[320px] max-h-72 overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl p-2">
+            {available.length === 0 ? (
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 p-2">
+                No sources yet
+              </p>
+            ) : (
+              <>
+                <div className="space-y-1">
+                  {available.map((src) => (
+                    <label
+                      key={src}
+                      className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded px-2 py-1"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(src)}
+                        onChange={() => toggle(src)}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="truncate">{src}</span>
+                    </label>
+                  ))}
+                </div>
+                {selected.length > 0 && (
+                  <div className="border-t border-zinc-200 dark:border-zinc-800 mt-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => onChange([])}
+                      className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 px-2"
+                    >
+                      Clear sources
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function FilterChips({
   filters,
   onChange,
   availableLocations,
+  availableSources,
 }: {
   filters: Filters;
   onChange: (f: Filters) => void;
   availableLocations: string[];
+  availableSources: string[];
 }) {
   return (
     <div className="flex flex-wrap gap-2 items-center">
@@ -64,9 +156,7 @@ export default function FilterChips({
       >
         <option value="">📍 Any location</option>
         {availableLocations.map((loc) => (
-          <option key={loc} value={loc}>
-            {loc}
-          </option>
+          <option key={loc} value={loc}>{loc}</option>
         ))}
       </select>
 
@@ -78,9 +168,7 @@ export default function FilterChips({
         className={chipClass(filters.datePosted !== "any")}
       >
         {DATE_POSTED_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>
-            🕐 Posted: {o.label}
-          </option>
+          <option key={o.value} value={o.value}>🕐 Posted: {o.label}</option>
         ))}
       </select>
 
@@ -92,11 +180,15 @@ export default function FilterChips({
         className={chipClass(filters.workDateRange !== "all")}
       >
         {WORK_DATE_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>
-            📅 Shoot: {o.label}
-          </option>
+          <option key={o.value} value={o.value}>📅 Shoot: {o.label}</option>
         ))}
       </select>
+
+      <SourceFilter
+        available={availableSources}
+        selected={filters.sources}
+        onChange={(sources) => onChange({ ...filters, sources })}
+      />
 
       {activeFilterCount(filters) > 0 && (
         <button
@@ -104,19 +196,15 @@ export default function FilterChips({
           onClick={() => onChange(EMPTY_FILTERS)}
           className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 px-2"
         >
-          Clear
+          Clear all
         </button>
       )}
     </div>
   );
 }
 
-/**
- * Filter helper — pure function, applies date-posted + work-date + location.
- * Search text is applied separately by the caller.
- */
 export function applyFilters<
-  T extends { location: string | null; work_date: string | null; posted_at: string }
+  T extends { location: string | null; work_date: string | null; posted_at: string; source: string | null }
 >(items: T[], filters: Filters): T[] {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -145,6 +233,8 @@ export function applyFilters<
     postedCutoff = now - hours * 60 * 60 * 1000;
   }
 
+  const sourceSet = filters.sources.length > 0 ? new Set(filters.sources) : null;
+
   return items.filter((item) => {
     if (filters.location && item.location !== filters.location) return false;
     if (workEnd && filters.workDateRange !== "all") {
@@ -155,6 +245,7 @@ export function applyFilters<
       const posted = new Date(item.posted_at).getTime();
       if (posted < postedCutoff) return false;
     }
+    if (sourceSet && (!item.source || !sourceSet.has(item.source))) return false;
     return true;
   });
 }

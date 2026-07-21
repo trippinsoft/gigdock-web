@@ -46,7 +46,7 @@ export interface RawIngestion {
   original_url: string | null;
   raw_text: string;
   published_at: string | null;
-  status: "pending" | "processed" | "duplicate" | "error" | "discarded";
+  status: "pending" | "processed" | "duplicate" | "error" | "discarded" | "auto_expired";
   error_detail: string | null;
   opportunity_id: string | null;
   created_at: string;
@@ -79,4 +79,5 @@ export type AdminTab =
   | "discards"
   | "duplicates"
   | "sources"
-  | "hidden";
+  | "hidden"
+  | "find";

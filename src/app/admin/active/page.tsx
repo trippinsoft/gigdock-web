@@ -71,6 +71,12 @@ export default function ActivePage() {
     return Array.from(set).sort();
   }, [opps]);
 
+  const availableSources = useMemo(() => {
+    const set = new Set<string>();
+    for (const o of opps) if (o.source) set.add(o.source);
+    return Array.from(set).sort();
+  }, [opps]);
+
   const visible = useMemo(() => {
     let list = applyFilters(opps, filters);
     if (debouncedSearch.trim()) {
@@ -179,6 +185,7 @@ export default function ActivePage() {
           filters={filters}
           onChange={setFilters}
           availableLocations={availableLocations}
+          availableSources={availableSources}
         />
 
         <div className="text-xs text-zinc-500 dark:text-zinc-400">
