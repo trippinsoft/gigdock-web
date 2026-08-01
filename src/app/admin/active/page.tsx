@@ -50,6 +50,8 @@ export default function ActivePage() {
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
   const touchStartY = useRef<number | null>(null);
+  const dragEligible = useRef(true);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const supabase = createSupabaseBrowser();
 
@@ -145,19 +147,41 @@ export default function ActivePage() {
     setTimeout(() => setSheetMounted(false), 300);
   }, []);
 
-  /* ---------- swipe-to-dismiss (header/handle only) ---------- */
+  // Lock the page behind the sheet: no background scroll, no pull-to-refresh.
+  useEffect(() => {
+    if (!sheetMounted) return;
+    const body = document.body;
+    const prevOverflow = body.style.overflow;
+    const prevOverscroll = body.style.overscrollBehavior;
+    body.style.overflow = "hidden";
+    body.style.overscrollBehavior = "none";
+    return () => {
+      body.style.overflow = prevOverflow;
+      body.style.overscrollBehavior = prevOverscroll;
+    };
+  }, [sheetMounted]);
 
-  function onTouchStart(e: React.TouchEvent) {
-    touchStartY.current = e.touches[0].clientY;
-    setDragging(true);
+  /* ---------- swipe-to-dismiss ----------
+     Header drags always dismiss. Content drags dismiss only when the content
+     is scrolled to the very top (otherwise the touch scrolls the card, like a
+     native iOS / Indeed sheet). */
+
+  function handleTouchStart(fromContent: boolean) {
+    return (e: React.TouchEvent) => {
+      touchStartY.current = e.touches[0].clientY;
+      dragEligible.current = fromContent
+        ? (contentRef.current?.scrollTop ?? 0) <= 0
+        : true;
+      setDragging(true);
+    };
   }
   function onTouchMove(e: React.TouchEvent) {
-    if (touchStartY.current === null) return;
+    if (touchStartY.current === null || !dragEligible.current) return;
     const delta = e.touches[0].clientY - touchStartY.current;
-    setDragY(delta > 0 ? delta : 0); // only allow dragging downward
+    setDragY(delta > 0 ? delta : 0); // only downward
   }
   function onTouchEnd() {
-    if (dragY > DISMISS_THRESHOLD) {
+    if (dragEligible.current && dragY > DISMISS_THRESHOLD) {
       closeSheet();
     } else {
       setDragY(0); // snap back up
@@ -311,9 +335,9 @@ export default function ActivePage() {
                 : "translateY(100%)",
             }}
           >
-            {/* Grab handle + header — swipe target */}
+            {/* Grab handle + header — always a dismiss target */}
             <div
-              onTouchStart={onTouchStart}
+              onTouchStart={handleTouchStart(false)}
               onTouchMove={onTouchMove}
               onTouchEnd={onTouchEnd}
               className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 touch-none select-none"
@@ -336,8 +360,14 @@ export default function ActivePage() {
               </div>
             </div>
 
-            {/* Scrollable detail */}
-            <div className="flex-1 overflow-y-auto p-4">
+            {/* Scrollable detail — drag down from the top edge also dismisses */}
+            <div
+              ref={contentRef}
+              onTouchStart={handleTouchStart(true)}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+              className="flex-1 overflow-y-auto overscroll-none p-4"
+            >
               <OpportunityCard opp={selected} />
             </div>
           </div>
