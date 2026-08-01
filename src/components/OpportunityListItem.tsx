@@ -66,8 +66,6 @@ export default function OpportunityListItem({
   const fresh = freshnessBadge(opp);
   const posted = relativeTime(opp.posted_at);
   const shoot = shortDate(opp.work_date);
-  // Only surface a positive match badge (Strong/Good); Open & ineligible get none.
-  const showFit = fit?.eligible && (fit.tier === "strong" || fit.tier === "good");
 
   return (
     <button
@@ -124,7 +122,7 @@ export default function OpportunityListItem({
 
       {/* Row 4: Pay + tags + posted time */}
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-2">
-        {showFit && fit && (
+        {fit && (
           <span className={`text-xs px-2 py-0.5 rounded font-medium ${FIT_CLASS[fit.color]}`}>
             {fit.tier === "strong" ? "★ " : ""}{fit.label}
           </span>
