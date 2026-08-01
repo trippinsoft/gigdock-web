@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import type { Opportunity } from "@/lib/types";
 import OpportunityCard from "@/components/OpportunityCard";
@@ -28,6 +28,9 @@ function cmpDateAsc(a: string | null, b: string | null): number {
   return a < b ? -1 : 1;
 }
 
+// How far (px) the user must drag the sheet down before it dismisses on release.
+const DISMISS_THRESHOLD = 110;
+
 export default function ActivePage() {
   const [opps, setOpps] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +42,14 @@ export default function ActivePage() {
   const [sort, setSort] = useState<SortKey>("recent");
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+
+  // Bottom-sheet state: `mounted` keeps it in the DOM; `visible` drives the
+  // slide transform; `dragY` follows the finger during a swipe-to-dismiss.
+  const [sheetMounted, setSheetMounted] = useState(false);
+  const [sheetVisible, setSheetVisible] = useState(false);
+  const [dragY, setDragY] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const touchStartY = useRef<number | null>(null);
 
   const supabase = createSupabaseBrowser();
 
@@ -117,12 +127,51 @@ export default function ActivePage() {
     [visible, selectedId]
   );
 
+  /* ---------- bottom sheet open/close ---------- */
+
+  const openSheet = useCallback((id: string) => {
+    setSelectedId(id);
+    setDragY(0);
+    setSheetMounted(true);
+    // Next frame: flip to visible so the transform transition runs.
+    requestAnimationFrame(() => setSheetVisible(true));
+  }, []);
+
+  const closeSheet = useCallback(() => {
+    setSheetVisible(false);
+    setDragY(0);
+    setDragging(false);
+    // Unmount after the slide-down transition finishes.
+    setTimeout(() => setSheetMounted(false), 300);
+  }, []);
+
+  /* ---------- swipe-to-dismiss (header/handle only) ---------- */
+
+  function onTouchStart(e: React.TouchEvent) {
+    touchStartY.current = e.touches[0].clientY;
+    setDragging(true);
+  }
+  function onTouchMove(e: React.TouchEvent) {
+    if (touchStartY.current === null) return;
+    const delta = e.touches[0].clientY - touchStartY.current;
+    setDragY(delta > 0 ? delta : 0); // only allow dragging downward
+  }
+  function onTouchEnd() {
+    if (dragY > DISMISS_THRESHOLD) {
+      closeSheet();
+    } else {
+      setDragY(0); // snap back up
+      setDragging(false);
+    }
+    touchStartY.current = null;
+  }
+
   async function hide(id: string) {
     setActionLoading(id);
     await supabase.from("opportunities").update({ status: "hidden" }).eq("id", id);
     setOpps((prev) => prev.filter((o) => o.id !== id));
     setActionLoading(null);
-    setMobileDetailOpen(false);
+    closeSheet();
   }
 
   async function markExpired(id: string) {
@@ -130,7 +179,7 @@ export default function ActivePage() {
     await supabase.from("opportunities").update({ status: "expired" }).eq("id", id);
     setOpps((prev) => prev.filter((o) => o.id !== id));
     setActionLoading(null);
-    setMobileDetailOpen(false);
+    closeSheet();
   }
 
   const actionButtons = selected && (
@@ -220,10 +269,7 @@ export default function ActivePage() {
                   key={opp.id}
                   opp={opp}
                   selected={opp.id === selectedId}
-                  onSelect={() => {
-                    setSelectedId(opp.id);
-                    setMobileDetailOpen(true);
-                  }}
+                  onSelect={() => openSheet(opp.id)}
                 />
               ))}
             </div>
@@ -242,24 +288,55 @@ export default function ActivePage() {
         </div>
       </div>
 
-      {/* Mobile bottom sheet — only shown on mobile when a card is tapped */}
-      {mobileDetailOpen && selected && (
+      {/* Mobile bottom sheet (slides up, drag-to-dismiss) */}
+      {sheetMounted && selected && (
         <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true">
+          {/* Backdrop (fades in; dims as the sheet is dragged down) */}
           <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setMobileDetailOpen(false)}
+            className={`absolute inset-0 bg-black/50 ${
+              dragging ? "" : "transition-opacity duration-300"
+            }`}
+            style={{ opacity: sheetVisible ? Math.max(0, 1 - dragY / 400) : 0 }}
+            onClick={closeSheet}
           />
-          <div className="absolute inset-x-0 bottom-0 top-16 bg-zinc-50 dark:bg-zinc-950 rounded-t-2xl overflow-hidden flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-              <button
-                type="button"
-                onClick={() => setMobileDetailOpen(false)}
-                className="text-sm text-blue-600 dark:text-blue-400 font-medium"
-              >
-                ← Back
-              </button>
-              <div className="flex gap-2">{actionButtons}</div>
+
+          {/* Sheet */}
+          <div
+            className={`absolute inset-x-0 bottom-0 top-14 bg-zinc-50 dark:bg-zinc-950 rounded-t-2xl overflow-hidden flex flex-col shadow-2xl ${
+              dragging ? "" : "transition-transform duration-300 ease-out"
+            }`}
+            style={{
+              transform: sheetVisible
+                ? `translateY(${dragY}px)`
+                : "translateY(100%)",
+            }}
+          >
+            {/* Grab handle + header — swipe target */}
+            <div
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+              className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 touch-none select-none"
+            >
+              {/* Handle pill */}
+              <div className="flex justify-center pt-2.5 pb-1">
+                <div className="h-1.5 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+              </div>
+              {/* Action row */}
+              <div className="flex items-center justify-between px-4 pb-3">
+                <button
+                  type="button"
+                  onClick={closeSheet}
+                  className="text-2xl leading-none text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 -ml-1 px-1"
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+                <div className="flex gap-2">{actionButtons}</div>
+              </div>
             </div>
+
+            {/* Scrollable detail */}
             <div className="flex-1 overflow-y-auto p-4">
               <OpportunityCard opp={selected} />
             </div>
