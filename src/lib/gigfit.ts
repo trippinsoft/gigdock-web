@@ -46,6 +46,25 @@ export type GigFitResult = {
   blockers: string[];                  // reasons for ineligibility
 };
 
+// Canonicalize gender so "Men", "male", "man", "M" all compare equal.
+function canonGender(g: string | null | undefined): string {
+  const s = (g ?? "").toLowerCase().trim();
+  if (["male", "males", "man", "men", "m", "boy", "boys"].includes(s)) return "male";
+  if (["female", "females", "woman", "women", "f", "girl", "girls"].includes(s)) return "female";
+  if (["non-binary", "nonbinary", "non binary", "nb", "enby"].includes(s)) return "non-binary";
+  return s;
+}
+
+// Canonicalize union status so "SAG-AFTRA", "sag", "Non-Union", "either" line up.
+function canonUnion(u: string | null | undefined): string {
+  const s = (u ?? "").toLowerCase().trim();
+  if (!s) return "";
+  if (s.includes("non")) return "non-union";
+  if (s.includes("sag") || s.includes("aftra")) return "sag-aftra";
+  if (s.includes("either") || s.includes("both") || s.includes("any")) return "either";
+  return s;
+}
+
 export function ageFromDob(dob: string | null | undefined): number | null {
   if (!dob) return null;
   const b = new Date(dob);
@@ -74,7 +93,8 @@ export function evaluateGigFit(
 
   // ── Gate: gender ─────────────────────────────────────────────────
   if (c.gender && c.gender.length > 0 && profile.gender) {
-    if (c.gender.includes(profile.gender)) matched.push("gender");
+    const wanted = c.gender.map(canonGender);
+    if (wanted.includes(canonGender(profile.gender))) matched.push("gender");
     else blockers.push("Gender doesn't match");
   }
 
@@ -88,12 +108,13 @@ export function evaluateGigFit(
   }
 
   // ── Gate: union ──────────────────────────────────────────────────
-  if (
-    c.union_status && c.union_status !== "either" &&
-    profile.union_status && profile.union_status !== "either"
-  ) {
-    if (profile.union_status === c.union_status) matched.push("union");
-    else blockers.push("Union status doesn't match");
+  {
+    const cu = canonUnion(c.union_status);
+    const pu = canonUnion(profile.union_status);
+    if (cu && cu !== "either" && pu && pu !== "either") {
+      if (pu === cu) matched.push("union");
+      else blockers.push("Union status doesn't match");
+    }
   }
 
   // ── Optional gate: pay floor (only if the user set one) ───────────
