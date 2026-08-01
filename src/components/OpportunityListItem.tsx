@@ -102,8 +102,8 @@ export default function OpportunityListItem({
             )}
             {(opp.location || shoot) && (
               <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-zinc-600 dark:text-zinc-400">
-                {opp.location && <span className="truncate">📍 {opp.location}</span>}
-                {shoot && <span>📅 {shoot}</span>}
+                {opp.location && <span className="truncate">{opp.location}</span>}
+                {shoot && <span>{shoot}</span>}
               </div>
             )}
           </div>

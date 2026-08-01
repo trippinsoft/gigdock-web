@@ -121,6 +121,40 @@ function freshnessBadge(f: NonNullable<Freshness>) {
   }
 }
 
+/* ---------- apply-link helpers ---------- */
+
+// Turn a single stored value into a valid href. Bare domains get https://,
+// bare emails get mailto:, anything already schemed is left alone.
+function normalizeHref(raw: string | null | undefined): string | null {
+  const v = (raw ?? "").trim();
+  if (!v) return null;
+  if (/^(https?:|mailto:|tel:)/i.test(v)) return v;
+  if (/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(v)) return `mailto:${v}`;
+  // Looks like a domain/URL missing its protocol
+  if (/^[a-z0-9-]+(\.[a-z0-9-]+)+([/?#].*)?$/i.test(v)) {
+    return `https://${v.replace(/^\/+/, "")}`;
+  }
+  return null;
+}
+
+// Pull the first usable URL or email out of a free-text blob.
+function extractHref(text: string | null | undefined): string | null {
+  const t = text ?? "";
+  const url = t.match(/https?:\/\/[^\s"'<>]+/i);
+  if (url) return url[0].replace(/[.,);]+$/, "");
+  const email = t.match(/[^\s@]+@[^\s@]+\.[a-z]{2,}/i);
+  if (email) return `mailto:${email[0]}`;
+  const domain = t.match(/\b[a-z0-9-]+(\.[a-z0-9-]+)+\/[^\s"'<>]+/i);
+  if (domain) return `https://${domain[0].replace(/[.,);]+$/, "")}`;
+  return null;
+}
+
+// Best actionable apply target: explicit link first, else dig one out of
+// the application instructions.
+function getApplyHref(opp: Opportunity): string | null {
+  return normalizeHref(opp.link) ?? extractHref(opp.application_info);
+}
+
 /* ---------- component ---------- */
 
 export default function OpportunityCard({
@@ -139,6 +173,7 @@ export default function OpportunityCard({
   const postedAbs = shortDate(opp.posted_at);
   const workDate = formatDate(opp.work_date);
   const applyBy = formatDate(opp.apply_by);
+  const applyHref = getApplyHref(opp);
   const fresh = freshness(opp);
 
   return (
@@ -238,9 +273,9 @@ export default function OpportunityCard({
       )}
 
       <div className="flex flex-wrap gap-x-4 gap-y-1">
-        {opp.link && (
+        {applyHref && (
           <a
-            href={opp.link}
+            href={applyHref}
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
