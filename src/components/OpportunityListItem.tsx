@@ -1,6 +1,14 @@
 "use client";
 
 import type { Opportunity } from "@/lib/types";
+import type { GigFitResult } from "@/lib/gigfit";
+
+const FIT_CLASS: Record<string, string> = {
+  green: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
+  blue: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+  zinc: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
+  amber: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+};
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -48,14 +56,18 @@ export default function OpportunityListItem({
   opp,
   selected,
   onSelect,
+  fit,
 }: {
   opp: Opportunity;
   selected: boolean;
   onSelect: () => void;
+  fit?: GigFitResult | null;
 }) {
   const fresh = freshnessBadge(opp);
   const posted = relativeTime(opp.posted_at);
   const shoot = shortDate(opp.work_date);
+  // Only surface a positive match badge (Strong/Good); Open & ineligible get none.
+  const showFit = fit?.eligible && (fit.tier === "strong" || fit.tier === "good");
 
   return (
     <button
@@ -112,6 +124,11 @@ export default function OpportunityListItem({
 
       {/* Row 4: Pay + tags + posted time */}
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-2">
+        {showFit && fit && (
+          <span className={`text-xs px-2 py-0.5 rounded font-medium ${FIT_CLASS[fit.color]}`}>
+            {fit.tier === "strong" ? "★ " : ""}{fit.label}
+          </span>
+        )}
         {opp.pay_rate && (
           <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
             {opp.pay_rate}

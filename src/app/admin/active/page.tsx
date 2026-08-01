@@ -12,6 +12,11 @@ import FilterChips, {
   extractState,
   type Filters,
 } from "@/components/FilterChips";
+import {
+  evaluateGigFit,
+  type GigFitResult,
+  type PerformerProfile,
+} from "@/lib/gigfit";
 
 type SortKey = "recent" | "shoot-date" | "apply-by";
 
@@ -43,6 +48,10 @@ export default function ActivePage() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  // GigFit: the viewer's performer profile + "matches me" toggle
+  const [profile, setProfile] = useState<PerformerProfile | null>(null);
+  const [matchesMe, setMatchesMe] = useState(false);
+
   // Bottom-sheet state: `mounted` keeps it in the DOM; `visible` drives the
   // slide transform; `dragY` follows the finger during a swipe-to-dismiss.
   const [sheetMounted, setSheetMounted] = useState(false);
@@ -73,10 +82,43 @@ export default function ActivePage() {
     load();
   }, [load]);
 
+  // Load the current user's default performer profile (for GigFit matching)
+  useEffect(() => {
+    (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return;
+      const { data } = await supabase
+        .from("performer_profiles")
+        .select("*")
+        .eq("user_id", auth.user.id)
+        .order("is_default", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) setProfile(data as PerformerProfile);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 250);
     return () => clearTimeout(t);
   }, [search]);
+
+  // GigFit result per opportunity (only when a profile exists)
+  const fitById = useMemo(() => {
+    const map = new Map<string, GigFitResult>();
+    if (!profile) return map;
+    for (const o of opps) {
+      map.set(
+        o.id,
+        evaluateGigFit(
+          { match_state: o.match_state, pay_min: o.pay_min, casting_specs: o.casting_specs },
+          profile
+        )
+      );
+    }
+    return map;
+  }, [opps, profile]);
 
   const availableStates = useMemo(() => {
     const set = new Set<string>();
@@ -102,6 +144,10 @@ export default function ActivePage() {
           .filter(Boolean).join(" ").toLowerCase().includes(q)
       );
     }
+    // "Matches me": keep only gigs the profile is eligible for
+    if (matchesMe && profile) {
+      list = list.filter((o) => fitById.get(o.id)?.eligible);
+    }
     const sorted = [...list];
     if (sort === "recent") {
       sorted.sort((a, b) => (b.posted_at ?? "").localeCompare(a.posted_at ?? ""));
@@ -111,7 +157,7 @@ export default function ActivePage() {
       sorted.sort((a, b) => cmpDateAsc(a.apply_by, b.apply_by));
     }
     return sorted;
-  }, [opps, filters, debouncedSearch, sort]);
+  }, [opps, filters, debouncedSearch, sort, matchesMe, profile, fitById]);
 
   // Auto-select first visible if nothing selected (or selection filtered out)
   useEffect(() => {
@@ -258,19 +304,34 @@ export default function ActivePage() {
           </select>
         </div>
 
-        <FilterChips
-          filters={filters}
-          onChange={setFilters}
-          availableStates={availableStates}
-          availableSources={availableSources}
-        />
+        <div className="flex items-center gap-2 flex-wrap">
+          <FilterChips
+            filters={filters}
+            onChange={setFilters}
+            availableStates={availableStates}
+            availableSources={availableSources}
+          />
+          {profile && (
+            <button
+              type="button"
+              onClick={() => setMatchesMe((v) => !v)}
+              className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
+                matchesMe
+                  ? "bg-green-600 border-green-600 text-white"
+                  : "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400"
+              }`}
+            >
+              ✓ Matches me
+            </button>
+          )}
+        </div>
 
         <div className="text-xs text-zinc-500 dark:text-zinc-400">
           {loading
             ? "Loading..."
             : `${visible.length} of ${opps.length} active ${
                 opps.length === 1 ? "opportunity" : "opportunities"
-              }`}
+              }${matchesMe ? " · matching your profile" : ""}`}
         </div>
       </div>
 
@@ -294,6 +355,7 @@ export default function ActivePage() {
                   opp={opp}
                   selected={opp.id === selectedId}
                   onSelect={() => openSheet(opp.id)}
+                  fit={fitById.get(opp.id) ?? null}
                 />
               ))}
             </div>
@@ -303,7 +365,11 @@ export default function ActivePage() {
         {/* Right: detail pane (desktop only) */}
         <div className="hidden md:block flex-1 min-w-0 overflow-y-auto">
           {selected ? (
-            <OpportunityCard opp={selected} actions={actionButtons} />
+            <OpportunityCard
+              opp={selected}
+              actions={actionButtons}
+              fit={selectedId ? fitById.get(selectedId) ?? null : null}
+            />
           ) : (
             <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400 text-sm">
               Select an opportunity to view details
@@ -368,7 +434,10 @@ export default function ActivePage() {
               onTouchEnd={onTouchEnd}
               className="flex-1 overflow-y-auto overscroll-none p-4"
             >
-              <OpportunityCard opp={selected} />
+              <OpportunityCard
+                opp={selected}
+                fit={selectedId ? fitById.get(selectedId) ?? null : null}
+              />
             </div>
           </div>
         </div>

@@ -2,6 +2,21 @@
 
 import { useState } from "react";
 import type { Opportunity } from "@/lib/types";
+import type { GigFitResult } from "@/lib/gigfit";
+
+const FIT_CLASS: Record<string, string> = {
+  green: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 border-green-300 dark:border-green-800",
+  blue: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-300 dark:border-blue-800",
+  zinc: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-300 dark:border-zinc-700",
+  amber: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-300 dark:border-amber-800",
+};
+
+// Join an array of tags into a readable string; return null if empty.
+function joinTags(v: unknown): string | null {
+  if (Array.isArray(v)) return v.length ? v.join(", ") : null;
+  if (typeof v === "string" && v.trim()) return v;
+  return null;
+}
 
 function Badge({
   children,
@@ -161,12 +176,14 @@ export default function OpportunityCard({
   opp,
   actions,
   showRawText,
+  fit,
 }: {
   opp: Opportunity;
   actions?: React.ReactNode;
   showRawText?: string | null;
+  fit?: GigFitResult | null;
 }) {
-  const specs = opp.casting_specs;
+  const specs = opp.casting_specs as Record<string, unknown> | null;
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const postedAgo = relativeTime(opp.posted_at);
@@ -215,6 +232,23 @@ export default function OpportunityCard({
         {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
       </div>
 
+      {/* GigFit banner */}
+      {fit && (
+        <div className={`flex items-center gap-2 flex-wrap rounded-lg border px-3 py-2 text-sm ${FIT_CLASS[fit.color]}`}>
+          <span className="font-semibold">
+            {fit.tier === "strong" ? "★ " : ""}{fit.label}
+          </span>
+          {fit.eligible && fit.matched.length > 0 && (
+            <span className="text-xs opacity-80">
+              matches your {fit.matched.join(", ")}
+            </span>
+          )}
+          {!fit.eligible && fit.blockers.length > 0 && (
+            <span className="text-xs opacity-80">{fit.blockers.join(" · ")}</span>
+          )}
+        </div>
+      )}
+
       {opp.summary && (
         <p className="text-sm text-zinc-700 dark:text-zinc-300">{opp.summary}</p>
       )}
@@ -248,20 +282,31 @@ export default function OpportunityCard({
 
       {specs && Object.keys(specs).length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {specs.gender && <Badge color="zinc">Gender: {specs.gender}</Badge>}
-          {specs.age_min != null && specs.age_max != null && (
+          {joinTags(specs.gender) && (
+            <Badge color="zinc">Gender: {joinTags(specs.gender)}</Badge>
+          )}
+          {(specs.age_min != null || specs.age_max != null) && (
             <Badge color="zinc">
-              Age: {specs.age_min}-{specs.age_max}
+              Age: {specs.age_min != null ? String(specs.age_min) : "any"}
+              {"–"}
+              {specs.age_max != null ? String(specs.age_max) : "any"}
             </Badge>
           )}
-          {specs.ethnicity && (
-            <Badge color="zinc">Ethnicity: {specs.ethnicity}</Badge>
+          {joinTags(specs.ethnicity) && (
+            <Badge color="zinc">Ethnicity: {joinTags(specs.ethnicity)}</Badge>
           )}
-          {specs.vehicle && <Badge color="zinc">Vehicle: {specs.vehicle}</Badge>}
-          {specs.union_status && (
-            <Badge color="zinc">Union: {specs.union_status}</Badge>
+          {joinTags(specs.work_type) && (
+            <Badge color="zinc">Type: {joinTags(specs.work_type)}</Badge>
           )}
-          {specs.skills && <Badge color="zinc">Skills: {specs.skills}</Badge>}
+          {joinTags(specs.union_status) && (
+            <Badge color="zinc">Union: {joinTags(specs.union_status)}</Badge>
+          )}
+          {joinTags(specs.vehicle) && (
+            <Badge color="zinc">Vehicle: {joinTags(specs.vehicle)}</Badge>
+          )}
+          {joinTags(specs.skills) && (
+            <Badge color="zinc">Skills: {joinTags(specs.skills)}</Badge>
+          )}
         </div>
       )}
 

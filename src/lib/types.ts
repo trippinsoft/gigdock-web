@@ -9,8 +9,10 @@ export interface Opportunity {
   status: "draft" | "active" | "expired" | "hidden";
   pay_rate: string | null;
   pay_bumps: string | null;
+  pay_min: number | null;
   requirements: string | null;
-  casting_specs: CastingSpecs | null;
+  casting_specs: CastingCriteria | null;
+  match_state: string | null;
   apply_by: string | null;
   application_info: string | null;
   link: string | null;
@@ -27,14 +29,17 @@ export interface Opportunity {
   image_url: string | null;
 }
 
-export interface CastingSpecs {
-  gender?: string;
+// Normalized matching criteria emitted by the extraction pipeline.
+// Empty / omitted fields mean the gig is open on that dimension.
+export interface CastingCriteria {
+  gender?: string[];          // "male" | "female" | "non-binary"
   age_min?: number;
   age_max?: number;
-  ethnicity?: string;
-  vehicle?: string;
-  skills?: string;
-  union_status?: string;
+  ethnicity?: string[];
+  union_status?: string;      // "sag-aftra" | "non-union" | "either"
+  work_type?: string;         // "background" | "featured" | ...
+  skills?: string[];
+  vehicle?: string[];
 }
 
 export interface RawIngestion {
