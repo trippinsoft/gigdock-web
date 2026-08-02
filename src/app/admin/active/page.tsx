@@ -65,9 +65,10 @@ export default function ActivePage() {
   const [sheetVisible, setSheetVisible] = useState(false);
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
-  const touchStartY = useRef<number | null>(null);
-  const dragEligible = useRef(true);
+  const dragYRef = useRef(0);
+  const sheetRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
 
   const supabase = createSupabaseBrowser();
 
@@ -222,47 +223,102 @@ export default function ActivePage() {
   const closeSheet = useCallback(() => {
     setSheetVisible(false);
     setDragY(0);
+    dragYRef.current = 0;
     setDragging(false);
     setTimeout(() => setSheetMounted(false), 300);
   }, []);
 
-  // Lock the page behind any open sheet: no background scroll / pull-to-refresh.
+  // Lock the page behind any open sheet. position:fixed is the only reliable
+  // way to take the document out of the scroll chain on iOS Safari — plain
+  // overflow:hidden still lets pull-to-refresh through.
   useEffect(() => {
     if (!sheetMounted && !filtersOpen) return;
     const body = document.body;
-    const prevOverflow = body.style.overflow;
-    const prevOverscroll = body.style.overscrollBehavior;
+    const html = document.documentElement;
+    const scrollY = window.scrollY;
+    const prev = {
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+      overflow: body.style.overflow,
+      overscroll: html.style.overscrollBehavior,
+    };
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
     body.style.overflow = "hidden";
-    body.style.overscrollBehavior = "none";
+    html.style.overscrollBehavior = "none";
     return () => {
-      body.style.overflow = prevOverflow;
-      body.style.overscrollBehavior = prevOverscroll;
+      body.style.position = prev.position;
+      body.style.top = prev.top;
+      body.style.width = prev.width;
+      body.style.overflow = prev.overflow;
+      html.style.overscrollBehavior = prev.overscroll;
+      window.scrollTo(0, scrollY);
     };
   }, [sheetMounted, filtersOpen]);
 
-  function handleTouchStart(fromContent: boolean) {
-    return (e: React.TouchEvent) => {
-      touchStartY.current = e.touches[0].clientY;
-      dragEligible.current = fromContent
-        ? (contentRef.current?.scrollTop ?? 0) <= 0
-        : true;
-      setDragging(true);
+  // Drag-to-dismiss via NATIVE non-passive listeners. React's onTouchMove is
+  // passive, so preventDefault() there is a no-op — which is why the browser's
+  // pull-to-refresh intermittently won the gesture.
+  useEffect(() => {
+    const el = sheetRef.current;
+    if (!sheetMounted || !el) return;
+
+    let startY = 0;
+    let active = false;
+    let fromContent = false;
+
+    const onStart = (e: TouchEvent) => {
+      const target = e.target as Node;
+      fromContent = !!contentRef.current?.contains(target);
+      const fromHeader = !!headerRef.current?.contains(target);
+      // Header always drags. Content drags only when already scrolled to top.
+      active = fromHeader || (fromContent && (contentRef.current?.scrollTop ?? 0) <= 0);
+      startY = e.touches[0].clientY;
+      if (active) setDragging(true);
     };
-  }
-  function onTouchMove(e: React.TouchEvent) {
-    if (touchStartY.current === null || !dragEligible.current) return;
-    const delta = e.touches[0].clientY - touchStartY.current;
-    setDragY(delta > 0 ? delta : 0);
-  }
-  function onTouchEnd() {
-    if (dragEligible.current && dragY > DISMISS_THRESHOLD) {
-      closeSheet();
-    } else {
-      setDragY(0);
-      setDragging(false);
-    }
-    touchStartY.current = null;
-  }
+
+    const onMove = (e: TouchEvent) => {
+      if (!active) return;
+      const delta = e.touches[0].clientY - startY;
+      if (delta > 0) {
+        // Cancel the browser gesture so pull-to-refresh can't fire.
+        if (e.cancelable) e.preventDefault();
+        dragYRef.current = delta;
+        setDragY(delta);
+      } else if (fromContent) {
+        // Dragging up inside content — hand the gesture back to scrolling.
+        active = false;
+        dragYRef.current = 0;
+        setDragY(0);
+        setDragging(false);
+      }
+    };
+
+    const onEnd = () => {
+      if (!active) return;
+      active = false;
+      if (dragYRef.current > DISMISS_THRESHOLD) {
+        closeSheet();
+      } else {
+        dragYRef.current = 0;
+        setDragY(0);
+        setDragging(false);
+      }
+    };
+
+    el.addEventListener("touchstart", onStart, { passive: true });
+    el.addEventListener("touchmove", onMove, { passive: false });
+    el.addEventListener("touchend", onEnd);
+    el.addEventListener("touchcancel", onEnd);
+    return () => {
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchmove", onMove);
+      el.removeEventListener("touchend", onEnd);
+      el.removeEventListener("touchcancel", onEnd);
+    };
+  }, [sheetMounted, closeSheet]);
 
   async function hide(id: string) {
     setActionLoading(id);
@@ -486,6 +542,7 @@ export default function ActivePage() {
             onClick={closeSheet}
           />
           <div
+            ref={sheetRef}
             className={`absolute inset-x-0 bottom-0 top-14 bg-zinc-50 dark:bg-zinc-950 rounded-t-2xl overflow-hidden flex flex-col shadow-2xl ${
               dragging ? "" : "transition-transform duration-300 ease-out"
             }`}
@@ -494,9 +551,7 @@ export default function ActivePage() {
             }}
           >
             <div
-              onTouchStart={handleTouchStart(false)}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
+              ref={headerRef}
               className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 touch-none select-none"
             >
               <div className="flex justify-center pt-2.5 pb-1">
@@ -517,10 +572,7 @@ export default function ActivePage() {
 
             <div
               ref={contentRef}
-              onTouchStart={handleTouchStart(true)}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
-              className="flex-1 overflow-y-auto overscroll-none p-4"
+              className="flex-1 overflow-y-auto overscroll-contain p-4"
             >
               <OpportunityCard
                 opp={selected}
