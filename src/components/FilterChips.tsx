@@ -463,17 +463,22 @@ export function applyFilters<T extends FilterableOpp>(items: T[], filters: Filte
     if (sourceSet && (!item.source || !sourceSet.has(item.source))) return false;
 
     const specs = item.casting_specs ?? {};
+    // Gender / union are ELIGIBILITY filters: a gig with no stated value is open
+    // to everyone, so it stays visible. Only an explicit, conflicting value hides it.
     if (filters.gender) {
       const arr = Array.isArray(specs.gender) ? (specs.gender as string[]) : [];
-      if (!arr.map(canonGender).includes(filters.gender)) return false;
-    }
-    if (filters.workType) {
-      const wt = typeof specs.work_type === "string" ? specs.work_type.toLowerCase() : "";
-      if (wt !== filters.workType) return false;
+      const open = arr.length === 0; // no gender stated = open to all
+      if (!open && !arr.map(canonGender).includes(filters.gender)) return false;
     }
     if (filters.union) {
       const u = typeof specs.union_status === "string" ? canonUnion(specs.union_status) : "";
-      if (u !== filters.union) return false;
+      const open = u === "" || u === "either"; // unspecified or "either" = open
+      if (!open && u !== filters.union) return false;
+    }
+    // Work type is a CATEGORY, not eligibility — stay strict (exact match only).
+    if (filters.workType) {
+      const wt = typeof specs.work_type === "string" ? specs.work_type.toLowerCase() : "";
+      if (wt !== filters.workType) return false;
     }
     if (filters.payMin != null) {
       if (item.pay_min == null || item.pay_min < filters.payMin) return false;
