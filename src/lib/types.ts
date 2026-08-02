@@ -65,6 +65,7 @@ export interface Source {
   name: string;
   url: string | null;
   active: boolean;
+  trusted: boolean;
   last_polled_at: string | null;
   last_item_at: string | null;
   created_at: string;

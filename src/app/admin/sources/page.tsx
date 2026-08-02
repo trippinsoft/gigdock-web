@@ -64,6 +64,18 @@ export default function SourcesPage() {
     );
   }
 
+  // Trust gate for auto-activation: trusted sources' clean posts go straight to
+  // active; untrusted ones are held in Review.
+  async function toggleTrusted(source: Source) {
+    await supabase
+      .from("sources")
+      .update({ trusted: !source.trusted })
+      .eq("id", source.id);
+    setSources((prev) =>
+      prev.map((s) => (s.id === source.id ? { ...s, trusted: !s.trusted } : s))
+    );
+  }
+
   async function saveEdit(id: string) {
     await supabase
       .from("sources")
@@ -253,6 +265,15 @@ export default function SourcesPage() {
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
                         {source.type}
                       </span>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                          source.trusted
+                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
+                            : "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
+                        }`}
+                      >
+                        {source.trusted ? "✓ trusted" : "review"}
+                      </span>
                     </div>
                     {source.url && (
                       <p className="text-xs text-zinc-400 mt-1 truncate">
@@ -306,6 +327,21 @@ export default function SourcesPage() {
                       className="px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
                     >
                       Edit
+                    </button>
+                    <button
+                      onClick={() => toggleTrusted(source)}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                        source.trusted
+                          ? "text-amber-600 dark:text-amber-400 border border-amber-300 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/30"
+                          : "text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                      }`}
+                      title={
+                        source.trusted
+                          ? "Untrust: new posts from this source will be held in Review"
+                          : "Trust: clean new posts from this source will auto-activate"
+                      }
+                    >
+                      {source.trusted ? "Untrust" : "Trust"}
                     </button>
                     <button
                       onClick={() => toggleActive(source)}
