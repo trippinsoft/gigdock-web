@@ -359,23 +359,6 @@ export default function ProfilePage() {
         </div>
       </Section>
 
-      {/* Notifications */}
-      <Section title="Alerts" hint="Get notified when a new gig matches this profile.">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={draft.notify_matches}
-            onChange={(e) =>
-              setDraft((d) => ({ ...d, notify_matches: e.target.checked }))
-            }
-            className="rounded text-blue-600 focus:ring-blue-500 w-5 h-5"
-          />
-          <span className="text-sm text-zinc-700 dark:text-zinc-300">
-            Notify me of new matches
-          </span>
-        </label>
-      </Section>
-
       {/* Save */}
       <div className="flex items-center gap-3 sticky bottom-0 bg-zinc-50 dark:bg-zinc-950 py-3 border-t border-zinc-200 dark:border-zinc-800">
         <button
