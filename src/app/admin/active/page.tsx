@@ -25,8 +25,8 @@ type SortKey = "recent" | "shoot-date" | "apply-by";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "recent", label: "Most recent" },
-  { value: "shoot-date", label: "Shoot date (soonest)" },
-  { value: "apply-by", label: "Apply deadline (soonest)" },
+  { value: "shoot-date", label: "Shoot date" },
+  { value: "apply-by", label: "Apply deadline" },
 ];
 
 function cmpDateAsc(a: string | null, b: string | null): number {
@@ -313,36 +313,35 @@ export default function ActivePage() {
     <div className="flex flex-col h-[calc(100vh-8rem)]">
       {/* Toolbar */}
       <div className="space-y-2 pb-3 border-b border-zinc-200 dark:border-zinc-800">
-        {/* Row 1: search + sort */}
-        <div className="flex gap-2">
-          <div className="relative flex-1 min-w-0">
+        {/* Search + sort + GigFit (+ filters on mobile).
+            flex-wrap keeps this one line on desktop, two on narrow screens. */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="relative flex-1 min-w-[150px] max-w-xs">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">🔍</span>
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search opportunities..."
+              placeholder="Search..."
               className="w-full pl-9 pr-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as SortKey)}
-            className="px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-2.5 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             {SORT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
-        </div>
 
-        {/* Row 2: GigFit context + (mobile) filters button */}
-        <div className="flex gap-2 items-center">
           {profiles.length > 0 && (
             <select
               value={gigfitProfileId ?? ""}
               onChange={(e) => setGigfitProfileId(e.target.value || null)}
-              className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
+              className={`text-sm px-2.5 py-2 rounded-lg border shrink-0 transition-colors ${
                 gigfitOn
                   ? "bg-green-600 border-green-600 text-white"
                   : "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
@@ -350,7 +349,7 @@ export default function ActivePage() {
             >
               <option value="">GigFit: Off</option>
               {profiles.map((p) => (
-                <option key={p.id} value={p.id}>GigFit for: {p.label}</option>
+                <option key={p.id} value={p.id}>GigFit: {p.label}</option>
               ))}
             </select>
           )}
@@ -359,9 +358,9 @@ export default function ActivePage() {
           <button
             type="button"
             onClick={() => setFiltersOpen(true)}
-            className="md:hidden inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
+            className="md:hidden inline-flex items-center gap-1.5 text-sm px-2.5 py-2 rounded-lg border bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 shrink-0"
           >
-            ⚙ Filters
+            ⚙
             {filterCount > 0 && (
               <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 text-xs font-medium bg-blue-600 text-white rounded-full">
                 {filterCount}
