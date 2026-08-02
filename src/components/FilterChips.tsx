@@ -6,10 +6,15 @@ export type WorkDateRange = "all" | "today" | "week" | "two-weeks" | "month";
 export type DatePostedRange = "any" | "today" | "3days" | "week";
 
 export type Filters = {
-  state: string | null; // 2-letter US state / CA province code, or null = all
+  state: string | null;          // 2-letter US state / CA province, or null = all
   datePosted: DatePostedRange;
   workDateRange: WorkDateRange;
-  sources: string[]; // empty array = all sources
+  sources: string[];             // empty = all sources
+  // Casting-criteria filters (manual; independent of profile matching)
+  gender: string | null;         // "male" | "female" | "non-binary"
+  union: string | null;          // "sag-aftra" | "non-union"
+  workType: string | null;       // controlled work type
+  payMin: number | null;         // roles paying at least this $
 };
 
 export const EMPTY_FILTERS: Filters = {
@@ -17,12 +22,14 @@ export const EMPTY_FILTERS: Filters = {
   datePosted: "any",
   workDateRange: "all",
   sources: [],
+  gender: null,
+  union: null,
+  workType: null,
+  payMin: null,
 };
 
 /**
  * Extract 2-letter state/province code from a location string.
- * Handles "Chicago, IL", "Midtown, Atlanta, GA", "Toronto, ON",
- * "Atlanta, GA (in-studio) / Nationwide" etc. Returns the LAST match.
  */
 export function extractState(location: string | null): string | null {
   if (!location) return null;
@@ -30,7 +37,6 @@ export function extractState(location: string | null): string | null {
   return matches.length > 0 ? matches[matches.length - 1][1] : null;
 }
 
-/** Friendly state name lookup (US + CA). Falls back to code alone. */
 const STATE_NAMES: Record<string, string> = {
   AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California",
   CO: "Colorado", CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia",
@@ -68,12 +74,47 @@ const WORK_DATE_OPTIONS: { value: WorkDateRange; label: string }[] = [
   { value: "month", label: "This month" },
 ];
 
+const GENDER_OPTIONS: { value: string; label: string }[] = [
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+  { value: "non-binary", label: "Non-binary" },
+];
+
+const UNION_OPTIONS: { value: string; label: string }[] = [
+  { value: "sag-aftra", label: "SAG-AFTRA" },
+  { value: "non-union", label: "Non-union" },
+];
+
+const WORK_TYPE_OPTIONS: { value: string; label: string }[] = [
+  { value: "background", label: "Background" },
+  { value: "featured", label: "Featured" },
+  { value: "stand-in", label: "Stand-in" },
+  { value: "photo-double", label: "Photo double" },
+  { value: "principal", label: "Principal" },
+  { value: "voice-over", label: "Voice-over" },
+  { value: "live-music", label: "Live music" },
+  { value: "brand-ambassador", label: "Brand ambassador" },
+  { value: "model", label: "Model" },
+  { value: "other", label: "Other" },
+];
+
+const PAY_OPTIONS: { value: number; label: string }[] = [
+  { value: 100, label: "$100+" },
+  { value: 250, label: "$250+" },
+  { value: 500, label: "$500+" },
+  { value: 1000, label: "$1,000+" },
+];
+
 export function activeFilterCount(f: Filters): number {
   return (
     (f.state ? 1 : 0) +
     (f.datePosted === "any" ? 0 : 1) +
     (f.workDateRange === "all" ? 0 : 1) +
-    (f.sources.length > 0 ? 1 : 0)
+    (f.sources.length > 0 ? 1 : 0) +
+    (f.gender ? 1 : 0) +
+    (f.union ? 1 : 0) +
+    (f.workType ? 1 : 0) +
+    (f.payMin ? 1 : 0)
   );
 }
 
@@ -85,7 +126,24 @@ function chipClass(selected: boolean) {
   }`;
 }
 
-/** Multi-select dropdown for sources — chip button that opens a checkbox popover */
+/* ---- lenient canonicalizers for filter matching (tolerate old free-form data) ---- */
+function canonGender(g: string): string {
+  const s = g.toLowerCase().trim();
+  if (["male", "males", "man", "men", "m", "boy", "boys"].includes(s)) return "male";
+  if (["female", "females", "woman", "women", "f", "girl", "girls"].includes(s)) return "female";
+  if (["non-binary", "nonbinary", "non binary", "nb", "enby"].includes(s)) return "non-binary";
+  return s;
+}
+function canonUnion(u: string): string {
+  const s = u.toLowerCase().trim();
+  if (!s) return "";
+  if (s.includes("non")) return "non-union";
+  if (s.includes("sag") || s.includes("aftra")) return "sag-aftra";
+  if (s.includes("either") || s.includes("both") || s.includes("any")) return "either";
+  return s;
+}
+
+/** Multi-select dropdown for sources */
 function SourceFilter({
   available,
   selected,
@@ -113,25 +171,15 @@ function SourceFilter({
 
   return (
     <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className={chipClass(selected.length > 0)}
-      >
+      <button type="button" onClick={() => setOpen((o) => !o)} className={chipClass(selected.length > 0)}>
         {label} ▾
       </button>
       {open && (
         <>
-          {/* Click-out backdrop */}
-          <div
-            className="fixed inset-0 z-30"
-            onClick={() => setOpen(false)}
-          />
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
           <div className="absolute z-40 mt-2 left-0 min-w-[240px] max-w-[320px] max-h-72 overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl p-2">
             {available.length === 0 ? (
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 p-2">
-                No sources yet
-              </p>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 p-2">No sources yet</p>
             ) : (
               <>
                 <div className="space-y-1">
@@ -195,10 +243,52 @@ export default function FilterChips({
       </select>
 
       <select
+        value={filters.gender ?? ""}
+        onChange={(e) => onChange({ ...filters, gender: e.target.value || null })}
+        className={chipClass(!!filters.gender)}
+      >
+        <option value="">👤 Any gender</option>
+        {GENDER_OPTIONS.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+
+      <select
+        value={filters.workType ?? ""}
+        onChange={(e) => onChange({ ...filters, workType: e.target.value || null })}
+        className={chipClass(!!filters.workType)}
+      >
+        <option value="">🎬 Any type</option>
+        {WORK_TYPE_OPTIONS.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+
+      <select
+        value={filters.union ?? ""}
+        onChange={(e) => onChange({ ...filters, union: e.target.value || null })}
+        className={chipClass(!!filters.union)}
+      >
+        <option value="">🎭 Any union</option>
+        {UNION_OPTIONS.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+
+      <select
+        value={filters.payMin ?? ""}
+        onChange={(e) => onChange({ ...filters, payMin: e.target.value ? Number(e.target.value) : null })}
+        className={chipClass(!!filters.payMin)}
+      >
+        <option value="">💰 Any pay</option>
+        {PAY_OPTIONS.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+
+      <select
         value={filters.datePosted}
-        onChange={(e) =>
-          onChange({ ...filters, datePosted: e.target.value as DatePostedRange })
-        }
+        onChange={(e) => onChange({ ...filters, datePosted: e.target.value as DatePostedRange })}
         className={chipClass(filters.datePosted !== "any")}
       >
         {DATE_POSTED_OPTIONS.map((o) => (
@@ -208,9 +298,7 @@ export default function FilterChips({
 
       <select
         value={filters.workDateRange}
-        onChange={(e) =>
-          onChange({ ...filters, workDateRange: e.target.value as WorkDateRange })
-        }
+        onChange={(e) => onChange({ ...filters, workDateRange: e.target.value as WorkDateRange })}
         className={chipClass(filters.workDateRange !== "all")}
       >
         {WORK_DATE_OPTIONS.map((o) => (
@@ -237,9 +325,20 @@ export default function FilterChips({
   );
 }
 
-export function applyFilters<
-  T extends { location: string | null; work_date: string | null; posted_at: string; source: string | null }
->(items: T[], filters: Filters): T[] {
+type FilterableOpp = {
+  location: string | null;
+  work_date: string | null;
+  posted_at: string;
+  source: string | null;
+  pay_min?: number | null;
+  casting_specs?: {
+    gender?: unknown;
+    union_status?: unknown;
+    work_type?: unknown;
+  } | null;
+};
+
+export function applyFilters<T extends FilterableOpp>(items: T[], filters: Filters): T[] {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayStr = today.toISOString().slice(0, 10);
@@ -271,18 +370,36 @@ export function applyFilters<
 
   return items.filter((item) => {
     if (filters.state) {
-      const st = extractState(item.location);
-      if (st !== filters.state) return false;
+      if (extractState(item.location) !== filters.state) return false;
     }
     if (workEnd && filters.workDateRange !== "all") {
       if (!item.work_date) return false;
       if (item.work_date < todayStr || item.work_date > workEnd) return false;
     }
     if (postedCutoff !== null) {
-      const posted = new Date(item.posted_at).getTime();
-      if (posted < postedCutoff) return false;
+      if (new Date(item.posted_at).getTime() < postedCutoff) return false;
     }
     if (sourceSet && (!item.source || !sourceSet.has(item.source))) return false;
+
+    // ── Casting-criteria filters (strict: the gig must specify the value) ──
+    const specs = item.casting_specs ?? {};
+
+    if (filters.gender) {
+      const arr = Array.isArray(specs.gender) ? (specs.gender as string[]) : [];
+      if (!arr.map(canonGender).includes(filters.gender)) return false;
+    }
+    if (filters.workType) {
+      const wt = typeof specs.work_type === "string" ? specs.work_type.toLowerCase() : "";
+      if (wt !== filters.workType) return false;
+    }
+    if (filters.union) {
+      const u = typeof specs.union_status === "string" ? canonUnion(specs.union_status) : "";
+      if (u !== filters.union) return false;
+    }
+    if (filters.payMin != null) {
+      if (item.pay_min == null || item.pay_min < filters.payMin) return false;
+    }
+
     return true;
   });
 }

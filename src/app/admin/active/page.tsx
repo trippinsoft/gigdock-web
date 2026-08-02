@@ -13,8 +13,8 @@ import FilterChips, {
   type Filters,
 } from "@/components/FilterChips";
 import {
-  evaluateGigFit,
   type GigFitResult,
+  type GigFitRow,
   type PerformerProfile,
 } from "@/lib/gigfit";
 
@@ -48,9 +48,11 @@ export default function ActivePage() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // GigFit: the viewer's performer profile + "matches me" toggle
+  // GigFit: the viewer's performer profile + "matches me" toggle.
+  // Matching itself runs server-side (the gigfit() RPC); we only cache results.
   const [profile, setProfile] = useState<PerformerProfile | null>(null);
   const [matchesMe, setMatchesMe] = useState(false);
+  const [fitById, setFitById] = useState<Map<string, GigFitResult>>(new Map());
 
   // Bottom-sheet state: `mounted` keeps it in the DOM; `visible` drives the
   // slide transform; `dragY` follows the finger during a swipe-to-dismiss.
@@ -104,21 +106,36 @@ export default function ActivePage() {
     return () => clearTimeout(t);
   }, [search]);
 
-  // GigFit result per opportunity (only when a profile exists)
-  const fitById = useMemo(() => {
-    const map = new Map<string, GigFitResult>();
-    if (!profile) return map;
-    for (const o of opps) {
-      map.set(
-        o.id,
-        evaluateGigFit(
-          { match_state: o.match_state, pay_min: o.pay_min, casting_specs: o.casting_specs },
-          profile
-        )
-      );
-    }
-    return map;
-  }, [opps, profile]);
+  // GigFit results per opportunity, computed server-side via the gigfit() RPC.
+  // Re-runs when the profile changes or the opportunity set reloads.
+  useEffect(() => {
+    (async () => {
+      if (!profile) {
+        setFitById(new Map());
+        return;
+      }
+      const { data, error } = await supabase.rpc("gigfit", {
+        p_profile_id: profile.id,
+      });
+      if (error) {
+        setFitById(new Map());
+        return;
+      }
+      const map = new Map<string, GigFitResult>();
+      for (const row of (data ?? []) as GigFitRow[]) {
+        map.set(row.opportunity_id, {
+          eligible: row.eligible,
+          tier: row.tier,
+          label: row.label,
+          color: row.color,
+          matched: row.matched ?? [],
+          blockers: row.blockers ?? [],
+        });
+      }
+      setFitById(map);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile, opps]);
 
   const availableStates = useMemo(() => {
     const set = new Set<string>();
