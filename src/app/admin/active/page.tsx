@@ -9,6 +9,7 @@ import EditOpportunityModal from "@/components/EditOpportunityModal";
 import FilterChips, {
   EMPTY_FILTERS,
   applyFilters,
+  activeFilterCount,
   extractState,
   type Filters,
 } from "@/components/FilterChips";
@@ -33,7 +34,7 @@ function cmpDateAsc(a: string | null, b: string | null): number {
   return a < b ? -1 : 1;
 }
 
-// How far (px) the user must drag the sheet down before it dismisses on release.
+// How far (px) the user must drag a sheet down before it dismisses on release.
 const DISMISS_THRESHOLD = 110;
 
 export default function ActivePage() {
@@ -48,14 +49,16 @@ export default function ActivePage() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // GigFit: the viewer's performer profile + "matches me" toggle.
-  // Matching itself runs server-side (the gigfit() RPC); we only cache results.
-  const [profile, setProfile] = useState<PerformerProfile | null>(null);
-  const [matchesMe, setMatchesMe] = useState(false);
+  // GigFit context: which performer profile are we viewing through?
+  // null = "Off" (no badges, no eligibility filtering).
+  const [profiles, setProfiles] = useState<PerformerProfile[]>([]);
+  const [gigfitProfileId, setGigfitProfileId] = useState<string | null>(null);
   const [fitById, setFitById] = useState<Map<string, GigFitResult>>(new Map());
 
-  // Bottom-sheet state: `mounted` keeps it in the DOM; `visible` drives the
-  // slide transform; `dragY` follows the finger during a swipe-to-dismiss.
+  // Mobile filter sheet
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // Detail bottom-sheet state
   const [sheetMounted, setSheetMounted] = useState(false);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [dragY, setDragY] = useState(0);
@@ -84,7 +87,7 @@ export default function ActivePage() {
     load();
   }, [load]);
 
-  // Load the current user's default performer profile (for GigFit matching)
+  // Load the user's performer profiles; default to the flagged one.
   useEffect(() => {
     (async () => {
       const { data: auth } = await supabase.auth.getUser();
@@ -93,10 +96,10 @@ export default function ActivePage() {
         .from("performer_profiles")
         .select("*")
         .eq("user_id", auth.user.id)
-        .order("is_default", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (data) setProfile(data as PerformerProfile);
+        .order("is_default", { ascending: false });
+      const list = (data ?? []) as PerformerProfile[];
+      setProfiles(list);
+      if (list.length > 0) setGigfitProfileId(list[0].id);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -106,16 +109,15 @@ export default function ActivePage() {
     return () => clearTimeout(t);
   }, [search]);
 
-  // GigFit results per opportunity, computed server-side via the gigfit() RPC.
-  // Re-runs when the profile changes or the opportunity set reloads.
+  // GigFit results, computed server-side via the gigfit() RPC.
   useEffect(() => {
     (async () => {
-      if (!profile) {
+      if (!gigfitProfileId) {
         setFitById(new Map());
         return;
       }
       const { data, error } = await supabase.rpc("gigfit", {
-        p_profile_id: profile.id,
+        p_profile_id: gigfitProfileId,
       });
       if (error) {
         setFitById(new Map());
@@ -135,7 +137,14 @@ export default function ActivePage() {
       setFitById(map);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile, opps]);
+  }, [gigfitProfileId, opps]);
+
+  // When GigFit is off, eligibility filtering can't apply — clear it.
+  useEffect(() => {
+    if (!gigfitProfileId && filters.eligibleOnly) {
+      setFilters((f) => ({ ...f, eligibleOnly: false }));
+    }
+  }, [gigfitProfileId, filters.eligibleOnly]);
 
   const availableStates = useMemo(() => {
     const set = new Set<string>();
@@ -161,8 +170,7 @@ export default function ActivePage() {
           .filter(Boolean).join(" ").toLowerCase().includes(q)
       );
     }
-    // "Matches me": keep only gigs the profile is eligible for
-    if (matchesMe && profile) {
+    if (filters.eligibleOnly && gigfitProfileId) {
       list = list.filter((o) => fitById.get(o.id)?.eligible);
     }
     const sorted = [...list];
@@ -174,9 +182,8 @@ export default function ActivePage() {
       sorted.sort((a, b) => cmpDateAsc(a.apply_by, b.apply_by));
     }
     return sorted;
-  }, [opps, filters, debouncedSearch, sort, matchesMe, profile, fitById]);
+  }, [opps, filters, debouncedSearch, sort, gigfitProfileId, fitById]);
 
-  // Auto-select first visible if nothing selected (or selection filtered out)
   useEffect(() => {
     if (visible.length === 0) {
       setSelectedId(null);
@@ -192,13 +199,12 @@ export default function ActivePage() {
     [visible, selectedId]
   );
 
-  /* ---------- bottom sheet open/close ---------- */
+  /* ---------- detail bottom sheet ---------- */
 
   const openSheet = useCallback((id: string) => {
     setSelectedId(id);
     setDragY(0);
     setSheetMounted(true);
-    // Next frame: flip to visible so the transform transition runs.
     requestAnimationFrame(() => setSheetVisible(true));
   }, []);
 
@@ -206,13 +212,12 @@ export default function ActivePage() {
     setSheetVisible(false);
     setDragY(0);
     setDragging(false);
-    // Unmount after the slide-down transition finishes.
     setTimeout(() => setSheetMounted(false), 300);
   }, []);
 
-  // Lock the page behind the sheet: no background scroll, no pull-to-refresh.
+  // Lock the page behind any open sheet: no background scroll / pull-to-refresh.
   useEffect(() => {
-    if (!sheetMounted) return;
+    if (!sheetMounted && !filtersOpen) return;
     const body = document.body;
     const prevOverflow = body.style.overflow;
     const prevOverscroll = body.style.overscrollBehavior;
@@ -222,12 +227,7 @@ export default function ActivePage() {
       body.style.overflow = prevOverflow;
       body.style.overscrollBehavior = prevOverscroll;
     };
-  }, [sheetMounted]);
-
-  /* ---------- swipe-to-dismiss ----------
-     Header drags always dismiss. Content drags dismiss only when the content
-     is scrolled to the very top (otherwise the touch scrolls the card, like a
-     native iOS / Indeed sheet). */
+  }, [sheetMounted, filtersOpen]);
 
   function handleTouchStart(fromContent: boolean) {
     return (e: React.TouchEvent) => {
@@ -241,13 +241,13 @@ export default function ActivePage() {
   function onTouchMove(e: React.TouchEvent) {
     if (touchStartY.current === null || !dragEligible.current) return;
     const delta = e.touches[0].clientY - touchStartY.current;
-    setDragY(delta > 0 ? delta : 0); // only downward
+    setDragY(delta > 0 ? delta : 0);
   }
   function onTouchEnd() {
     if (dragEligible.current && dragY > DISMISS_THRESHOLD) {
       closeSheet();
     } else {
-      setDragY(0); // snap back up
+      setDragY(0);
       setDragging(false);
     }
     touchStartY.current = null;
@@ -295,10 +295,14 @@ export default function ActivePage() {
     </>
   );
 
+  const filterCount = activeFilterCount(filters);
+  const gigfitOn = !!gigfitProfileId;
+
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
       {/* Toolbar */}
-      <div className="space-y-3 pb-3 border-b border-zinc-200 dark:border-zinc-800">
+      <div className="space-y-2 pb-3 border-b border-zinc-200 dark:border-zinc-800">
+        {/* Row 1: search + sort */}
         <div className="flex gap-2">
           <div className="relative flex-1 min-w-0">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">🔍</span>
@@ -321,26 +325,49 @@ export default function ActivePage() {
           </select>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Row 2: GigFit context + (mobile) filters button */}
+        <div className="flex gap-2 items-center">
+          {profiles.length > 0 && (
+            <select
+              value={gigfitProfileId ?? ""}
+              onChange={(e) => setGigfitProfileId(e.target.value || null)}
+              className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
+                gigfitOn
+                  ? "bg-green-600 border-green-600 text-white"
+                  : "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
+              }`}
+            >
+              <option value="">GigFit: Off</option>
+              {profiles.map((p) => (
+                <option key={p.id} value={p.id}>GigFit for: {p.label}</option>
+              ))}
+            </select>
+          )}
+
+          {/* Mobile-only: open the filter sheet */}
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            className="md:hidden inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
+          >
+            ⚙ Filters
+            {filterCount > 0 && (
+              <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 text-xs font-medium bg-blue-600 text-white rounded-full">
+                {filterCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Row 3 (desktop only): inline filter chips */}
+        <div className="hidden md:block">
           <FilterChips
             filters={filters}
             onChange={setFilters}
             availableStates={availableStates}
             availableSources={availableSources}
+            showEligibleOnly={gigfitOn}
           />
-          {profile && (
-            <button
-              type="button"
-              onClick={() => setMatchesMe((v) => !v)}
-              className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
-                matchesMe
-                  ? "bg-green-600 border-green-600 text-white"
-                  : "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400"
-              }`}
-            >
-              ✓ Matches me
-            </button>
-          )}
         </div>
 
         <div className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -348,13 +375,12 @@ export default function ActivePage() {
             ? "Loading..."
             : `${visible.length} of ${opps.length} active ${
                 opps.length === 1 ? "opportunity" : "opportunities"
-              }${matchesMe ? " · matching your profile" : ""}`}
+              }`}
         </div>
       </div>
 
       {/* Two-pane split (desktop) / list only (mobile) */}
       <div className="flex-1 flex min-h-0 mt-4 gap-4">
-        {/* Left: compact list */}
         <div className="w-full md:w-96 md:shrink-0 flex flex-col min-h-0">
           {loading ? (
             <div className="flex justify-center py-12">
@@ -395,41 +421,74 @@ export default function ActivePage() {
         </div>
       </div>
 
-      {/* Mobile bottom sheet (slides up, drag-to-dismiss) */}
+      {/* Mobile filter sheet */}
+      {filtersOpen && (
+        <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setFiltersOpen(false)} />
+          <div className="absolute inset-x-0 bottom-0 max-h-[85vh] bg-white dark:bg-zinc-900 rounded-t-2xl shadow-2xl flex flex-col">
+            <div className="flex justify-center pt-2.5 pb-1 shrink-0">
+              <div className="h-1.5 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+            </div>
+            <div className="flex items-center justify-between px-4 pb-3 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Filters</h3>
+              {filterCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setFilters(EMPTY_FILTERS)}
+                  className="text-sm text-blue-600 dark:text-blue-400"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
+            <div className="flex-1 overflow-y-auto overscroll-none px-4">
+              <FilterChips
+                filters={filters}
+                onChange={setFilters}
+                availableStates={availableStates}
+                availableSources={availableSources}
+                layout="stacked"
+                showEligibleOnly={gigfitOn}
+              />
+            </div>
+            <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 shrink-0">
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(false)}
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+              >
+                Show {visible.length} {visible.length === 1 ? "result" : "results"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile detail sheet (slides up, drag-to-dismiss) */}
       {sheetMounted && selected && (
         <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true">
-          {/* Backdrop (fades in; dims as the sheet is dragged down) */}
           <div
-            className={`absolute inset-0 bg-black/50 ${
-              dragging ? "" : "transition-opacity duration-300"
-            }`}
+            className={`absolute inset-0 bg-black/50 ${dragging ? "" : "transition-opacity duration-300"}`}
             style={{ opacity: sheetVisible ? Math.max(0, 1 - dragY / 400) : 0 }}
             onClick={closeSheet}
           />
-
-          {/* Sheet */}
           <div
             className={`absolute inset-x-0 bottom-0 top-14 bg-zinc-50 dark:bg-zinc-950 rounded-t-2xl overflow-hidden flex flex-col shadow-2xl ${
               dragging ? "" : "transition-transform duration-300 ease-out"
             }`}
             style={{
-              transform: sheetVisible
-                ? `translateY(${dragY}px)`
-                : "translateY(100%)",
+              transform: sheetVisible ? `translateY(${dragY}px)` : "translateY(100%)",
             }}
           >
-            {/* Grab handle + header — always a dismiss target */}
             <div
               onTouchStart={handleTouchStart(false)}
               onTouchMove={onTouchMove}
               onTouchEnd={onTouchEnd}
               className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 touch-none select-none"
             >
-              {/* Handle pill */}
               <div className="flex justify-center pt-2.5 pb-1">
                 <div className="h-1.5 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" />
               </div>
-              {/* Action row */}
               <div className="flex items-center justify-between px-4 pb-3">
                 <button
                   type="button"
@@ -443,7 +502,6 @@ export default function ActivePage() {
               </div>
             </div>
 
-            {/* Scrollable detail — drag down from the top edge also dismisses */}
             <div
               ref={contentRef}
               onTouchStart={handleTouchStart(true)}

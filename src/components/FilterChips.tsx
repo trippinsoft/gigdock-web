@@ -6,15 +6,16 @@ export type WorkDateRange = "all" | "today" | "week" | "two-weeks" | "month";
 export type DatePostedRange = "any" | "today" | "3days" | "week";
 
 export type Filters = {
-  state: string | null;          // 2-letter US state / CA province, or null = all
+  state: string | null;
   datePosted: DatePostedRange;
   workDateRange: WorkDateRange;
-  sources: string[];             // empty = all sources
-  // Casting-criteria filters (manual; independent of profile matching)
-  gender: string | null;         // "male" | "female" | "non-binary"
-  union: string | null;          // "sag-aftra" | "non-union"
-  workType: string | null;       // controlled work type
-  payMin: number | null;         // roles paying at least this $
+  sources: string[];
+  gender: string | null;
+  union: string | null;
+  workType: string | null;
+  payMin: number | null;
+  /** Hide opportunities the selected GigFit profile isn't eligible for. */
+  eligibleOnly: boolean;
 };
 
 export const EMPTY_FILTERS: Filters = {
@@ -26,11 +27,9 @@ export const EMPTY_FILTERS: Filters = {
   union: null,
   workType: null,
   payMin: null,
+  eligibleOnly: false,
 };
 
-/**
- * Extract 2-letter state/province code from a location string.
- */
 export function extractState(location: string | null): string | null {
   if (!location) return null;
   const matches = [...location.matchAll(/,\s*([A-Z]{2})(?=[\s,\-\/\(\)]|$)/g)];
@@ -59,14 +58,14 @@ export function stateLabel(code: string): string {
   return STATE_NAMES[code] ? `${STATE_NAMES[code]} (${code})` : code;
 }
 
-const DATE_POSTED_OPTIONS: { value: DatePostedRange; label: string }[] = [
+const DATE_POSTED_OPTIONS = [
   { value: "any", label: "Any time" },
   { value: "today", label: "Today" },
   { value: "3days", label: "Last 3 days" },
   { value: "week", label: "Last 7 days" },
 ];
 
-const WORK_DATE_OPTIONS: { value: WorkDateRange; label: string }[] = [
+const WORK_DATE_OPTIONS = [
   { value: "all", label: "Any date" },
   { value: "today", label: "Today" },
   { value: "week", label: "This week" },
@@ -74,18 +73,18 @@ const WORK_DATE_OPTIONS: { value: WorkDateRange; label: string }[] = [
   { value: "month", label: "This month" },
 ];
 
-const GENDER_OPTIONS: { value: string; label: string }[] = [
+const GENDER_OPTIONS = [
   { value: "male", label: "Male" },
   { value: "female", label: "Female" },
   { value: "non-binary", label: "Non-binary" },
 ];
 
-const UNION_OPTIONS: { value: string; label: string }[] = [
+const UNION_OPTIONS = [
   { value: "sag-aftra", label: "SAG-AFTRA" },
   { value: "non-union", label: "Non-union" },
 ];
 
-const WORK_TYPE_OPTIONS: { value: string; label: string }[] = [
+const WORK_TYPE_OPTIONS = [
   { value: "background", label: "Background" },
   { value: "featured", label: "Featured" },
   { value: "stand-in", label: "Stand-in" },
@@ -98,11 +97,11 @@ const WORK_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
-const PAY_OPTIONS: { value: number; label: string }[] = [
-  { value: 100, label: "$100+" },
-  { value: 250, label: "$250+" },
-  { value: 500, label: "$500+" },
-  { value: 1000, label: "$1,000+" },
+const PAY_OPTIONS = [
+  { value: "100", label: "$100+" },
+  { value: "250", label: "$250+" },
+  { value: "500", label: "$500+" },
+  { value: "1000", label: "$1,000+" },
 ];
 
 export function activeFilterCount(f: Filters): number {
@@ -114,7 +113,8 @@ export function activeFilterCount(f: Filters): number {
     (f.gender ? 1 : 0) +
     (f.union ? 1 : 0) +
     (f.workType ? 1 : 0) +
-    (f.payMin ? 1 : 0)
+    (f.payMin ? 1 : 0) +
+    (f.eligibleOnly ? 1 : 0)
   );
 }
 
@@ -126,7 +126,7 @@ function chipClass(selected: boolean) {
   }`;
 }
 
-/* ---- lenient canonicalizers for filter matching (tolerate old free-form data) ---- */
+/* ---- lenient canonicalizers (tolerate older free-form extractions) ---- */
 function canonGender(g: string): string {
   const s = g.toLowerCase().trim();
   if (["male", "males", "man", "men", "m", "boy", "boys"].includes(s)) return "male";
@@ -143,31 +143,92 @@ function canonUnion(u: string): string {
   return s;
 }
 
-/** Multi-select dropdown for sources */
-function SourceFilter({
-  available,
-  selected,
-  onChange,
+/* ---------------------------------------------------------------------- */
+
+type SelectSpec = {
+  key: string;
+  icon: string;
+  /** Row label in the stacked (sheet) layout */
+  label: string;
+  /** Placeholder shown when nothing is selected */
+  anyLabel: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (v: string) => void;
+};
+
+function buildSpecs(
+  filters: Filters,
+  onChange: (f: Filters) => void,
+  availableStates: string[]
+): SelectSpec[] {
+  return [
+    {
+      key: "state", icon: "📍", label: "Location", anyLabel: "Any state",
+      value: filters.state ?? "",
+      options: availableStates.map((c) => ({ value: c, label: stateLabel(c) })),
+      onChange: (v) => onChange({ ...filters, state: v || null }),
+    },
+    {
+      key: "gender", icon: "👤", label: "Gender", anyLabel: "Any gender",
+      value: filters.gender ?? "",
+      options: GENDER_OPTIONS,
+      onChange: (v) => onChange({ ...filters, gender: v || null }),
+    },
+    {
+      key: "workType", icon: "🎬", label: "Type", anyLabel: "Any type",
+      value: filters.workType ?? "",
+      options: WORK_TYPE_OPTIONS,
+      onChange: (v) => onChange({ ...filters, workType: v || null }),
+    },
+    {
+      key: "union", icon: "🎭", label: "Union", anyLabel: "Any union",
+      value: filters.union ?? "",
+      options: UNION_OPTIONS,
+      onChange: (v) => onChange({ ...filters, union: v || null }),
+    },
+    {
+      key: "payMin", icon: "💰", label: "Pay", anyLabel: "Any pay",
+      value: filters.payMin != null ? String(filters.payMin) : "",
+      options: PAY_OPTIONS,
+      onChange: (v) => onChange({ ...filters, payMin: v ? Number(v) : null }),
+    },
+    {
+      key: "datePosted", icon: "🕐", label: "Posted", anyLabel: "Any time",
+      value: filters.datePosted,
+      options: DATE_POSTED_OPTIONS,
+      onChange: (v) => onChange({ ...filters, datePosted: v as DatePostedRange }),
+    },
+    {
+      key: "workDateRange", icon: "📅", label: "Shoot date", anyLabel: "Any date",
+      value: filters.workDateRange,
+      options: WORK_DATE_OPTIONS,
+      onChange: (v) => onChange({ ...filters, workDateRange: v as WorkDateRange }),
+    },
+  ];
+}
+
+/** True when this spec represents a non-default selection. */
+function specActive(s: SelectSpec): boolean {
+  return s.value !== "" && s.value !== "any" && s.value !== "all";
+}
+
+/** Multi-select popover for sources (chip layout). */
+function SourceChip({
+  available, selected, onChange,
 }: {
-  available: string[];
-  selected: string[];
-  onChange: (next: string[]) => void;
+  available: string[]; selected: string[]; onChange: (n: string[]) => void;
 }) {
   const [open, setOpen] = useState(false);
-
   function toggle(src: string) {
     const set = new Set(selected);
-    if (set.has(src)) set.delete(src);
-    else set.add(src);
+    if (set.has(src)) set.delete(src); else set.add(src);
     onChange(Array.from(set));
   }
-
   const label =
-    selected.length === 0
-      ? "📰 All sources"
-      : selected.length === 1
-      ? `📰 ${selected[0]}`
-      : `📰 Sources (${selected.length})`;
+    selected.length === 0 ? "📰 All sources"
+    : selected.length === 1 ? `📰 ${selected[0]}`
+    : `📰 Sources (${selected.length})`;
 
   return (
     <div className="relative">
@@ -184,27 +245,15 @@ function SourceFilter({
               <>
                 <div className="space-y-1">
                   {available.map((src) => (
-                    <label
-                      key={src}
-                      className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded px-2 py-1"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selected.includes(src)}
-                        onChange={() => toggle(src)}
-                        className="rounded text-blue-600 focus:ring-blue-500"
-                      />
+                    <label key={src} className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded px-2 py-1">
+                      <input type="checkbox" checked={selected.includes(src)} onChange={() => toggle(src)} className="rounded text-blue-600 focus:ring-blue-500" />
                       <span className="truncate">{src}</span>
                     </label>
                   ))}
                 </div>
                 {selected.length > 0 && (
                   <div className="border-t border-zinc-200 dark:border-zinc-800 mt-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => onChange([])}
-                      className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 px-2"
-                    >
+                    <button type="button" onClick={() => onChange([])} className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 px-2">
                       Clear sources
                     </button>
                   </div>
@@ -218,100 +267,138 @@ function SourceFilter({
   );
 }
 
+/** Sources as a checkbox list (stacked/sheet layout). */
+function SourceList({
+  available, selected, onChange,
+}: {
+  available: string[]; selected: string[]; onChange: (n: string[]) => void;
+}) {
+  function toggle(src: string) {
+    const set = new Set(selected);
+    if (set.has(src)) set.delete(src); else set.add(src);
+    onChange(Array.from(set));
+  }
+  if (available.length === 0) {
+    return <p className="text-sm text-zinc-500 dark:text-zinc-400">No sources yet</p>;
+  }
+  return (
+    <div className="space-y-1 max-h-48 overflow-y-auto">
+      {available.map((src) => (
+        <label key={src} className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer py-1">
+          <input type="checkbox" checked={selected.includes(src)} onChange={() => toggle(src)} className="rounded text-blue-600 focus:ring-blue-500" />
+          <span className="truncate">{src}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
 export default function FilterChips({
   filters,
   onChange,
   availableStates,
   availableSources,
+  layout = "chips",
+  showEligibleOnly = false,
 }: {
   filters: Filters;
   onChange: (f: Filters) => void;
   availableStates: string[];
   availableSources: string[];
+  /** "chips" = inline pills (desktop). "stacked" = labeled rows (mobile sheet). */
+  layout?: "chips" | "stacked";
+  /** Show the "Eligible only" control (only when a GigFit profile is selected). */
+  showEligibleOnly?: boolean;
 }) {
+  const specs = buildSpecs(filters, onChange, availableStates);
+
+  if (layout === "stacked") {
+    return (
+      <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+        {showEligibleOnly && (
+          <label className="flex items-center justify-between gap-3 py-3 cursor-pointer">
+            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+              Eligible only
+            </span>
+            <input
+              type="checkbox"
+              checked={filters.eligibleOnly}
+              onChange={(e) => onChange({ ...filters, eligibleOnly: e.target.checked })}
+              className="rounded text-blue-600 focus:ring-blue-500 w-5 h-5"
+            />
+          </label>
+        )}
+        {specs.map((s) => (
+          <div key={s.key} className="flex items-center justify-between gap-3 py-3">
+            <span className="text-sm text-zinc-700 dark:text-zinc-300">
+              {s.icon} {s.label}
+            </span>
+            <select
+              value={s.value}
+              onChange={(e) => s.onChange(e.target.value)}
+              className={`text-sm px-2 py-1.5 rounded-lg border max-w-[55%] ${
+                specActive(s)
+                  ? "bg-blue-600 border-blue-600 text-white"
+                  : "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100"
+              }`}
+            >
+              <option value={s.key === "datePosted" ? "any" : s.key === "workDateRange" ? "all" : ""}>
+                {s.anyLabel}
+              </option>
+              {s.options
+                .filter((o) => o.value !== "any" && o.value !== "all")
+                .map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+            </select>
+          </div>
+        ))}
+        <div className="py-3">
+          <div className="text-sm text-zinc-700 dark:text-zinc-300 mb-2">📰 Sources</div>
+          <SourceList
+            available={availableSources}
+            selected={filters.sources}
+            onChange={(sources) => onChange({ ...filters, sources })}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Default: inline chips (desktop)
   return (
     <div className="flex flex-wrap gap-2 items-center">
-      <select
-        value={filters.state ?? ""}
-        onChange={(e) => onChange({ ...filters, state: e.target.value || null })}
-        className={chipClass(!!filters.state)}
-      >
-        <option value="">📍 Any state</option>
-        {availableStates.map((code) => (
-          <option key={code} value={code}>{stateLabel(code)}</option>
-        ))}
-      </select>
-
-      <select
-        value={filters.gender ?? ""}
-        onChange={(e) => onChange({ ...filters, gender: e.target.value || null })}
-        className={chipClass(!!filters.gender)}
-      >
-        <option value="">👤 Any gender</option>
-        {GENDER_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
-
-      <select
-        value={filters.workType ?? ""}
-        onChange={(e) => onChange({ ...filters, workType: e.target.value || null })}
-        className={chipClass(!!filters.workType)}
-      >
-        <option value="">🎬 Any type</option>
-        {WORK_TYPE_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
-
-      <select
-        value={filters.union ?? ""}
-        onChange={(e) => onChange({ ...filters, union: e.target.value || null })}
-        className={chipClass(!!filters.union)}
-      >
-        <option value="">🎭 Any union</option>
-        {UNION_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
-
-      <select
-        value={filters.payMin ?? ""}
-        onChange={(e) => onChange({ ...filters, payMin: e.target.value ? Number(e.target.value) : null })}
-        className={chipClass(!!filters.payMin)}
-      >
-        <option value="">💰 Any pay</option>
-        {PAY_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
-
-      <select
-        value={filters.datePosted}
-        onChange={(e) => onChange({ ...filters, datePosted: e.target.value as DatePostedRange })}
-        className={chipClass(filters.datePosted !== "any")}
-      >
-        {DATE_POSTED_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>🕐 Posted: {o.label}</option>
-        ))}
-      </select>
-
-      <select
-        value={filters.workDateRange}
-        onChange={(e) => onChange({ ...filters, workDateRange: e.target.value as WorkDateRange })}
-        className={chipClass(filters.workDateRange !== "all")}
-      >
-        {WORK_DATE_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>📅 Shoot: {o.label}</option>
-        ))}
-      </select>
-
-      <SourceFilter
+      {showEligibleOnly && (
+        <button
+          type="button"
+          onClick={() => onChange({ ...filters, eligibleOnly: !filters.eligibleOnly })}
+          className={chipClass(filters.eligibleOnly)}
+        >
+          {filters.eligibleOnly ? "☑" : "☐"} Eligible only
+        </button>
+      )}
+      {specs.map((s) => (
+        <select
+          key={s.key}
+          value={s.value}
+          onChange={(e) => s.onChange(e.target.value)}
+          className={chipClass(specActive(s))}
+        >
+          <option value={s.key === "datePosted" ? "any" : s.key === "workDateRange" ? "all" : ""}>
+            {s.icon} {s.anyLabel}
+          </option>
+          {s.options
+            .filter((o) => o.value !== "any" && o.value !== "all")
+            .map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+        </select>
+      ))}
+      <SourceChip
         available={availableSources}
         selected={filters.sources}
         onChange={(sources) => onChange({ ...filters, sources })}
       />
-
       {activeFilterCount(filters) > 0 && (
         <button
           type="button"
@@ -331,13 +418,13 @@ type FilterableOpp = {
   posted_at: string;
   source: string | null;
   pay_min?: number | null;
-  casting_specs?: {
-    gender?: unknown;
-    union_status?: unknown;
-    work_type?: unknown;
-  } | null;
+  casting_specs?: { gender?: unknown; union_status?: unknown; work_type?: unknown } | null;
 };
 
+/**
+ * Applies every filter EXCEPT `eligibleOnly` (which needs GigFit results and is
+ * applied by the caller).
+ */
 export function applyFilters<T extends FilterableOpp>(items: T[], filters: Filters): T[] {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -358,32 +445,24 @@ export function applyFilters<T extends FilterableOpp>(items: T[], filters: Filte
 
   let postedCutoff: number | null = null;
   if (filters.datePosted !== "any") {
-    const now = Date.now();
     const hours =
       filters.datePosted === "today" ? 24 :
-      filters.datePosted === "3days" ? 24 * 3 :
-      24 * 7;
-    postedCutoff = now - hours * 60 * 60 * 1000;
+      filters.datePosted === "3days" ? 24 * 3 : 24 * 7;
+    postedCutoff = Date.now() - hours * 60 * 60 * 1000;
   }
 
   const sourceSet = filters.sources.length > 0 ? new Set(filters.sources) : null;
 
   return items.filter((item) => {
-    if (filters.state) {
-      if (extractState(item.location) !== filters.state) return false;
-    }
+    if (filters.state && extractState(item.location) !== filters.state) return false;
     if (workEnd && filters.workDateRange !== "all") {
       if (!item.work_date) return false;
       if (item.work_date < todayStr || item.work_date > workEnd) return false;
     }
-    if (postedCutoff !== null) {
-      if (new Date(item.posted_at).getTime() < postedCutoff) return false;
-    }
+    if (postedCutoff !== null && new Date(item.posted_at).getTime() < postedCutoff) return false;
     if (sourceSet && (!item.source || !sourceSet.has(item.source))) return false;
 
-    // ── Casting-criteria filters (strict: the gig must specify the value) ──
     const specs = item.casting_specs ?? {};
-
     if (filters.gender) {
       const arr = Array.isArray(specs.gender) ? (specs.gender as string[]) : [];
       if (!arr.map(canonGender).includes(filters.gender)) return false;
@@ -399,7 +478,6 @@ export function applyFilters<T extends FilterableOpp>(items: T[], filters: Filte
     if (filters.payMin != null) {
       if (item.pay_min == null || item.pay_min < filters.payMin) return false;
     }
-
     return true;
   });
 }
