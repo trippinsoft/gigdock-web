@@ -13,7 +13,9 @@ import FilterChips, {
   extractState,
   type Filters,
 } from "@/components/FilterChips";
+import ProfileSummary from "@/components/ProfileSummary";
 import {
+  fieldsSet,
   type GigFitResult,
   type GigFitRow,
   type PerformerProfile,
@@ -109,10 +111,18 @@ export default function ActivePage() {
     return () => clearTimeout(t);
   }, [search]);
 
+  const selectedProfile = useMemo(
+    () => profiles.find((p) => p.id === gigfitProfileId) ?? null,
+    [profiles, gigfitProfileId]
+  );
+
+  // A profile with nothing set can't match on anything — badges would be noise.
+  const profileHasCriteria = !!selectedProfile && fieldsSet(selectedProfile).length > 0;
+
   // GigFit results, computed server-side via the gigfit() RPC.
   useEffect(() => {
     (async () => {
-      if (!gigfitProfileId) {
+      if (!gigfitProfileId || !profileHasCriteria) {
         setFitById(new Map());
         return;
       }
@@ -137,14 +147,15 @@ export default function ActivePage() {
       setFitById(map);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gigfitProfileId, opps]);
+  }, [gigfitProfileId, profileHasCriteria, opps]);
 
-  // When GigFit is off, eligibility filtering can't apply — clear it.
+  // When GigFit is off (or has nothing to match on), eligibility filtering
+  // can't apply — clear it so the chip can never dangle.
   useEffect(() => {
-    if (!gigfitProfileId && filters.eligibleOnly) {
+    if (!profileHasCriteria && filters.eligibleOnly) {
       setFilters((f) => ({ ...f, eligibleOnly: false }));
     }
-  }, [gigfitProfileId, filters.eligibleOnly]);
+  }, [profileHasCriteria, filters.eligibleOnly]);
 
   const availableStates = useMemo(() => {
     const set = new Set<string>();
@@ -170,7 +181,7 @@ export default function ActivePage() {
           .filter(Boolean).join(" ").toLowerCase().includes(q)
       );
     }
-    if (filters.eligibleOnly && gigfitProfileId) {
+    if (filters.eligibleOnly && profileHasCriteria) {
       list = list.filter((o) => fitById.get(o.id)?.eligible);
     }
     const sorted = [...list];
@@ -182,7 +193,7 @@ export default function ActivePage() {
       sorted.sort((a, b) => cmpDateAsc(a.apply_by, b.apply_by));
     }
     return sorted;
-  }, [opps, filters, debouncedSearch, sort, gigfitProfileId, fitById]);
+  }, [opps, filters, debouncedSearch, sort, profileHasCriteria, fitById]);
 
   useEffect(() => {
     if (visible.length === 0) {
@@ -359,6 +370,9 @@ export default function ActivePage() {
           </button>
         </div>
 
+        {/* What the selected profile actually matches on */}
+        {selectedProfile && <ProfileSummary profile={selectedProfile} />}
+
         {/* Row 3 (desktop only): inline filter chips */}
         <div className="hidden md:block">
           <FilterChips
@@ -366,7 +380,7 @@ export default function ActivePage() {
             onChange={setFilters}
             availableStates={availableStates}
             availableSources={availableSources}
-            showEligibleOnly={gigfitOn}
+            showEligibleOnly={profileHasCriteria}
           />
         </div>
 
@@ -448,7 +462,7 @@ export default function ActivePage() {
                 availableStates={availableStates}
                 availableSources={availableSources}
                 layout="stacked"
-                showEligibleOnly={gigfitOn}
+                showEligibleOnly={profileHasCriteria}
               />
             </div>
             <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 shrink-0">

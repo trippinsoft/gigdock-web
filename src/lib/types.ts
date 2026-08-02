@@ -85,4 +85,5 @@ export type AdminTab =
   | "duplicates"
   | "sources"
   | "hidden"
-  | "find";
+  | "find"
+  | "profile";
