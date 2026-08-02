@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import type { Opportunity, RawIngestion } from "@/lib/types";
 import OpportunityCard from "@/components/OpportunityCard";
@@ -50,11 +50,17 @@ export default function ReviewPage() {
     loadDrafts();
   }, [loadDrafts]);
 
+  const flaggedCount = useMemo(
+    () => drafts.filter((d) => d.review_reason).length,
+    [drafts]
+  );
+
   async function approve(id: string) {
     setActionLoading(id);
+    // Clear the review reason as it becomes active.
     await supabase
       .from("opportunities")
-      .update({ status: "active" })
+      .update({ status: "active", review_reason: null })
       .eq("id", id);
     setDrafts((prev) => prev.filter((d) => d.id !== id));
     setActionLoading(null);
@@ -86,6 +92,7 @@ export default function ReviewPage() {
         </h2>
         <span className="text-sm text-zinc-500 dark:text-zinc-400">
           {drafts.length} pending
+          {flaggedCount > 0 && ` · ${flaggedCount} flagged`}
         </span>
       </div>
 
@@ -95,36 +102,47 @@ export default function ReviewPage() {
         </div>
       ) : (
         drafts.map((opp) => (
-          <OpportunityCard
-            key={opp.id}
-            opp={opp}
-            showRawText={opp.raw_ingestion?.raw_text}
-            actions={
-              <>
-                <button
-                  onClick={() => setEditing(opp)}
-                  disabled={actionLoading === opp.id}
-                  className="px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => reject(opp.id)}
-                  disabled={actionLoading === opp.id}
-                  className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-                >
-                  Reject
-                </button>
-                <button
-                  onClick={() => approve(opp.id)}
-                  disabled={actionLoading === opp.id}
-                  className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-green-400 rounded-lg transition-colors"
-                >
-                  {actionLoading === opp.id ? "..." : "Approve"}
-                </button>
-              </>
-            }
-          />
+          <div key={opp.id} className="space-y-1">
+            {opp.review_reason ? (
+              <div className="flex items-start gap-2 text-xs px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300">
+                <span className="font-semibold shrink-0">⚠ Held:</span>
+                <span>{opp.review_reason}</span>
+              </div>
+            ) : (
+              <div className="text-xs px-3 py-1.5 text-zinc-400 dark:text-zinc-500">
+                Awaiting auto-review…
+              </div>
+            )}
+            <OpportunityCard
+              opp={opp}
+              showRawText={opp.raw_ingestion?.raw_text}
+              actions={
+                <>
+                  <button
+                    onClick={() => setEditing(opp)}
+                    disabled={actionLoading === opp.id}
+                    className="px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => reject(opp.id)}
+                    disabled={actionLoading === opp.id}
+                    className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => approve(opp.id)}
+                    disabled={actionLoading === opp.id}
+                    className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-green-400 rounded-lg transition-colors"
+                  >
+                    {actionLoading === opp.id ? "..." : "Approve"}
+                  </button>
+                </>
+              }
+            />
+          </div>
         ))
       )}
 

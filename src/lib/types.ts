@@ -7,6 +7,7 @@ export interface Opportunity {
   source: string | null;
   source_type: string;
   status: "draft" | "active" | "expired" | "hidden";
+  review_reason: string | null;
   pay_rate: string | null;
   pay_bumps: string | null;
   pay_min: number | null;
