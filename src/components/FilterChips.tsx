@@ -377,23 +377,31 @@ export default function FilterChips({
           {filters.eligibleOnly ? "✓ " : ""}Eligible only
         </button>
       )}
-      {specs.map((s) => (
-        <select
-          key={s.key}
-          value={s.value}
-          onChange={(e) => s.onChange(e.target.value)}
-          className={chipClass(specActive(s))}
-        >
-          <option value={s.key === "datePosted" ? "any" : s.key === "workDateRange" ? "all" : ""}>
-            {s.anyLabel}
-          </option>
-          {s.options
-            .filter((o) => o.value !== "any" && o.value !== "all")
-            .map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-        </select>
-      ))}
+      {specs.map((s) => {
+        // Posted vs. shoot date share option text ("Today", etc.) — once collapsed,
+        // a native <select> only shows the chosen option's own text, so without a
+        // prefix there's no way to tell the two filters apart at a glance.
+        const prefixed = s.key === "datePosted" || s.key === "workDateRange";
+        return (
+          <select
+            key={s.key}
+            value={s.value}
+            onChange={(e) => s.onChange(e.target.value)}
+            className={chipClass(specActive(s))}
+          >
+            <option value={s.key === "datePosted" ? "any" : s.key === "workDateRange" ? "all" : ""}>
+              {s.anyLabel}
+            </option>
+            {s.options
+              .filter((o) => o.value !== "any" && o.value !== "all")
+              .map((o) => (
+                <option key={o.value} value={o.value}>
+                  {prefixed ? `${s.label}: ${o.label}` : o.label}
+                </option>
+              ))}
+          </select>
+        );
+      })}
       <SourceChip
         available={availableSources}
         selected={filters.sources}
