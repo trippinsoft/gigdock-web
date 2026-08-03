@@ -418,7 +418,7 @@ export default function OpportunityCard({
             href={applyHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="block w-full text-center rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-6 py-3 transition-colors"
+            className="block w-full text-center sm:inline-block sm:w-auto rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-6 py-3 transition-colors"
           >
             {applyIsEmail ? "Apply via Email" : "Apply on company site"}
           </a>
@@ -427,7 +427,7 @@ export default function OpportunityCard({
               href={opp.source_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block text-center text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 mt-2.5"
+              className="block text-center sm:text-left text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 mt-2.5"
             >
               View original post
             </a>
@@ -440,7 +440,7 @@ export default function OpportunityCard({
               href={opp.source_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block w-full text-center rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-6 py-3 transition-colors"
+              className="block w-full text-center sm:inline-block sm:w-auto rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-6 py-3 transition-colors"
             >
               View original post
             </a>
