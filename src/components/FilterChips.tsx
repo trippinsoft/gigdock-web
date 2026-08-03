@@ -418,8 +418,13 @@ type FilterableOpp = {
   posted_at: string;
   source: string | null;
   pay_min?: number | null;
+  pay_rate?: string | null;
   casting_specs?: { gender?: unknown; union_status?: unknown; work_type?: unknown } | null;
 };
+
+// Hourly gigs aren't comparable to a flat dollar threshold ($30/hr adds up over
+// a shoot), so a pay filter never excludes them.
+const HOURLY_RE = /\/\s*hr\b|\/\s*hour|per\s*hour|hourly|an?\s+hour/i;
 
 /**
  * Applies every filter EXCEPT `eligibleOnly` (which needs GigFit results and is
@@ -480,7 +485,7 @@ export function applyFilters<T extends FilterableOpp>(items: T[], filters: Filte
       const wt = typeof specs.work_type === "string" ? specs.work_type.toLowerCase() : "";
       if (wt !== filters.workType) return false;
     }
-    if (filters.payMin != null) {
+    if (filters.payMin != null && !HOURLY_RE.test(item.pay_rate ?? "")) {
       if (item.pay_min == null || item.pay_min < filters.payMin) return false;
     }
     return true;
