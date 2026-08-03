@@ -293,6 +293,70 @@ function SourceList({
   );
 }
 
+/**
+ * Custom dropdown for the two date filters (desktop chips row). A native
+ * <select> can only show the bare selected option when collapsed, which makes
+ * "Today" / "This week" ambiguous. This keeps the field name on the collapsed
+ * button ("Posted" / "Shoot date", or "Posted: Today" once chosen) while the
+ * menu lists bare options.
+ */
+function ChipDropdown({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find(
+    (o) => o.value === value && value !== "" && value !== "any" && value !== "all"
+  );
+  const buttonLabel = selected ? `${label}: ${selected.label}` : label;
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={chipClass(!!selected)}
+      >
+        {buttonLabel} ▾
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute z-40 mt-2 left-0 min-w-[180px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl p-1">
+            {options.map((o) => {
+              const isSel = o.value === value;
+              return (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(o.value);
+                    setOpen(false);
+                  }}
+                  className={`block w-full text-left text-sm rounded px-2 py-1.5 ${
+                    isSel
+                      ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-medium"
+                      : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function FilterChips({
   filters,
   onChange,
@@ -377,31 +441,33 @@ export default function FilterChips({
           {filters.eligibleOnly ? "✓ " : ""}Eligible only
         </button>
       )}
-      {specs.map((s) => {
-        // Posted vs. shoot date share option text ("Today", etc.) — once collapsed,
-        // a native <select> only shows the chosen option's own text, so without a
-        // prefix there's no way to tell the two filters apart at a glance.
-        const prefixed = s.key === "datePosted" || s.key === "workDateRange";
-        return (
+      {specs.map((s) =>
+        // Date filters need a persistent field name on the collapsed control, so
+        // they use a custom dropdown; the rest are self-evident native selects.
+        s.key === "datePosted" || s.key === "workDateRange" ? (
+          <ChipDropdown
+            key={s.key}
+            label={s.label}
+            value={s.value}
+            options={s.options}
+            onChange={s.onChange}
+          />
+        ) : (
           <select
             key={s.key}
             value={s.value}
             onChange={(e) => s.onChange(e.target.value)}
             className={chipClass(specActive(s))}
           >
-            <option value={s.key === "datePosted" ? "any" : s.key === "workDateRange" ? "all" : ""}>
-              {s.anyLabel}
-            </option>
+            <option value="">{s.anyLabel}</option>
             {s.options
               .filter((o) => o.value !== "any" && o.value !== "all")
               .map((o) => (
-                <option key={o.value} value={o.value}>
-                  {prefixed ? `${s.label}: ${o.label}` : o.label}
-                </option>
+                <option key={o.value} value={o.value}>{o.label}</option>
               ))}
           </select>
-        );
-      })}
+        )
+      )}
       <SourceChip
         available={availableSources}
         selected={filters.sources}
