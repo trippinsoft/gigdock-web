@@ -219,10 +219,42 @@ function extractHref(text: string | null | undefined): string | null {
   return null;
 }
 
+// Find a suggested email subject line. Casting posts often dictate an exact
+// subject ("Subject: PHOTO DOUBLE – Your Name"); honor it when stated. Otherwise
+// fall back to the gig title so the applicant opens their mail app with a
+// relevant, editable subject rather than a blank one.
+function extractSubject(opp: Opportunity): string | null {
+  const blob = [opp.application_info, opp.requirements, opp.summary]
+    .filter(Boolean)
+    .join("\n");
+  // "Subject: X" / "Subject line - X" (optionally quoted)
+  const direct = blob.match(
+    /subject(?:\s*line)?\s*[:\-–]\s*["“']?([^"”'\n]{3,120})/i
+  );
+  if (direct) return direct[1].trim().replace(/[\s.]+$/, "");
+  // "use/with/include the subject "X""
+  const phrase = blob.match(
+    /(?:use|with|include|put|enter)\s+(?:the\s+)?subject(?:\s*line)?\s+["“']([^"”'\n]{3,120})["”']/i
+  );
+  if (phrase) return phrase[1].trim();
+  return opp.title ? opp.title.trim() : null;
+}
+
+// Append a pre-filled subject to a mailto: href (no-op for web/tel links).
+function withSubject(href: string, subject: string | null): string {
+  if (!subject || !/^mailto:/i.test(href) || /[?&]subject=/i.test(href)) {
+    return href;
+  }
+  const sep = href.includes("?") ? "&" : "?";
+  return `${href}${sep}subject=${encodeURIComponent(subject)}`;
+}
+
 // Best actionable apply target: explicit link first, else dig one out of
-// the application instructions.
+// the application instructions. Email targets get a pre-filled subject line.
 function getApplyHref(opp: Opportunity): string | null {
-  return normalizeHref(opp.link) ?? extractHref(opp.application_info);
+  const base = normalizeHref(opp.link) ?? extractHref(opp.application_info);
+  if (!base) return null;
+  return withSubject(base, extractSubject(opp));
 }
 
 /* ---------- component ---------- */
@@ -249,6 +281,7 @@ export default function OpportunityCard({
   const workDate = formatDate(opp.work_date);
   const applyBy = formatDate(opp.apply_by);
   const applyHref = getApplyHref(opp);
+  const applyIsEmail = !!applyHref && /^mailto:/i.test(applyHref);
   const fresh = freshness(opp);
 
   return (
@@ -376,28 +409,44 @@ export default function OpportunityCard({
         <Section title="How to apply">{opp.application_info}</Section>
       )}
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1">
-        {applyHref && (
+      {/* Primary apply CTA (Indeed-style pill). Label reflects where it goes;
+          in-app "Apply on GigDock" comes later. When there's no apply target,
+          the original post becomes the primary action. */}
+      {applyHref ? (
+        <div className="pt-1">
           <a
             href={applyHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            className="block w-full text-center rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-6 py-3 transition-colors"
           >
-            Apply here →
+            {applyIsEmail ? "Apply via Email" : "Apply on company site"}
           </a>
-        )}
-        {opp.source_url && (
-          <a
-            href={opp.source_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-          >
-            View original post →
-          </a>
-        )}
-      </div>
+          {opp.source_url && (
+            <a
+              href={opp.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-center text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 mt-2.5"
+            >
+              View original post
+            </a>
+          )}
+        </div>
+      ) : (
+        opp.source_url && (
+          <div className="pt-1">
+            <a
+              href={opp.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full text-center rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-6 py-3 transition-colors"
+            >
+              View original post
+            </a>
+          </div>
+        )
+      )}
 
       {showRawText && (
         <details className="mt-2">
