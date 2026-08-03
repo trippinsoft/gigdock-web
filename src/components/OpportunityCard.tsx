@@ -11,6 +11,69 @@ function joinTags(v: unknown): string | null {
   return null;
 }
 
+/* ---------- inline single-color icons (16px, currentColor) ---------- */
+
+const iconProps = {
+  width: 16,
+  height: 16,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  className: "w-4 h-4",
+};
+
+const ClockIcon = () => (
+  <svg {...iconProps}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+);
+const PinIcon = () => (
+  <svg {...iconProps}><path d="M12 21s-6-5.686-6-10a6 6 0 1112 0c0 4.314-6 10-6 10z" /><circle cx="12" cy="11" r="2" /></svg>
+);
+const CalendarIcon = () => (
+  <svg {...iconProps}><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 9h18M8 2v4M16 2v4" /></svg>
+);
+const BellIcon = () => (
+  <svg {...iconProps}><path d="M6 8a6 6 0 1112 0c0 7 3 8 3 8H3s3-1 3-8" /><path d="M10.3 21a1.94 1.94 0 003.4 0" /></svg>
+);
+const PayIcon = () => (
+  <svg {...iconProps}><rect x="2" y="6" width="20" height="12" rx="2" /><circle cx="12" cy="12" r="2.5" /><path d="M6 12h.01M18 12h.01" /></svg>
+);
+
+/* A single icon + label-over-value detail row (Indeed "Job details" style). */
+function MetaRow({
+  icon,
+  label,
+  children,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="mt-0.5 shrink-0 text-zinc-400 dark:text-zinc-500">{icon}</span>
+      <div className="min-w-0">
+        <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{label}</div>
+        <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+/* A bold near-black heading over readable body text (clear hierarchy). */
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{title}</h4>
+      <div className="text-sm text-zinc-700 dark:text-zinc-300 mt-1 leading-relaxed">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function Badge({
   children,
   color,
@@ -208,7 +271,7 @@ export default function OpportunityCard({
           )}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-snug">
                 {opp.title || "(No title)"}
               </h3>
               {fit && (
@@ -242,35 +305,42 @@ export default function OpportunityCard({
       </div>
 
       {opp.summary && (
-        <p className="text-sm text-zinc-700 dark:text-zinc-300">{opp.summary}</p>
+        <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">{opp.summary}</p>
       )}
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
-        {postedAgo && (
-          <span>
-            Posted <span className="text-zinc-800 dark:text-zinc-200">{postedAgo}</span>
-            {postedAbs && (
-              <span className="text-zinc-400 dark:text-zinc-500"> ({postedAbs})</span>
+      {(opp.pay_rate || opp.location || workDate || applyBy || postedAgo) && (
+        <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3">
+          <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-2.5">
+            Job details
+          </h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+            {opp.pay_rate && (
+              <MetaRow icon={<PayIcon />} label="Pay">{opp.pay_rate}</MetaRow>
             )}
-          </span>
-        )}
-        {opp.location && <span>Location: <span className="text-zinc-800 dark:text-zinc-200">{opp.location}</span></span>}
-        {workDate && <span>Shoot date: <span className="text-zinc-800 dark:text-zinc-200">{workDate}</span></span>}
-        {applyBy && <span>Apply by: <span className="text-zinc-800 dark:text-zinc-200">{applyBy}</span></span>}
-        {opp.pay_rate && <span>Pay: <span className="text-zinc-800 dark:text-zinc-200">{opp.pay_rate}</span></span>}
-      </div>
-
-      {opp.pay_bumps && (
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          <span className="font-medium">Bumps:</span> {opp.pay_bumps}
-        </p>
+            {opp.location && (
+              <MetaRow icon={<PinIcon />} label="Location">{opp.location}</MetaRow>
+            )}
+            {workDate && (
+              <MetaRow icon={<CalendarIcon />} label="Shoot date">{workDate}</MetaRow>
+            )}
+            {applyBy && (
+              <MetaRow icon={<BellIcon />} label="Apply by">{applyBy}</MetaRow>
+            )}
+            {postedAgo && (
+              <MetaRow icon={<ClockIcon />} label="Posted">
+                {postedAgo}
+                {postedAbs && (
+                  <span className="font-normal text-zinc-400 dark:text-zinc-500"> · {postedAbs}</span>
+                )}
+              </MetaRow>
+            )}
+          </div>
+        </div>
       )}
 
-      {opp.requirements && (
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          <span className="font-medium">Requirements:</span> {opp.requirements}
-        </p>
-      )}
+      {opp.pay_bumps && <Section title="Bumps">{opp.pay_bumps}</Section>}
+
+      {opp.requirements && <Section title="Requirements">{opp.requirements}</Section>}
 
       {specs && Object.keys(specs).length > 0 && (
         <div className="flex flex-wrap gap-1">
@@ -303,10 +373,7 @@ export default function OpportunityCard({
       )}
 
       {opp.application_info && (
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          <span className="font-medium">How to apply:</span>{" "}
-          {opp.application_info}
-        </p>
+        <Section title="How to apply">{opp.application_info}</Section>
       )}
 
       <div className="flex flex-wrap gap-x-4 gap-y-1">
