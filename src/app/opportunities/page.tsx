@@ -276,7 +276,7 @@ export default function OpportunitiesPage() {
         <div className="space-y-2 pb-3 border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex flex-wrap gap-2 items-center">
             <div className="relative flex-1 min-w-[150px] max-w-xs">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">🔍</span>
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" /></svg>
               <input
                 type="search"
                 value={search}
@@ -297,7 +297,7 @@ export default function OpportunitiesPage() {
                 value={gigfitProfileId ?? ""}
                 onChange={(e) => setGigfitProfileId(e.target.value || null)}
                 className={`text-sm px-2.5 py-2 rounded-lg border shrink-0 transition-colors ${
-                  gigfitOn ? "bg-green-600 border-green-600 text-white" : "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
+                  gigfitOn ? "bg-blue-600 border-blue-600 text-white" : "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
                 }`}
               >
                 <option value="">GigFit: Off</option>
@@ -362,7 +362,7 @@ export default function OpportunitiesPage() {
 
           <div className="hidden md:block flex-1 min-w-0 overflow-y-auto">
             {selected ? (
-              <OpportunityCard opp={selected} actions={saveButton(selected.id)} fit={selectedId ? fitById.get(selectedId) ?? null : null} />
+              <OpportunityCard opp={selected} actions={saveButton(selected.id)} fit={selectedId ? fitById.get(selectedId) ?? null : null} hideAdminMeta />
             ) : (
               <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400 text-sm">Select an opportunity to view details</div>
             )}
@@ -412,7 +412,7 @@ export default function OpportunitiesPage() {
                 </div>
               </div>
               <div ref={contentRef} className="flex-1 overflow-y-auto overscroll-contain p-4">
-                <OpportunityCard opp={selected} fit={selectedId ? fitById.get(selectedId) ?? null : null} />
+                <OpportunityCard opp={selected} fit={selectedId ? fitById.get(selectedId) ?? null : null} hideAdminMeta />
               </div>
             </div>
           </div>

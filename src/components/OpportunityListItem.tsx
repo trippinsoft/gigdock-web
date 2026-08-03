@@ -37,17 +37,18 @@ function relativeTime(iso: string | null): string | null {
 }
 
 function freshnessBadge(opp: Opportunity): { label: string; color: string } | null {
+  // Only genuine urgency (a same-day deadline) earns color; freshness is neutral.
   if (opp.apply_by) {
     const deadline = new Date(opp.apply_by + "T23:59:59").getTime();
     const hrs = (deadline - Date.now()) / (1000 * 60 * 60);
     if (hrs > 0 && hrs <= 24) {
-      return { label: "🔥 Deadline", color: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300" };
+      return { label: "Deadline today", color: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300" };
     }
   }
   if (opp.posted_at) {
     const hrs = (Date.now() - new Date(opp.posted_at).getTime()) / (1000 * 60 * 60);
-    if (hrs <= 6) return { label: "🆕 NEW", color: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" };
-    if (hrs <= 24) return { label: "Today", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" };
+    if (hrs <= 6) return { label: "New", color: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400" };
+    if (hrs <= 24) return { label: "Today", color: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400" };
   }
   return null;
 }
@@ -111,8 +112,9 @@ export default function OpportunityListItem({
               </p>
             )}
             {(opp.location || shoot) && (
-              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+              <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-zinc-500 dark:text-zinc-400">
                 {opp.location && <span className="truncate">{opp.location}</span>}
+                {opp.location && shoot && <span className="text-zinc-300 dark:text-zinc-600">·</span>}
                 {shoot && <span>{shoot}</span>}
               </div>
             )}
@@ -120,21 +122,16 @@ export default function OpportunityListItem({
         </div>
       )}
 
-      {/* Row 4: Pay + tags + posted time */}
+      {/* Row 4: Pay + match/urgency + posted time */}
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-2">
-        {fit && (
-          <span className={`text-xs px-2 py-0.5 rounded font-medium ${FIT_CLASS[fit.color]}`}>
-            {fit.tier === "strong" ? "★ " : ""}{fit.label}
-          </span>
-        )}
         {opp.pay_rate && (
           <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
             {opp.pay_rate}
           </span>
         )}
-        {opp.type && (
-          <span className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-            {opp.type}
+        {fit && (
+          <span className={`text-xs px-2 py-0.5 rounded font-medium ${FIT_CLASS[fit.color]}`}>
+            {fit.tier === "strong" ? "★ " : ""}{fit.label}
           </span>
         )}
         {fresh && (

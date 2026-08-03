@@ -4,13 +4,6 @@ import { useState } from "react";
 import type { Opportunity } from "@/lib/types";
 import type { GigFitResult } from "@/lib/gigfit";
 
-const FIT_CLASS: Record<string, string> = {
-  green: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 border-green-300 dark:border-green-800",
-  blue: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-300 dark:border-blue-800",
-  zinc: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-300 dark:border-zinc-700",
-  amber: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-300 dark:border-amber-800",
-};
-
 // Join an array of tags into a readable string; return null if empty.
 function joinTags(v: unknown): string | null {
   if (Array.isArray(v)) return v.length ? v.join(", ") : null;
@@ -113,13 +106,13 @@ function freshness(opp: Opportunity): Freshness {
     const deadline = new Date(opp.apply_by + "T23:59:59").getTime();
     const hoursUntilDeadline = (deadline - Date.now()) / (1000 * 60 * 60);
     if (hoursUntilDeadline > 0 && hoursUntilDeadline <= 24) {
-      return { kind: "deadline-soon", label: "🔥 Deadline today" };
+      return { kind: "deadline-soon", label: "Deadline today" };
     }
   }
   if (opp.posted_at) {
     const posted = new Date(opp.posted_at).getTime();
     const hoursOld = (Date.now() - posted) / (1000 * 60 * 60);
-    if (hoursOld <= 6) return { kind: "new", label: "🆕 NEW" };
+    if (hoursOld <= 6) return { kind: "new", label: "New" };
     if (hoursOld <= 24) return { kind: "today", label: "Today" };
   }
   return null;
@@ -127,12 +120,11 @@ function freshness(opp: Opportunity): Freshness {
 
 function freshnessBadge(f: NonNullable<Freshness>) {
   switch (f.kind) {
-    case "new":
-      return <Badge color="green">{f.label}</Badge>;
-    case "today":
-      return <Badge color="blue">{f.label}</Badge>;
+    // Only a same-day deadline is genuinely urgent; freshness stays neutral gray.
     case "deadline-soon":
       return <Badge color="red">{f.label}</Badge>;
+    default:
+      return <Badge color="zinc">{f.label}</Badge>;
   }
 }
 
@@ -177,11 +169,14 @@ export default function OpportunityCard({
   actions,
   showRawText,
   fit,
+  hideAdminMeta = false,
 }: {
   opp: Opportunity;
   actions?: React.ReactNode;
   showRawText?: string | null;
   fit?: GigFitResult | null;
+  /** Public feed hides curator-only metadata (status, ai_extracted). */
+  hideAdminMeta?: boolean;
 }) {
   const specs = opp.casting_specs as Record<string, unknown> | null;
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -216,15 +211,29 @@ export default function OpportunityCard({
               <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
                 {opp.title || "(No title)"}
               </h3>
+              {fit && (
+                <Badge color={fit.color}>
+                  {fit.tier === "strong" ? "★ " : ""}{fit.label}
+                </Badge>
+              )}
               {fresh && freshnessBadge(fresh)}
-              <Badge color={statusColor(opp.status)}>{opp.status}</Badge>
-              {opp.source_type && (
+              {!hideAdminMeta && <Badge color={statusColor(opp.status)}>{opp.status}</Badge>}
+              {!hideAdminMeta && opp.source_type && (
                 <Badge color="zinc">{opp.source_type}</Badge>
               )}
             </div>
             {opp.source && (
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                Source: {opp.source}
+                {opp.source}
+              </p>
+            )}
+            {fit && (fit.matched.length > 0 || fit.blockers.length > 0) && (
+              <p className="text-xs mt-0.5 text-zinc-500 dark:text-zinc-400">
+                {fit.eligible
+                  ? fit.matched.length > 0
+                    ? `Matches your ${fit.matched.join(", ")}`
+                    : null
+                  : `Not eligible — ${fit.blockers.join(" · ")}`}
               </p>
             )}
           </div>
@@ -232,40 +241,23 @@ export default function OpportunityCard({
         {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
       </div>
 
-      {/* GigFit banner */}
-      {fit && (
-        <div className={`flex items-center gap-2 flex-wrap rounded-lg border px-3 py-2 text-sm ${FIT_CLASS[fit.color]}`}>
-          <span className="font-semibold">
-            {fit.tier === "strong" ? "★ " : ""}{fit.label}
-          </span>
-          {fit.eligible && fit.matched.length > 0 && (
-            <span className="text-xs opacity-80">
-              matches your {fit.matched.join(", ")}
-            </span>
-          )}
-          {!fit.eligible && fit.blockers.length > 0 && (
-            <span className="text-xs opacity-80">{fit.blockers.join(" · ")}</span>
-          )}
-        </div>
-      )}
-
       {opp.summary && (
         <p className="text-sm text-zinc-700 dark:text-zinc-300">{opp.summary}</p>
       )}
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-600 dark:text-zinc-400">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
         {postedAgo && (
           <span>
-            🕐 Posted: <span className="text-zinc-800 dark:text-zinc-200">{postedAgo}</span>
+            Posted <span className="text-zinc-800 dark:text-zinc-200">{postedAgo}</span>
             {postedAbs && (
               <span className="text-zinc-400 dark:text-zinc-500"> ({postedAbs})</span>
             )}
           </span>
         )}
-        {opp.location && <span>📍 Location: <span className="text-zinc-800 dark:text-zinc-200">{opp.location}</span></span>}
-        {workDate && <span>📅 Shoot date: <span className="text-zinc-800 dark:text-zinc-200">{workDate}</span></span>}
-        {applyBy && <span>⏰ Apply by: <span className="text-zinc-800 dark:text-zinc-200">{applyBy}</span></span>}
-        {opp.pay_rate && <span>💰 Pay: <span className="text-zinc-800 dark:text-zinc-200">{opp.pay_rate}</span></span>}
+        {opp.location && <span>Location: <span className="text-zinc-800 dark:text-zinc-200">{opp.location}</span></span>}
+        {workDate && <span>Shoot date: <span className="text-zinc-800 dark:text-zinc-200">{workDate}</span></span>}
+        {applyBy && <span>Apply by: <span className="text-zinc-800 dark:text-zinc-200">{applyBy}</span></span>}
+        {opp.pay_rate && <span>Pay: <span className="text-zinc-800 dark:text-zinc-200">{opp.pay_rate}</span></span>}
       </div>
 
       {opp.pay_bumps && (

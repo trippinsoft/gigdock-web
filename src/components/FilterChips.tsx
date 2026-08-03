@@ -226,9 +226,9 @@ function SourceChip({
     onChange(Array.from(set));
   }
   const label =
-    selected.length === 0 ? "📰 All sources"
-    : selected.length === 1 ? `📰 ${selected[0]}`
-    : `📰 Sources (${selected.length})`;
+    selected.length === 0 ? "All sources"
+    : selected.length === 1 ? selected[0]
+    : `Sources (${selected.length})`;
 
   return (
     <div className="relative">
@@ -331,7 +331,7 @@ export default function FilterChips({
         {specs.map((s) => (
           <div key={s.key} className="flex items-center justify-between gap-3 py-3">
             <span className="text-sm text-zinc-700 dark:text-zinc-300">
-              {s.icon} {s.label}
+              {s.label}
             </span>
             <select
               value={s.value}
@@ -354,7 +354,7 @@ export default function FilterChips({
           </div>
         ))}
         <div className="py-3">
-          <div className="text-sm text-zinc-700 dark:text-zinc-300 mb-2">📰 Sources</div>
+          <div className="text-sm text-zinc-700 dark:text-zinc-300 mb-2">Sources</div>
           <SourceList
             available={availableSources}
             selected={filters.sources}
@@ -374,7 +374,7 @@ export default function FilterChips({
           onClick={() => onChange({ ...filters, eligibleOnly: !filters.eligibleOnly })}
           className={chipClass(filters.eligibleOnly)}
         >
-          {filters.eligibleOnly ? "☑" : "☐"} Eligible only
+          {filters.eligibleOnly ? "✓ " : ""}Eligible only
         </button>
       )}
       {specs.map((s) => (
@@ -385,7 +385,7 @@ export default function FilterChips({
           className={chipClass(specActive(s))}
         >
           <option value={s.key === "datePosted" ? "any" : s.key === "workDateRange" ? "all" : ""}>
-            {s.icon} {s.anyLabel}
+            {s.anyLabel}
           </option>
           {s.options
             .filter((o) => o.value !== "any" && o.value !== "all")
