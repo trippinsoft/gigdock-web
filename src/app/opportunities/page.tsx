@@ -282,13 +282,13 @@ export default function OpportunitiesPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search..."
-                className="w-full pl-9 pr-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full h-10 pl-9 pr-3 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              className="px-2.5 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="h-10 px-2.5 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
@@ -296,7 +296,7 @@ export default function OpportunitiesPage() {
               <select
                 value={gigfitProfileId ?? ""}
                 onChange={(e) => setGigfitProfileId(e.target.value || null)}
-                className={`text-sm px-2.5 py-2 rounded-lg border shrink-0 transition-colors ${
+                className={`text-sm h-10 px-2.5 rounded-lg border shrink-0 transition-colors ${
                   gigfitOn ? "bg-blue-600 border-blue-600 text-white" : "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
                 }`}
               >
@@ -307,9 +307,9 @@ export default function OpportunitiesPage() {
             <button
               type="button"
               onClick={() => setFiltersOpen(true)}
-              className="md:hidden inline-flex items-center gap-1.5 text-sm px-2.5 py-2 rounded-lg border bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 shrink-0"
+              className="md:hidden inline-flex items-center gap-1.5 text-sm h-10 px-3 rounded-lg border bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 shrink-0"
             >
-              ⚙
+              Filters
               {filterCount > 0 && (
                 <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 text-xs font-medium bg-blue-600 text-white rounded-full">{filterCount}</span>
               )}

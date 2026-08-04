@@ -26,6 +26,10 @@ export type PerformerProfile = {
   gender: string | null;
   date_of_birth: string | null;
   union_status: string | null;
+  ethnicity?: string[];
+  /** Total height in inches (e.g. 5'10" = 70). Collected now; matched later. */
+  height_inches?: number | null;
+  weight_lbs?: number | null;
   work_types_wanted?: string[];
   pay_minimum?: number | null;
   skills?: string[];
@@ -33,14 +37,51 @@ export type PerformerProfile = {
   notify_matches?: boolean;
 };
 
+/* Controlled ethnicity vocabulary — shared by the profile form and display.
+   Kept broad to mirror how casting calls actually specify ethnicity. */
+export const ETHNICITY_OPTIONS: { value: string; label: string }[] = [
+  { value: "black", label: "Black / African American" },
+  { value: "white", label: "White / Caucasian" },
+  { value: "hispanic", label: "Hispanic / Latino" },
+  { value: "asian", label: "Asian" },
+  { value: "south-asian", label: "South Asian" },
+  { value: "middle-eastern", label: "Middle Eastern" },
+  { value: "native-american", label: "Native American" },
+  { value: "pacific-islander", label: "Pacific Islander" },
+  { value: "multiracial", label: "Multiracial" },
+];
+const ETHNICITY_LABEL: Record<string, string> = Object.fromEntries(
+  ETHNICITY_OPTIONS.map((o) => [o.value, o.label])
+);
+export function ethnicityLabel(slug: string): string {
+  return ETHNICITY_LABEL[slug] ?? slug;
+}
+/** Short form for compact summaries: "Black / African American" -> "Black". */
+function ethnicityShort(slug: string): string {
+  return ethnicityLabel(slug).split(" / ")[0];
+}
+
+/** Total inches -> feet'inches" (e.g. 70 -> 5'10"). */
+export function heightLabel(inches: number | null | undefined): string | null {
+  if (inches == null || inches <= 0) return null;
+  return `${Math.floor(inches / 12)}'${inches % 12}"`;
+}
+
 /* ---------- profile completeness ---------- */
 
-export type ProfileFieldKey = "markets" | "gender" | "date_of_birth" | "union_status";
+export type ProfileFieldKey =
+  | "markets"
+  | "gender"
+  | "ethnicity"
+  | "date_of_birth"
+  | "union_status";
 
-/** Ordered by matching leverage — markets filters hardest, so nudge it first. */
+/** Ordered by matching leverage — markets filters hardest, so nudge it first.
+    Only fields GigFit actually matches on count here (height/weight don't yet). */
 export const PROFILE_FIELD_ORDER: ProfileFieldKey[] = [
   "markets",
   "gender",
+  "ethnicity",
   "date_of_birth",
   "union_status",
 ];
@@ -48,6 +89,7 @@ export const PROFILE_FIELD_ORDER: ProfileFieldKey[] = [
 export const PROFILE_FIELD_LABELS: Record<ProfileFieldKey, string> = {
   markets: "markets",
   gender: "gender",
+  ethnicity: "ethnicity",
   date_of_birth: "age",
   union_status: "union status",
 };
@@ -58,6 +100,8 @@ export function isFieldSet(p: PerformerProfile, k: ProfileFieldKey): boolean {
       return (p.markets?.length ?? 0) > 0;
     case "gender":
       return !!p.gender;
+    case "ethnicity":
+      return (p.ethnicity?.length ?? 0) > 0;
     case "date_of_birth":
       return !!p.date_of_birth;
     case "union_status":
@@ -111,6 +155,7 @@ export function describeProfile(p: PerformerProfile): string[] {
   if (g) parts.push(g);
   const age = ageFromDob(p.date_of_birth);
   if (age != null) parts.push(`${age} yrs`);
+  if (p.ethnicity?.length) parts.push(p.ethnicity.map(ethnicityShort).join(", "));
   if (p.markets?.length) parts.push(p.markets.join(", "));
   const u = unionLabel(p.union_status);
   if (u) parts.push(u);
