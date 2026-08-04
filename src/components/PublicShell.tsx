@@ -16,6 +16,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const supabase = createSupabaseBrowser();
 
   useEffect(() => {
@@ -24,6 +25,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   }, []);
 
   async function signOut() {
+    setMenuOpen(false);
     await supabase.auth.signOut();
     setSignedIn(false);
     router.push("/opportunities");
@@ -35,15 +37,20 @@ export default function PublicShell({ children }: { children: React.ReactNode })
       <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
-            <Link href="/opportunities" className="flex items-center gap-2">
+            <Link
+              href="/opportunities"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 shrink-0"
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/gigdock-logo.png" alt="GigDock" className="h-7 w-7 shrink-0" />
-              <span className="font-bold text-2xl tracking-tight text-zinc-900 dark:text-zinc-100">
+              <span className="font-bold text-xl sm:text-2xl tracking-tight text-zinc-900 dark:text-zinc-100">
                 GigDock
               </span>
             </Link>
 
-            <nav className="flex items-center gap-1 sm:gap-2">
+            {/* Desktop nav */}
+            <nav className="hidden sm:flex items-center gap-2">
               {NAV.map((n) => {
                 const active = pathname.startsWith(n.href);
                 return (
@@ -60,7 +67,6 @@ export default function PublicShell({ children }: { children: React.ReactNode })
                   </Link>
                 );
               })}
-
               {signedIn === false && (
                 <Link
                   href="/login"
@@ -78,8 +84,81 @@ export default function PublicShell({ children }: { children: React.ReactNode })
                 </button>
               )}
             </nav>
+
+            {/* Mobile hamburger */}
+            <button
+              type="button"
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-label="Menu"
+              aria-expanded={menuOpen}
+              className="sm:hidden inline-flex items-center justify-center h-9 w-9 -mr-1 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                {menuOpen ? (
+                  <>
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                  </>
+                ) : (
+                  <>
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                  </>
+                )}
+              </svg>
+            </button>
           </div>
         </div>
+
+        {/* Mobile dropdown */}
+        {menuOpen && (
+          <>
+            <div className="sm:hidden relative z-30 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+              <nav className="px-4 py-2 flex flex-col gap-0.5">
+                {NAV.map((n) => {
+                  const active = pathname.startsWith(n.href);
+                  return (
+                    <Link
+                      key={n.href}
+                      href={n.href}
+                      onClick={() => setMenuOpen(false)}
+                      className={`px-3 py-2.5 rounded-lg text-base font-medium transition-colors ${
+                        active
+                          ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40"
+                          : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                      }`}
+                    >
+                      {n.label}
+                    </Link>
+                  );
+                })}
+                {signedIn === false && (
+                  <Link
+                    href="/login"
+                    onClick={() => setMenuOpen(false)}
+                    className="mt-1 px-3 py-2.5 rounded-lg text-base font-medium text-center bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                  >
+                    Sign in
+                  </Link>
+                )}
+                {signedIn === true && (
+                  <button
+                    onClick={signOut}
+                    className="mt-1 px-3 py-2.5 rounded-lg text-base font-medium text-left text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    Sign out
+                  </button>
+                )}
+              </nav>
+            </div>
+            {/* Tap-outside to close */}
+            <div
+              className="sm:hidden fixed inset-x-0 bottom-0 top-14 z-20"
+              onClick={() => setMenuOpen(false)}
+            />
+          </>
+        )}
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">{children}</main>
