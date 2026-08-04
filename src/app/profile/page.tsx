@@ -1,17 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import PublicShell from "@/components/PublicShell";
 import { stateLabel } from "@/components/FilterChips";
 import {
   ageFromDob,
-  fieldsMissing,
-  fieldsSet,
   heightLabel,
   ETHNICITY_OPTIONS,
-  PROFILE_FIELD_ORDER,
   type PerformerProfile,
   type ProfileFieldKey,
 } from "@/lib/gigfit";
@@ -144,25 +140,6 @@ export default function ProfilePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const asProfile: PerformerProfile = useMemo(
-    () => ({
-      id: profileId ?? "draft",
-      label: draft.label,
-      markets: draft.markets,
-      gender: draft.gender,
-      ethnicity: draft.ethnicity,
-      date_of_birth: draft.date_of_birth,
-      union_status: draft.union_status,
-      height_inches: draft.height_inches,
-      weight_lbs: draft.weight_lbs,
-      notify_matches: draft.notify_matches,
-    }),
-    [draft, profileId]
-  );
-
-  const setCount = fieldsSet(asProfile).length;
-  const missing = fieldsMissing(asProfile);
-
   function nudgeFor(k: ProfileFieldKey): string | null {
     if (!coverage) return null;
     switch (k) {
@@ -267,8 +244,6 @@ export default function ProfilePage() {
   }
 
   const age = ageFromDob(draft.date_of_birth);
-  const totalFields = PROFILE_FIELD_ORDER.length;
-  const topNudge = missing.map(nudgeFor).find(Boolean) ?? null;
 
   return (
     <PublicShell>
@@ -281,32 +256,6 @@ export default function ProfilePage() {
           Used to match you to opportunities. Every field you add sharpens your
           matches — you don&apos;t have to fill it all in at once.
         </p>
-      </div>
-
-      {/* Completeness */}
-      <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-            {setCount} of {totalFields} matching details set
-          </span>
-          <Link
-            href="/admin/active"
-            className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
-          >
-            See my matches →
-          </Link>
-        </div>
-        <div className="h-2 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
-          <div
-            className="h-full bg-green-600 transition-all"
-            style={{ width: `${(setCount / totalFields) * 100}%` }}
-          />
-        </div>
-        {topNudge && (
-          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2">
-            {topNudge}
-          </p>
-        )}
       </div>
 
       {/* Markets */}
