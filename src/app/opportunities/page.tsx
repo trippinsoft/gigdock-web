@@ -71,6 +71,14 @@ export default function OpportunitiesPage() {
   const contentRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
 
+  // Filter sheet drag-to-dismiss (its own state/refs, same mechanics as detail).
+  const [fDragY, setFDragY] = useState(0);
+  const [fDragging, setFDragging] = useState(false);
+  const fDragYRef = useRef(0);
+  const fSheetRef = useRef<HTMLDivElement>(null);
+  const fContentRef = useRef<HTMLDivElement>(null);
+  const fHeaderRef = useRef<HTMLDivElement>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -206,13 +214,14 @@ export default function OpportunitiesPage() {
 
   /* ---------- filter sheet (slide up / dismiss) ---------- */
   const openFilters = () => {
+    setFDragY(0); fDragYRef.current = 0; setFDragging(false);
     setFiltersMounted(true);
     requestAnimationFrame(() => setFiltersOpen(true));
   };
-  const closeFilters = () => {
-    setFiltersOpen(false);
+  const closeFilters = useCallback(() => {
+    setFiltersOpen(false); setFDragY(0); fDragYRef.current = 0; setFDragging(false);
     setTimeout(() => setFiltersMounted(false), 300);
-  };
+  }, []);
 
   useEffect(() => {
     if (!sheetMounted && !filtersMounted) return;
@@ -260,6 +269,41 @@ export default function OpportunitiesPage() {
       el.removeEventListener("touchcancel", onEnd);
     };
   }, [sheetMounted, closeSheet]);
+
+  useEffect(() => {
+    const el = fSheetRef.current;
+    if (!filtersMounted || !el) return;
+    let startY = 0, active = false, fromContent = false;
+    const onStart = (e: TouchEvent) => {
+      const target = e.target as Node;
+      fromContent = !!fContentRef.current?.contains(target);
+      const fromHeader = !!fHeaderRef.current?.contains(target);
+      active = fromHeader || (fromContent && (fContentRef.current?.scrollTop ?? 0) <= 0);
+      startY = e.touches[0].clientY;
+      if (active) setFDragging(true);
+    };
+    const onMove = (e: TouchEvent) => {
+      if (!active) return;
+      const delta = e.touches[0].clientY - startY;
+      if (delta > 0) { if (e.cancelable) e.preventDefault(); fDragYRef.current = delta; setFDragY(delta); }
+      else if (fromContent) { active = false; fDragYRef.current = 0; setFDragY(0); setFDragging(false); }
+    };
+    const onEnd = () => {
+      if (!active) return; active = false;
+      if (fDragYRef.current > DISMISS_THRESHOLD) closeFilters();
+      else { fDragYRef.current = 0; setFDragY(0); setFDragging(false); }
+    };
+    el.addEventListener("touchstart", onStart, { passive: true });
+    el.addEventListener("touchmove", onMove, { passive: false });
+    el.addEventListener("touchend", onEnd);
+    el.addEventListener("touchcancel", onEnd);
+    return () => {
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchmove", onMove);
+      el.removeEventListener("touchend", onEnd);
+      el.removeEventListener("touchcancel", onEnd);
+    };
+  }, [filtersMounted, closeFilters]);
 
   function saveButton(id: string) {
     const isSaved = savedIds.has(id);
@@ -384,25 +428,28 @@ export default function OpportunitiesPage() {
         {filtersMounted && (
           <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true">
             <div
-              className="absolute inset-0 bg-black/50 transition-opacity duration-300"
-              style={{ opacity: filtersOpen ? 1 : 0 }}
+              className={`absolute inset-0 bg-black/50 ${fDragging ? "" : "transition-opacity duration-300"}`}
+              style={{ opacity: filtersOpen ? Math.max(0, 1 - fDragY / 400) : 0 }}
               onClick={closeFilters}
             />
             <div
-              className="absolute inset-x-0 bottom-0 max-h-[85vh] bg-white dark:bg-zinc-900 rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out"
-              style={{ transform: filtersOpen ? "translateY(0)" : "translateY(100%)" }}
+              ref={fSheetRef}
+              className={`absolute inset-x-0 bottom-0 max-h-[85vh] bg-white dark:bg-zinc-900 rounded-t-2xl shadow-2xl flex flex-col ${fDragging ? "" : "transition-transform duration-300 ease-out"}`}
+              style={{ transform: filtersOpen ? `translateY(${fDragY}px)` : "translateY(100%)" }}
             >
-              <div className="flex justify-center pt-2.5 pb-1 shrink-0"><div className="h-1.5 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" /></div>
-              <div className="flex items-center justify-between px-4 pb-3 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
-                <button type="button" onClick={closeFilters} className="text-2xl leading-none text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 -ml-1 px-1" aria-label="Close">×</button>
-                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Filters</h3>
-                {filterCount > 0 ? (
-                  <button type="button" onClick={() => setFilters(EMPTY_FILTERS)} className="text-sm text-blue-600 dark:text-blue-400">Clear all</button>
-                ) : (
-                  <span className="w-6" />
-                )}
+              <div ref={fHeaderRef} className="shrink-0 touch-none select-none">
+                <div className="flex justify-center pt-2.5 pb-1"><div className="h-1.5 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" /></div>
+                <div className="flex items-center justify-between px-4 pb-3 border-b border-zinc-200 dark:border-zinc-800">
+                  <button type="button" onClick={closeFilters} className="text-2xl leading-none text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 -ml-1 px-1" aria-label="Close">×</button>
+                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Filters</h3>
+                  {filterCount > 0 ? (
+                    <button type="button" onClick={() => setFilters(EMPTY_FILTERS)} className="text-sm text-blue-600 dark:text-blue-400">Clear all</button>
+                  ) : (
+                    <span className="w-6" />
+                  )}
+                </div>
               </div>
-              <div className="flex-1 overflow-y-auto overscroll-none px-4">
+              <div ref={fContentRef} className="flex-1 overflow-y-auto overscroll-none px-4">
                 <FilterChips filters={filters} onChange={setFilters} availableStates={availableStates} availableSources={availableSources} layout="stacked" showEligibleOnly={profileHasCriteria} />
               </div>
               <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 shrink-0">
