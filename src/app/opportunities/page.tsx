@@ -60,6 +60,7 @@ export default function OpportunitiesPage() {
   const [fitById, setFitById] = useState<Map<string, GigFitResult>>(new Map());
 
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filtersMounted, setFiltersMounted] = useState(false);
 
   const [sheetMounted, setSheetMounted] = useState(false);
   const [sheetVisible, setSheetVisible] = useState(false);
@@ -203,8 +204,18 @@ export default function OpportunitiesPage() {
     setTimeout(() => setSheetMounted(false), 300);
   }, []);
 
+  /* ---------- filter sheet (slide up / dismiss) ---------- */
+  const openFilters = () => {
+    setFiltersMounted(true);
+    requestAnimationFrame(() => setFiltersOpen(true));
+  };
+  const closeFilters = () => {
+    setFiltersOpen(false);
+    setTimeout(() => setFiltersMounted(false), 300);
+  };
+
   useEffect(() => {
-    if (!sheetMounted && !filtersOpen) return;
+    if (!sheetMounted && !filtersMounted) return;
     const body = document.body, html = document.documentElement;
     const scrollY = window.scrollY;
     const prev = { position: body.style.position, top: body.style.top, width: body.style.width, overflow: body.style.overflow, overscroll: html.style.overscrollBehavior };
@@ -213,7 +224,7 @@ export default function OpportunitiesPage() {
       body.style.position = prev.position; body.style.top = prev.top; body.style.width = prev.width; body.style.overflow = prev.overflow; html.style.overscrollBehavior = prev.overscroll;
       window.scrollTo(0, scrollY);
     };
-  }, [sheetMounted, filtersOpen]);
+  }, [sheetMounted, filtersMounted]);
 
   useEffect(() => {
     const el = sheetRef.current;
@@ -306,7 +317,7 @@ export default function OpportunitiesPage() {
             )}
             <button
               type="button"
-              onClick={() => setFiltersOpen(true)}
+              onClick={openFilters}
               className="md:hidden inline-flex items-center gap-1.5 text-sm h-10 px-3 rounded-lg border bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 shrink-0"
             >
               Filters
@@ -370,20 +381,32 @@ export default function OpportunitiesPage() {
         </div>
 
         {/* Mobile filter sheet */}
-        {filtersOpen && (
+        {filtersMounted && (
           <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setFiltersOpen(false)} />
-            <div className="absolute inset-x-0 bottom-0 max-h-[85vh] bg-white dark:bg-zinc-900 rounded-t-2xl shadow-2xl flex flex-col">
+            <div
+              className="absolute inset-0 bg-black/50 transition-opacity duration-300"
+              style={{ opacity: filtersOpen ? 1 : 0 }}
+              onClick={closeFilters}
+            />
+            <div
+              className="absolute inset-x-0 bottom-0 max-h-[85vh] bg-white dark:bg-zinc-900 rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out"
+              style={{ transform: filtersOpen ? "translateY(0)" : "translateY(100%)" }}
+            >
               <div className="flex justify-center pt-2.5 pb-1 shrink-0"><div className="h-1.5 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" /></div>
               <div className="flex items-center justify-between px-4 pb-3 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+                <button type="button" onClick={closeFilters} className="text-2xl leading-none text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 -ml-1 px-1" aria-label="Close">×</button>
                 <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Filters</h3>
-                {filterCount > 0 && <button type="button" onClick={() => setFilters(EMPTY_FILTERS)} className="text-sm text-blue-600 dark:text-blue-400">Clear all</button>}
+                {filterCount > 0 ? (
+                  <button type="button" onClick={() => setFilters(EMPTY_FILTERS)} className="text-sm text-blue-600 dark:text-blue-400">Clear all</button>
+                ) : (
+                  <span className="w-6" />
+                )}
               </div>
               <div className="flex-1 overflow-y-auto overscroll-none px-4">
                 <FilterChips filters={filters} onChange={setFilters} availableStates={availableStates} availableSources={availableSources} layout="stacked" showEligibleOnly={profileHasCriteria} />
               </div>
               <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 shrink-0">
-                <button type="button" onClick={() => setFiltersOpen(false)} className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
+                <button type="button" onClick={closeFilters} className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
                   Show {visible.length} {visible.length === 1 ? "result" : "results"}
                 </button>
               </div>
