@@ -58,11 +58,16 @@ export default function OpportunityListItem({
   selected,
   onSelect,
   fit,
+  saved,
+  onToggleSave,
 }: {
   opp: Opportunity;
   selected: boolean;
   onSelect: () => void;
   fit?: GigFitResult | null;
+  /** When provided, the corner shows a working save bookmark. */
+  saved?: boolean;
+  onToggleSave?: () => void;
 }) {
   const fresh = freshnessBadge(opp);
   const posted = relativeTime(opp.posted_at);
@@ -83,13 +88,45 @@ export default function OpportunityListItem({
         <h4 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 line-clamp-2 flex-1 min-w-0">
           {opp.title || "(No title)"}
         </h4>
-        {/* Bookmark icon — visual anchor for future "save" feature */}
-        <span
-          aria-hidden
-          className="shrink-0 text-zinc-300 dark:text-zinc-600 text-lg leading-none mt-0.5"
-        >
-          ☐
-        </span>
+        {/* Save bookmark (only when a handler is wired, e.g. the public feed).
+            A <span role="button"> avoids nesting a <button> inside the card button. */}
+        {onToggleSave && (
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label={saved ? "Remove from saved" : "Save"}
+            aria-pressed={saved}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSave();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggleSave();
+              }
+            }}
+            className={`shrink-0 -mr-1 -mt-0.5 p-1 rounded-md cursor-pointer transition-colors ${
+              saved
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+            }`}
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill={saved ? "currentColor" : "none"}
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" />
+            </svg>
+          </span>
+        )}
       </div>
 
       {/* Row 2: Thumbnail (if present) + source (top) & location (bottom) stacked */}

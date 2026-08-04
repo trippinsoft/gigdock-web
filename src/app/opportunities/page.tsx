@@ -365,7 +365,7 @@ export default function OpportunitiesPage() {
             ) : (
               <div className="overflow-y-auto pr-1 space-y-2">
                 {visible.map((opp) => (
-                  <OpportunityListItem key={opp.id} opp={opp} selected={opp.id === selectedId} onSelect={() => openSheet(opp.id)} fit={fitById.get(opp.id) ?? null} />
+                  <OpportunityListItem key={opp.id} opp={opp} selected={opp.id === selectedId} onSelect={() => openSheet(opp.id)} fit={fitById.get(opp.id) ?? null} saved={savedIds.has(opp.id)} onToggleSave={() => toggleSave(opp.id)} />
                 ))}
               </div>
             )}
