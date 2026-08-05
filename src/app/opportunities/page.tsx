@@ -372,7 +372,7 @@ export default function OpportunitiesPage() {
           </div>
 
           {selectedProfile && (
-            <div className="text-xs text-zinc-600 dark:text-zinc-400">
+            <div className="text-sm text-zinc-600 dark:text-zinc-400">
               {fieldsSet(selectedProfile).length === 0 ? (
                 <span>
                   <Link href="/profile" className="text-blue-600 dark:text-blue-400 underline underline-offset-2">Set up your profile</Link>
@@ -394,20 +394,20 @@ export default function OpportunitiesPage() {
             />
           </div>
 
-          <div className="text-xs text-zinc-500 dark:text-zinc-400">
+          <div className="text-sm text-zinc-500 dark:text-zinc-400">
             {loading ? "Loading..." : `${visible.length} ${visible.length === 1 ? "opportunity" : "opportunities"}`}
           </div>
         </div>
 
         {/* List + detail */}
-        <div className="flex-1 flex min-h-0 mt-4 gap-4">
-          <div className="w-full md:w-96 md:shrink-0 flex flex-col min-h-0">
+        <div className="flex-1 flex min-h-0 mt-4 gap-6">
+          <div className="w-full md:w-[26rem] md:shrink-0 flex flex-col min-h-0">
             {loading ? (
               <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>
             ) : visible.length === 0 ? (
               <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">No opportunities match your filters.</div>
             ) : (
-              <div className="overflow-y-auto pr-1 space-y-2">
+              <div className="overflow-y-auto pr-1 space-y-3">
                 {visible.map((opp) => (
                   <OpportunityListItem key={opp.id} opp={opp} selected={opp.id === selectedId} onSelect={() => openSheet(opp.id)} fit={fitById.get(opp.id) ?? null} saved={savedIds.has(opp.id)} onToggleSave={() => toggleSave(opp.id)} />
                 ))}

@@ -52,11 +52,11 @@ function MetaRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-2.5">
+    <div className="flex items-start gap-3">
       <span className="mt-0.5 shrink-0 text-zinc-400 dark:text-zinc-500">{icon}</span>
       <div className="min-w-0">
-        <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{label}</div>
-        <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{children}</div>
+        <div className="text-[13px] font-medium text-zinc-500 dark:text-zinc-400">{label}</div>
+        <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{children}</div>
       </div>
     </div>
   );
@@ -66,8 +66,8 @@ function MetaRow({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{title}</h4>
-      <div className="text-sm text-zinc-700 dark:text-zinc-300 mt-1 leading-relaxed">
+      <h4 className="text-base font-bold text-zinc-900 dark:text-zinc-100">{title}</h4>
+      <div className="text-[15px] sm:text-base text-zinc-700 dark:text-zinc-300 mt-1.5 leading-relaxed">
         {children}
       </div>
     </div>
@@ -285,14 +285,14 @@ export default function OpportunityCard({
   const fresh = freshness(opp);
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-3">
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 sm:p-6 space-y-4 sm:space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0 flex-1">
           {opp.image_url && (
             <button
               type="button"
               onClick={() => setLightboxOpen(true)}
-              className="shrink-0 w-14 h-14 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800"
+              className="shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -304,7 +304,7 @@ export default function OpportunityCard({
           )}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-snug">
+              <h3 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100 leading-snug">
                 {opp.title || "(No title)"}
               </h3>
               {fit && (
@@ -319,12 +319,12 @@ export default function OpportunityCard({
               )}
             </div>
             {opp.source && (
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
                 {opp.source}
               </p>
             )}
             {fit && (fit.matched.length > 0 || fit.blockers.length > 0) && (
-              <p className="text-xs mt-0.5 text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm mt-1 text-zinc-500 dark:text-zinc-400">
                 {fit.eligible
                   ? fit.matched.length > 0
                     ? `Matches your ${fit.matched.join(", ")}`
@@ -338,15 +338,15 @@ export default function OpportunityCard({
       </div>
 
       {opp.summary && (
-        <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">{opp.summary}</p>
+        <p className="text-[15px] sm:text-base text-zinc-700 dark:text-zinc-300 leading-relaxed">{opp.summary}</p>
       )}
 
       {(opp.pay_rate || opp.location || workDate || applyBy || postedAgo) && (
-        <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3">
-          <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-2.5">
+        <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
+          <h4 className="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-3">
             Job details
           </h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
             {opp.pay_rate && (
               <MetaRow icon={<PayIcon />} label="Pay">{opp.pay_rate}</MetaRow>
             )}
@@ -440,7 +440,7 @@ export default function OpportunityCard({
               href={opp.source_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block w-full text-center sm:inline-block sm:w-auto rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-6 py-3 transition-colors"
+              className="block w-full text-center sm:inline-block sm:w-auto rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base px-6 py-3 transition-colors"
             >
               View original post
             </a>
