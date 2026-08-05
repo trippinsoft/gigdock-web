@@ -401,7 +401,7 @@ export default function OpportunitiesPage() {
 
         {/* List + detail */}
         <div className="flex-1 flex min-h-0 mt-4 gap-6">
-          <div className="w-full md:w-[26rem] md:shrink-0 flex flex-col min-h-0">
+          <div className="w-full md:w-[30rem] md:shrink-0 flex flex-col min-h-0">
             {loading ? (
               <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>
             ) : visible.length === 0 ? (
