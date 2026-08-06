@@ -46,28 +46,30 @@ function MetaRow({
   icon,
   label,
   children,
+  dense,
 }: {
   icon: React.ReactNode;
   label: string;
   children: React.ReactNode;
+  dense?: boolean;
 }) {
   return (
-    <div className="flex items-start gap-3">
+    <div className={`flex items-start ${dense ? "gap-2.5" : "gap-3"}`}>
       <span className="mt-0.5 shrink-0 text-zinc-400 dark:text-zinc-500">{icon}</span>
       <div className="min-w-0">
-        <div className="text-[13px] font-medium text-zinc-500 dark:text-zinc-400">{label}</div>
-        <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{children}</div>
+        <div className={`${dense ? "text-xs" : "text-[13px]"} font-medium text-zinc-500 dark:text-zinc-400`}>{label}</div>
+        <div className={`${dense ? "text-sm" : "text-base"} font-semibold text-zinc-900 dark:text-zinc-100`}>{children}</div>
       </div>
     </div>
   );
 }
 
 /* A bold near-black heading over readable body text (clear hierarchy). */
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children, dense }: { title: string; children: React.ReactNode; dense?: boolean }) {
   return (
     <div>
-      <h4 className="text-base font-bold text-zinc-900 dark:text-zinc-100">{title}</h4>
-      <div className="text-[15px] sm:text-base text-zinc-700 dark:text-zinc-300 mt-1.5 leading-relaxed">
+      <h4 className={`${dense ? "text-sm" : "text-base"} font-bold text-zinc-900 dark:text-zinc-100`}>{title}</h4>
+      <div className={`${dense ? "text-sm mt-1" : "text-[15px] sm:text-base mt-1.5"} text-zinc-700 dark:text-zinc-300 leading-relaxed`}>
         {children}
       </div>
     </div>
@@ -265,6 +267,7 @@ export default function OpportunityCard({
   showRawText,
   fit,
   hideAdminMeta = false,
+  dense = false,
 }: {
   opp: Opportunity;
   actions?: React.ReactNode;
@@ -272,6 +275,8 @@ export default function OpportunityCard({
   fit?: GigFitResult | null;
   /** Public feed hides curator-only metadata (status, ai_extracted). */
   hideAdminMeta?: boolean;
+  /** Admin uses a compact type scale for faster review. */
+  dense?: boolean;
 }) {
   const specs = opp.casting_specs as Record<string, unknown> | null;
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -285,14 +290,14 @@ export default function OpportunityCard({
   const fresh = freshness(opp);
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 sm:p-6 space-y-4 sm:space-y-5">
+    <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg ${dense ? "p-4 space-y-3" : "p-4 sm:p-6 space-y-4 sm:space-y-5"}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0 flex-1">
           {opp.image_url && (
             <button
               type="button"
               onClick={() => setLightboxOpen(true)}
-              className="shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800"
+              className={`shrink-0 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 ${dense ? "w-14 h-14" : "w-16 h-16"}`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -304,7 +309,7 @@ export default function OpportunityCard({
           )}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100 leading-snug">
+              <h3 className={`${dense ? "text-lg" : "text-xl sm:text-2xl"} font-bold text-zinc-900 dark:text-zinc-100 leading-snug`}>
                 {opp.title || "(No title)"}
               </h3>
               {fit && (
@@ -319,12 +324,12 @@ export default function OpportunityCard({
               )}
             </div>
             {opp.source && (
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+              <p className={`${dense ? "text-xs mt-0.5" : "text-sm mt-1"} text-zinc-500 dark:text-zinc-400`}>
                 {opp.source}
               </p>
             )}
             {fit && (fit.matched.length > 0 || fit.blockers.length > 0) && (
-              <p className="text-sm mt-1 text-zinc-500 dark:text-zinc-400">
+              <p className={`${dense ? "text-xs mt-0.5" : "text-sm mt-1"} text-zinc-500 dark:text-zinc-400`}>
                 {fit.eligible
                   ? fit.matched.length > 0
                     ? `Matches your ${fit.matched.join(", ")}`
@@ -338,29 +343,29 @@ export default function OpportunityCard({
       </div>
 
       {opp.summary && (
-        <p className="text-[15px] sm:text-base text-zinc-700 dark:text-zinc-300 leading-relaxed">{opp.summary}</p>
+        <p className={`${dense ? "text-sm" : "text-[15px] sm:text-base"} text-zinc-700 dark:text-zinc-300 leading-relaxed`}>{opp.summary}</p>
       )}
 
       {(opp.pay_rate || opp.location || workDate || applyBy || postedAgo) && (
-        <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
-          <h4 className="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-3">
+        <div className={`border-t border-zinc-100 dark:border-zinc-800 ${dense ? "pt-3" : "pt-4"}`}>
+          <h4 className={`${dense ? "text-sm mb-2.5" : "text-base mb-3"} font-bold text-zinc-900 dark:text-zinc-100`}>
             Job details
           </h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+          <div className={`grid grid-cols-1 sm:grid-cols-2 ${dense ? "gap-x-4 gap-y-3" : "gap-x-6 gap-y-4"}`}>
             {opp.pay_rate && (
-              <MetaRow icon={<PayIcon />} label="Pay">{opp.pay_rate}</MetaRow>
+              <MetaRow icon={<PayIcon />} label="Pay" dense={dense}>{opp.pay_rate}</MetaRow>
             )}
             {opp.location && (
-              <MetaRow icon={<PinIcon />} label="Location">{opp.location}</MetaRow>
+              <MetaRow icon={<PinIcon />} label="Location" dense={dense}>{opp.location}</MetaRow>
             )}
             {workDate && (
-              <MetaRow icon={<CalendarIcon />} label="Shoot date">{workDate}</MetaRow>
+              <MetaRow icon={<CalendarIcon />} label="Shoot date" dense={dense}>{workDate}</MetaRow>
             )}
             {applyBy && (
-              <MetaRow icon={<BellIcon />} label="Apply by">{applyBy}</MetaRow>
+              <MetaRow icon={<BellIcon />} label="Apply by" dense={dense}>{applyBy}</MetaRow>
             )}
             {postedAgo && (
-              <MetaRow icon={<ClockIcon />} label="Posted">
+              <MetaRow icon={<ClockIcon />} label="Posted" dense={dense}>
                 {postedAgo}
                 {postedAbs && (
                   <span className="font-normal text-zinc-400 dark:text-zinc-500"> · {postedAbs}</span>
@@ -371,9 +376,9 @@ export default function OpportunityCard({
         </div>
       )}
 
-      {opp.pay_bumps && <Section title="Bumps">{opp.pay_bumps}</Section>}
+      {opp.pay_bumps && <Section title="Bumps" dense={dense}>{opp.pay_bumps}</Section>}
 
-      {opp.requirements && <Section title="Requirements">{opp.requirements}</Section>}
+      {opp.requirements && <Section title="Requirements" dense={dense}>{opp.requirements}</Section>}
 
       {specs && Object.keys(specs).length > 0 && (
         <div className="flex flex-wrap gap-1">
@@ -406,7 +411,7 @@ export default function OpportunityCard({
       )}
 
       {opp.application_info && (
-        <Section title="How to apply">{opp.application_info}</Section>
+        <Section title="How to apply" dense={dense}>{opp.application_info}</Section>
       )}
 
       {/* Primary apply CTA (Indeed-style pill). Label reflects where it goes;
@@ -440,7 +445,7 @@ export default function OpportunityCard({
               href={opp.source_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block w-full text-center sm:inline-block sm:w-auto rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base px-6 py-3 transition-colors"
+              className={`block w-full text-center sm:inline-block sm:w-auto rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 transition-colors ${dense ? "text-sm" : "text-base"}`}
             >
               View original post
             </a>

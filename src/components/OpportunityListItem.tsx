@@ -60,6 +60,7 @@ export default function OpportunityListItem({
   fit,
   saved,
   onToggleSave,
+  dense,
 }: {
   opp: Opportunity;
   selected: boolean;
@@ -68,6 +69,8 @@ export default function OpportunityListItem({
   /** When provided, the corner shows a working save bookmark. */
   saved?: boolean;
   onToggleSave?: () => void;
+  /** Admin uses a compact type scale for faster review. */
+  dense?: boolean;
 }) {
   const fresh = freshnessBadge(opp);
   const posted = relativeTime(opp.posted_at);
@@ -77,7 +80,7 @@ export default function OpportunityListItem({
     <button
       type="button"
       onClick={onSelect}
-      className={`w-full text-left p-4 rounded-lg border transition-colors ${
+      className={`w-full text-left rounded-lg border transition-colors ${dense ? "p-3" : "p-4"} ${
         selected
           ? "bg-blue-50 dark:bg-blue-950/40 border-blue-500 dark:border-blue-600"
           : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
@@ -85,7 +88,7 @@ export default function OpportunityListItem({
     >
       {/* Row 1: Title (always first, always full-width for scan consistency) */}
       <div className="flex items-start justify-between gap-2">
-        <h4 className="font-semibold text-base text-zinc-900 dark:text-zinc-100 line-clamp-2 flex-1 min-w-0">
+        <h4 className={`font-semibold ${dense ? "text-sm" : "text-base"} text-zinc-900 dark:text-zinc-100 line-clamp-2 flex-1 min-w-0`}>
           {opp.title || "(No title)"}
         </h4>
         {/* Save bookmark (only when a handler is wired, e.g. the public feed).
@@ -131,9 +134,9 @@ export default function OpportunityListItem({
 
       {/* Row 2: Thumbnail (if present) + source (top) & location (bottom) stacked */}
       {(opp.source || opp.location || shoot) && (
-        <div className="flex items-start gap-2.5 mt-2">
+        <div className={`flex items-start ${dense ? "gap-2 mt-1.5" : "gap-2.5 mt-2"}`}>
           {opp.image_url && (
-            <span className="shrink-0 w-12 h-12 rounded overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800">
+            <span className={`shrink-0 rounded overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 ${dense ? "w-10 h-10" : "w-12 h-12"}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={opp.image_url}
@@ -144,12 +147,12 @@ export default function OpportunityListItem({
           )}
           <div className="min-w-0 flex-1">
             {opp.source && (
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 truncate">
+              <p className={`${dense ? "text-xs" : "text-sm"} text-zinc-600 dark:text-zinc-400 truncate`}>
                 {opp.source}
               </p>
             )}
             {(opp.location || shoot) && (
-              <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-sm text-zinc-500 dark:text-zinc-400">
+              <div className={`flex flex-wrap gap-x-2 gap-y-0.5 ${dense ? "text-xs" : "text-sm"} text-zinc-500 dark:text-zinc-400`}>
                 {opp.location && <span className="truncate">{opp.location}</span>}
                 {opp.location && shoot && <span className="text-zinc-300 dark:text-zinc-600">·</span>}
                 {shoot && <span>{shoot}</span>}
@@ -160,24 +163,24 @@ export default function OpportunityListItem({
       )}
 
       {/* Row 4: Pay + match/urgency + posted time */}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-2.5">
+      <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 ${dense ? "mt-2" : "mt-2.5"}`}>
         {opp.pay_rate && (
-          <span className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+          <span className={`${dense ? "text-sm font-medium" : "text-base font-semibold"} text-zinc-900 dark:text-zinc-100`}>
             {opp.pay_rate}
           </span>
         )}
         {fit && (
-          <span className={`text-[13px] px-2 py-0.5 rounded font-medium ${FIT_CLASS[fit.color]}`}>
+          <span className={`${dense ? "text-xs" : "text-[13px]"} px-2 py-0.5 rounded font-medium ${FIT_CLASS[fit.color]}`}>
             {fit.tier === "strong" ? "★ " : ""}{fit.label}
           </span>
         )}
         {fresh && (
-          <span className={`text-[13px] px-2 py-0.5 rounded font-medium ${fresh.color}`}>
+          <span className={`${dense ? "text-xs" : "text-[13px]"} px-2 py-0.5 rounded font-medium ${fresh.color}`}>
             {fresh.label}
           </span>
         )}
         {posted && (
-          <span className="text-[13px] text-zinc-500 dark:text-zinc-400 ml-auto">
+          <span className={`${dense ? "text-xs" : "text-[13px]"} text-zinc-500 dark:text-zinc-400 ml-auto`}>
             {posted}
           </span>
         )}

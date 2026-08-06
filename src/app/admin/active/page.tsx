@@ -468,6 +468,7 @@ export default function ActivePage() {
                   selected={opp.id === selectedId}
                   onSelect={() => openSheet(opp.id)}
                   fit={fitById.get(opp.id) ?? null}
+                  dense
                 />
               ))}
             </div>
@@ -481,6 +482,7 @@ export default function ActivePage() {
               opp={selected}
               actions={actionButtons}
               fit={selectedId ? fitById.get(selectedId) ?? null : null}
+              dense
             />
           ) : (
             <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400 text-sm">
@@ -577,6 +579,7 @@ export default function ActivePage() {
               <OpportunityCard
                 opp={selected}
                 fit={selectedId ? fitById.get(selectedId) ?? null : null}
+                dense
               />
             </div>
           </div>
