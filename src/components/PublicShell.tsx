@@ -37,17 +37,28 @@ export default function PublicShell({ children }: { children: React.ReactNode })
       <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
-            <Link
-              href="/opportunities"
-              onClick={() => setMenuOpen(false)}
-              className="flex items-center gap-2 shrink-0"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/gigdock-logo.png" alt="GigDock" className="h-7 w-7 shrink-0" />
-              <span className="font-bold text-xl sm:text-2xl tracking-tight text-zinc-900 dark:text-zinc-100">
-                GigDock
-              </span>
-            </Link>
+            <div className="flex items-center gap-3 min-w-0">
+              <Link
+                href="/opportunities"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2 shrink-0"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/gigdock-logo.png" alt="GigDock" className="h-7 w-7 shrink-0" />
+                <span className="font-bold text-xl sm:text-2xl tracking-tight text-zinc-900 dark:text-zinc-100">
+                  GigDock
+                </span>
+              </Link>
+              {/* Marketing tagline — desktop only (mobile header stays compact) */}
+              <div className="hidden lg:block border-l border-zinc-200 dark:border-zinc-700 pl-3 min-w-0">
+                <div className="text-sm font-bold text-zinc-900 dark:text-zinc-100 leading-tight truncate">
+                  The Home for Your Gig Life
+                </div>
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 leading-tight truncate">
+                  Find Opportunities • Manage Gigs • Track Payments • Stay Organized
+                </div>
+              </div>
+            </div>
 
             {/* Desktop nav */}
             <nav className="hidden sm:flex items-center gap-2">
