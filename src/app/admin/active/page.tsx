@@ -131,6 +131,10 @@ export default function ActivePage() {
         p_profile_id: gigfitProfileId,
       });
       if (error) {
+        // Surface RPC failures instead of silently dropping every badge. The
+        // matcher lives in the Postgres gigfit() function; if it's broken or
+        // missing, this is the only signal we get.
+        console.error("GigFit RPC failed:", error.message ?? error);
         setFitById(new Map());
         return;
       }

@@ -129,7 +129,7 @@ export default function OpportunitiesPage() {
     (async () => {
       if (!gigfitProfileId || !profileHasCriteria) { setFitById(new Map()); return; }
       const { data, error } = await supabase.rpc("gigfit", { p_profile_id: gigfitProfileId });
-      if (error) { setFitById(new Map()); return; }
+      if (error) { console.error("GigFit RPC failed:", error.message ?? error); setFitById(new Map()); return; }
       const map = new Map<string, GigFitResult>();
       for (const row of (data ?? []) as GigFitRow[]) {
         map.set(row.opportunity_id, {

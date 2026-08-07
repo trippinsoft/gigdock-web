@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import type { Opportunity } from "@/lib/types";
 import OpportunityCard from "@/components/OpportunityCard";
+import OpportunityListItem from "@/components/OpportunityListItem";
+import AdminTwoPane from "@/components/AdminTwoPane";
 
 export default function HiddenPage() {
   const [opps, setOpps] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "hidden" | "expired">("all");
+  const [search, setSearch] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const supabase = createSupabaseBrowser();
@@ -56,19 +59,42 @@ export default function HiddenPage() {
     setActionLoading(null);
   }
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-      </div>
+  const visible = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return opps;
+    return opps.filter((o) =>
+      [o.title, o.summary, o.location, o.source]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(q)
     );
-  }
+  }, [opps, search]);
 
-  return (
-    <div className="space-y-4">
+  const actionsFor = (opp: Opportunity) => (
+    <>
+      <button
+        onClick={() => moveToDraft(opp.id)}
+        disabled={actionLoading === opp.id}
+        className="px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-800 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+      >
+        To Draft
+      </button>
+      <button
+        onClick={() => restore(opp.id)}
+        disabled={actionLoading === opp.id}
+        className="px-3 py-1.5 text-xs font-medium text-green-600 dark:text-green-400 border border-green-300 dark:border-green-800 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors"
+      >
+        {actionLoading === opp.id ? "..." : "Restore"}
+      </button>
+    </>
+  );
+
+  const toolbar = (
+    <div className="space-y-2">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-          Hidden & Expired
+          Hidden &amp; Expired
         </h2>
         <div className="flex gap-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg p-1">
           {(["all", "hidden", "expired"] as const).map((f) => (
@@ -86,37 +112,46 @@ export default function HiddenPage() {
           ))}
         </div>
       </div>
-
-      {opps.length === 0 ? (
-        <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">
-          No {filter === "all" ? "hidden or expired" : filter} opportunities.
-        </div>
-      ) : (
-        opps.map((opp) => (
-          <OpportunityCard
-            key={opp.id}
-            opp={opp}
-            actions={
-              <>
-                <button
-                  onClick={() => moveToDraft(opp.id)}
-                  disabled={actionLoading === opp.id}
-                  className="px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-800 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
-                >
-                  To Draft
-                </button>
-                <button
-                  onClick={() => restore(opp.id)}
-                  disabled={actionLoading === opp.id}
-                  className="px-3 py-1.5 text-xs font-medium text-green-600 dark:text-green-400 border border-green-300 dark:border-green-800 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors"
-                >
-                  {actionLoading === opp.id ? "..." : "Restore"}
-                </button>
-              </>
-            }
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 min-w-[150px] max-w-xs">
+          <svg
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
+          </svg>
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search..."
+            className="w-full pl-9 pr-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-        ))
-      )}
+        </div>
+        <span className="text-xs text-zinc-500 dark:text-zinc-400 ml-auto">
+          {loading ? "Loading..." : `${visible.length} ${visible.length === 1 ? "item" : "items"}`}
+        </span>
+      </div>
     </div>
+  );
+
+  return (
+    <AdminTwoPane
+      items={visible}
+      loading={loading}
+      getKey={(o) => o.id}
+      toolbar={toolbar}
+      empty={`No ${filter === "all" ? "hidden or expired" : filter} opportunities.`}
+      detailPlaceholder="Select an opportunity to view details"
+      renderRow={(opp, { selected, onSelect }) => (
+        <OpportunityListItem opp={opp} selected={selected} onSelect={onSelect} dense />
+      )}
+      renderDetail={(opp) => (
+        <OpportunityCard opp={opp} actions={actionsFor(opp)} dense />
+      )}
+    />
   );
 }
