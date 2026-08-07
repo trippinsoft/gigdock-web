@@ -330,11 +330,13 @@ export default function OpportunityCard({
             )}
             {fit && (fit.matched.length > 0 || fit.blockers.length > 0) && (
               <p className={`${dense ? "text-xs mt-0.5" : "text-sm mt-1"} text-zinc-500 dark:text-zinc-400`}>
-                {fit.eligible
-                  ? fit.matched.length > 0
-                    ? `Matches your ${fit.matched.join(", ")}`
-                    : null
-                  : `Not eligible — ${fit.blockers.join(" · ")}`}
+                {fit.tier === "ineligible"
+                  ? `Not eligible — ${fit.blockers.join(" · ")}`
+                  : fit.tier === "poor"
+                  ? `Poor match — ${fit.blockers.join(" · ")}`
+                  : fit.matched.length > 0
+                  ? `Matches your ${fit.matched.join(", ")}`
+                  : null}
               </p>
             )}
           </div>

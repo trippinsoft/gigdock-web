@@ -5,7 +5,7 @@
 // Call it via: supabase.rpc('gigfit', { p_profile_id }).
 // Everything here is types and presentation helpers only.
 
-export type GigFitTier = "ineligible" | "open" | "good" | "strong";
+export type GigFitTier = "ineligible" | "poor" | "open" | "good" | "strong";
 
 export type GigFitResult = {
   eligible: boolean;
