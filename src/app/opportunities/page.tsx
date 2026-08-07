@@ -39,6 +39,10 @@ function cmpDateAsc(a: string | null, b: string | null): number {
 
 const DISMISS_THRESHOLD = 110;
 
+// Pull-to-refresh on the list.
+const PULL_TRIGGER = 70; // px pulled (after damping) before a refresh fires
+const PULL_MAX = 110; // cap on the visual pull distance
+
 export default function OpportunitiesPage() {
   const router = useRouter();
   const supabase = createSupabaseBrowser();
@@ -79,6 +83,13 @@ export default function OpportunitiesPage() {
   const fContentRef = useRef<HTMLDivElement>(null);
   const fHeaderRef = useRef<HTMLDivElement>(null);
 
+  // Pull-to-refresh (list-driven)
+  const listRef = useRef<HTMLDivElement>(null);
+  const [pullY, setPullY] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const pullYRef = useRef(0);
+  const refreshingRef = useRef(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -94,6 +105,26 @@ export default function OpportunitiesPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Pull-to-refresh: re-fetch the feed WITHOUT a full page reload, so the
+  // user's filters/search/sort (all client-side state) survive the refresh.
+  // Only setOpps changes; the visible list is recomputed from the same filters.
+  const refresh = useCallback(async () => {
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
+    setRefreshing(true);
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const { data } = await supabase
+      .from("opportunities")
+      .select("*")
+      .eq("status", "active")
+      .is("deleted_at", null)
+      .or(`work_date.is.null,work_date.gte.${todayStr}`)
+      .order("posted_at", { ascending: false });
+    setOpps(data ?? []);
+    refreshingRef.current = false;
+    setRefreshing(false);
+  }, []);
 
   // Auth + saved + profiles (all optional — logged-out users just browse).
   useEffect(() => {
@@ -305,6 +336,64 @@ export default function OpportunitiesPage() {
     };
   }, [filtersMounted, closeFilters]);
 
+  // Suppress the browser's native pull-to-refresh on this page so a stray pull
+  // near the top can't full-reload the page and wipe the user's filters. The
+  // list has its own pull-to-refresh (below) that preserves them.
+  useEffect(() => {
+    const html = document.documentElement;
+    const prev = html.style.overscrollBehavior;
+    html.style.overscrollBehavior = "none";
+    return () => { html.style.overscrollBehavior = prev; };
+  }, []);
+
+  // Pull-to-refresh from the list itself: drag down from the top of the list.
+  // Native non-passive listener so preventDefault() beats the browser gesture.
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    let startY = 0;
+    let active = false;
+    const onStart = (e: TouchEvent) => {
+      if (refreshingRef.current || el.scrollTop > 0) { active = false; return; }
+      startY = e.touches[0].clientY;
+      active = true;
+    };
+    const onMove = (e: TouchEvent) => {
+      if (!active) return;
+      const delta = e.touches[0].clientY - startY;
+      // Scrolling up, or the list has since scrolled off the top → hand the
+      // gesture back to normal scrolling.
+      if (delta <= 0 || el.scrollTop > 0) {
+        active = false;
+        pullYRef.current = 0;
+        setPullY(0);
+        return;
+      }
+      if (e.cancelable) e.preventDefault();
+      const damped = Math.min(PULL_MAX, delta * 0.5);
+      pullYRef.current = damped;
+      setPullY(damped);
+    };
+    const onEnd = () => {
+      if (!active) return;
+      active = false;
+      const shouldRefresh = pullYRef.current >= PULL_TRIGGER;
+      pullYRef.current = 0;
+      setPullY(0);
+      if (shouldRefresh) refresh();
+    };
+    el.addEventListener("touchstart", onStart, { passive: true });
+    el.addEventListener("touchmove", onMove, { passive: false });
+    el.addEventListener("touchend", onEnd);
+    el.addEventListener("touchcancel", onEnd);
+    return () => {
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchmove", onMove);
+      el.removeEventListener("touchend", onEnd);
+      el.removeEventListener("touchcancel", onEnd);
+    };
+  }, [refresh]);
+
   function saveButton(id: string) {
     const isSaved = savedIds.has(id);
     return (
@@ -402,17 +491,31 @@ export default function OpportunitiesPage() {
         {/* List + detail */}
         <div className="flex-1 flex min-h-0 mt-4 gap-6">
           <div className="w-full md:w-[30rem] md:shrink-0 flex flex-col min-h-0">
-            {loading ? (
-              <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>
-            ) : visible.length === 0 ? (
-              <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">No opportunities match your filters.</div>
-            ) : (
-              <div className="overflow-y-auto pr-1 space-y-3">
-                {visible.map((opp) => (
-                  <OpportunityListItem key={opp.id} opp={opp} selected={opp.id === selectedId} onSelect={() => openSheet(opp.id)} fit={fitById.get(opp.id) ?? null} saved={savedIds.has(opp.id)} onToggleSave={() => toggleSave(opp.id)} />
-                ))}
-              </div>
-            )}
+            <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pr-1">
+              {/* Pull-to-refresh indicator (grows as you drag, spins while refreshing) */}
+              {(pullY > 0 || refreshing) && (
+                <div
+                  className="flex items-center justify-center overflow-hidden"
+                  style={{ height: refreshing ? 40 : pullY, transition: pullY === 0 ? "height 200ms" : undefined }}
+                >
+                  <div
+                    className={`rounded-full h-6 w-6 border-b-2 border-blue-600 ${refreshing ? "animate-spin" : ""}`}
+                    style={refreshing ? undefined : { transform: `rotate(${pullY * 3}deg)`, opacity: Math.min(1, pullY / PULL_TRIGGER) }}
+                  />
+                </div>
+              )}
+              {loading ? (
+                <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>
+              ) : visible.length === 0 ? (
+                <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">No opportunities match your filters.</div>
+              ) : (
+                <div className="space-y-3">
+                  {visible.map((opp) => (
+                    <OpportunityListItem key={opp.id} opp={opp} selected={opp.id === selectedId} onSelect={() => openSheet(opp.id)} fit={fitById.get(opp.id) ?? null} saved={savedIds.has(opp.id)} onToggleSave={() => toggleSave(opp.id)} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="hidden md:block flex-1 min-w-0 overflow-y-auto">
