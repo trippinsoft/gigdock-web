@@ -4,13 +4,16 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import type { Opportunity, RawIngestion } from "@/lib/types";
 import OpportunityCard from "@/components/OpportunityCard";
+import OpportunityListItem from "@/components/OpportunityListItem";
 import EditOpportunityModal from "@/components/EditOpportunityModal";
+import AdminTwoPane from "@/components/AdminTwoPane";
+
+type Draft = Opportunity & { raw_ingestion?: RawIngestion };
 
 export default function ReviewPage() {
-  const [drafts, setDrafts] = useState<
-    (Opportunity & { raw_ingestion?: RawIngestion })[]
-  >([]);
+  const [drafts, setDrafts] = useState<Draft[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Opportunity | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -76,17 +79,47 @@ export default function ReviewPage() {
     setActionLoading(null);
   }
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-      </div>
+  const visible = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return drafts;
+    return drafts.filter((o) =>
+      [o.title, o.summary, o.location, o.source, o.review_reason]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(q)
     );
-  }
+  }, [drafts, search]);
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+  const actionsFor = (opp: Draft) => (
+    <>
+      <button
+        onClick={() => setEditing(opp)}
+        disabled={actionLoading === opp.id}
+        className="px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+      >
+        Edit
+      </button>
+      <button
+        onClick={() => reject(opp.id)}
+        disabled={actionLoading === opp.id}
+        className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+      >
+        Reject
+      </button>
+      <button
+        onClick={() => approve(opp.id)}
+        disabled={actionLoading === opp.id}
+        className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-green-400 rounded-lg transition-colors"
+      >
+        {actionLoading === opp.id ? "..." : "Approve"}
+      </button>
+    </>
+  );
+
+  const toolbar = (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
           Review Drafts
         </h2>
@@ -95,14 +128,43 @@ export default function ReviewPage() {
           {flaggedCount > 0 && ` · ${flaggedCount} flagged`}
         </span>
       </div>
-
-      {drafts.length === 0 ? (
-        <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">
-          No drafts to review. All clear!
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 min-w-[150px] max-w-xs">
+          <svg
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
+          </svg>
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search..."
+            className="w-full pl-9 pr-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
         </div>
-      ) : (
-        drafts.map((opp) => (
-          <div key={opp.id} className="space-y-1">
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <AdminTwoPane
+        items={visible}
+        loading={loading}
+        getKey={(o) => o.id}
+        toolbar={toolbar}
+        empty="No drafts to review. All clear!"
+        detailPlaceholder="Select a draft to review"
+        renderRow={(opp, { selected, onSelect }) => (
+          <OpportunityListItem opp={opp} selected={selected} onSelect={onSelect} dense />
+        )}
+        renderDetail={(opp) => (
+          <div className="space-y-2">
             {opp.review_reason ? (
               <div className="flex items-start gap-2 text-xs px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300">
                 <span className="font-semibold shrink-0">⚠ Held:</span>
@@ -116,35 +178,12 @@ export default function ReviewPage() {
             <OpportunityCard
               opp={opp}
               showRawText={opp.raw_ingestion?.raw_text}
-              actions={
-                <>
-                  <button
-                    onClick={() => setEditing(opp)}
-                    disabled={actionLoading === opp.id}
-                    className="px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => reject(opp.id)}
-                    disabled={actionLoading === opp.id}
-                    className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-                  >
-                    Reject
-                  </button>
-                  <button
-                    onClick={() => approve(opp.id)}
-                    disabled={actionLoading === opp.id}
-                    className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-green-400 rounded-lg transition-colors"
-                  >
-                    {actionLoading === opp.id ? "..." : "Approve"}
-                  </button>
-                </>
-              }
+              actions={actionsFor(opp)}
+              dense
             />
           </div>
-        ))
-      )}
+        )}
+      />
 
       {editing && (
         <EditOpportunityModal
@@ -156,6 +195,6 @@ export default function ReviewPage() {
           }}
         />
       )}
-    </div>
+    </>
   );
 }
