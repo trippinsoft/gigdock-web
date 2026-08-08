@@ -8,6 +8,7 @@ import type { Opportunity } from "@/lib/types";
 import OpportunityCard from "@/components/OpportunityCard";
 import OpportunityListItem from "@/components/OpportunityListItem";
 import PublicShell from "@/components/PublicShell";
+import ShareButton from "@/components/ShareButton";
 import FilterChips, {
   EMPTY_FILTERS,
   applyFilters,
@@ -520,7 +521,7 @@ export default function OpportunitiesPage() {
 
           <div className="hidden md:block flex-1 min-w-0 overflow-y-auto">
             {selected ? (
-              <OpportunityCard opp={selected} actions={saveButton(selected.id)} fit={selectedId ? fitById.get(selectedId) ?? null : null} hideAdminMeta />
+              <OpportunityCard opp={selected} actions={<div className="flex items-center gap-2">{saveButton(selected.id)}<ShareButton id={selected.id} title={selected.title} /></div>} fit={selectedId ? fitById.get(selectedId) ?? null : null} hideAdminMeta />
             ) : (
               <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400 text-sm">Select an opportunity to view details</div>
             )}
@@ -581,7 +582,7 @@ export default function OpportunitiesPage() {
                 <div className="flex justify-center pt-2.5 pb-1"><div className="h-1.5 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" /></div>
                 <div className="flex items-center justify-between px-4 pb-3">
                   <button type="button" onClick={closeSheet} className="text-2xl leading-none text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 -ml-1 px-1" aria-label="Close">×</button>
-                  <div className="flex gap-2">{saveButton(selected.id)}</div>
+                  <div className="flex gap-2">{saveButton(selected.id)}<ShareButton id={selected.id} title={selected.title} /></div>
                 </div>
               </div>
               <div ref={contentRef} className="flex-1 overflow-y-auto overscroll-contain p-4">
