@@ -20,6 +20,8 @@ const OTHER_MARKETS = [
   "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "UT", "VT", "VA", "WA", "WV",
   "WI", "WY", "AB", "MB", "NB", "NL", "NS", "PE", "QC", "SK",
 ];
+// Full picker list, common markets first.
+const ALL_MARKETS = [...TOP_MARKETS, ...OTHER_MARKETS];
 
 const GENDERS = [
   { value: "male", label: "Male" },
@@ -272,41 +274,55 @@ export default function ProfilePage() {
         />
       </Section>
 
-      {/* Markets */}
+      {/* Markets — collapsed shows only your selected states; expand to add.
+          With nothing selected the full picker opens automatically. */}
       <Section
         title="Markets"
         hint="States you'll work in. Gigs outside these are filtered out."
         nudge={!draft.markets.length ? nudgeFor("markets") : null}
       >
-        <div className="flex flex-wrap gap-1.5">
-          {TOP_MARKETS.map((code) => (
-            <MarketChip
-              key={code}
-              code={code}
-              selected={draft.markets.includes(code)}
-              onToggle={() => toggleMarket(code)}
-            />
-          ))}
-        </div>
-        {showAllMarkets ? (
-          <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-800">
-            {OTHER_MARKETS.map((code) => (
-              <MarketChip
-                key={code}
-                code={code}
-                selected={draft.markets.includes(code)}
-                onToggle={() => toggleMarket(code)}
-              />
-            ))}
-          </div>
+        {showAllMarkets || draft.markets.length === 0 ? (
+          <>
+            <div className="flex flex-wrap gap-1.5">
+              {ALL_MARKETS.map((code) => (
+                <MarketChip
+                  key={code}
+                  code={code}
+                  selected={draft.markets.includes(code)}
+                  onToggle={() => toggleMarket(code)}
+                />
+              ))}
+            </div>
+            {draft.markets.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowAllMarkets(false)}
+                className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 mt-2"
+              >
+                Done
+              </button>
+            )}
+          </>
         ) : (
-          <button
-            type="button"
-            onClick={() => setShowAllMarkets(true)}
-            className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 mt-2"
-          >
-            Show all states / provinces
-          </button>
+          <>
+            <div className="flex flex-wrap gap-1.5">
+              {draft.markets.map((code) => (
+                <MarketChip
+                  key={code}
+                  code={code}
+                  selected
+                  onToggle={() => toggleMarket(code)}
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAllMarkets(true)}
+              className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 mt-2"
+            >
+              + Add or edit states
+            </button>
+          </>
         )}
       </Section>
 
