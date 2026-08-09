@@ -268,6 +268,7 @@ export default function OpportunityCard({
   fit,
   hideAdminMeta = false,
   dense = false,
+  onApply,
 }: {
   opp: Opportunity;
   actions?: React.ReactNode;
@@ -277,6 +278,8 @@ export default function OpportunityCard({
   hideAdminMeta?: boolean;
   /** Admin uses a compact type scale for faster review. */
   dense?: boolean;
+  /** Fired when the user taps Apply — used to auto-mark the gig as applied. */
+  onApply?: (kind: "email" | "url") => void;
 }) {
   const specs = opp.casting_specs as Record<string, unknown> | null;
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -425,6 +428,7 @@ export default function OpportunityCard({
             href={applyHref}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => onApply?.(applyIsEmail ? "email" : "url")}
             className="block w-full text-center sm:inline-block sm:w-auto rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-6 py-3 transition-colors"
           >
             {applyIsEmail ? "Apply via Email" : "Apply on company site"}

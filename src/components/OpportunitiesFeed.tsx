@@ -58,6 +58,12 @@ export default function OpportunitiesFeed({
 
   const [userId, setUserId] = useState<string | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
+
+  // Scope filter (All / Saved / Applied), like the mobile app.
+  const [scope, setScope] = useState<"all" | "saved" | "applied">("all");
+  const [scopedOpps, setScopedOpps] = useState<Opportunity[]>([]);
+  const [scopeLoading, setScopeLoading] = useState(false);
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -112,6 +118,28 @@ export default function OpportunitiesFeed({
 
   useEffect(() => { load(); }, [load]);
 
+  // Initial scope from ?scope= (e.g. the old /saved route redirects here).
+  useEffect(() => {
+    const s = new URLSearchParams(window.location.search).get("scope");
+    if (s === "saved" || s === "applied") setScope(s);
+  }, []);
+
+  // Saved/Applied show the user's own list regardless of active status (so an
+  // expired-but-saved gig still appears), fetched by id.
+  useEffect(() => {
+    if (scope === "all" || !userId) { setScopedOpps([]); return; }
+    const ids = Array.from(scope === "saved" ? savedIds : appliedIds);
+    if (ids.length === 0) { setScopedOpps([]); return; }
+    let cancelled = false;
+    (async () => {
+      setScopeLoading(true);
+      const { data } = await supabase
+        .from("opportunities").select("*").in("id", ids).is("deleted_at", null);
+      if (!cancelled) { setScopedOpps((data ?? []) as Opportunity[]); setScopeLoading(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [scope, savedIds, appliedIds, userId]);
+
   // Pull-to-refresh: re-fetch the feed WITHOUT a full page reload, so the
   // user's filters/search/sort (all client-side state) survive the refresh.
   // Only setOpps changes; the visible list is recomputed from the same filters.
@@ -139,11 +167,13 @@ export default function OpportunitiesFeed({
       const uid = auth.user?.id ?? null;
       setUserId(uid);
       if (!uid) return;
-      const [{ data: saved }, { data: profs }] = await Promise.all([
+      const [{ data: saved }, { data: applied }, { data: profs }] = await Promise.all([
         supabase.from("saved_opportunities").select("opportunity_id").eq("user_id", uid),
+        supabase.from("applied_opportunities").select("opportunity_id").eq("user_id", uid),
         supabase.from("performer_profiles").select("*").eq("user_id", uid).order("is_default", { ascending: false }),
       ]);
       setSavedIds(new Set((saved ?? []).map((s) => s.opportunity_id)));
+      setAppliedIds(new Set((applied ?? []).map((s) => s.opportunity_id)));
       const list = (profs ?? []) as PerformerProfile[];
       setProfiles(list);
       if (list.length > 0) setGigfitProfileId(list[0].id);
@@ -198,7 +228,8 @@ export default function OpportunitiesFeed({
   }, [opps]);
 
   const visible = useMemo(() => {
-    let list = applyFilters(opps, filters);
+    const base = scope === "all" ? opps : scopedOpps;
+    let list = applyFilters(base, filters);
     if (debouncedSearch.trim()) {
       const q = debouncedSearch.toLowerCase().trim();
       list = list.filter((o) =>
@@ -214,7 +245,7 @@ export default function OpportunitiesFeed({
     else if (sort === "shoot-date") sorted.sort((a, b) => cmpDateAsc(a.work_date, b.work_date));
     else if (sort === "apply-by") sorted.sort((a, b) => cmpDateAsc(a.apply_by, b.apply_by));
     return sorted;
-  }, [opps, filters, debouncedSearch, sort, profileHasCriteria, fitById]);
+  }, [opps, scopedOpps, scope, filters, debouncedSearch, sort, profileHasCriteria, fitById]);
 
   useEffect(() => {
     if (visible.length === 0) { setSelectedId(null); return; }
@@ -244,6 +275,35 @@ export default function OpportunitiesFeed({
     } else {
       await supabase.from("saved_opportunities").insert({ user_id: userId, opportunity_id: id });
     }
+  }
+
+  /* ---------- applied (mirrors the mobile app's applied_opportunities) ---------- */
+  async function toggleApplied(id: string) {
+    if (!userId) { router.push("/signup"); return; }
+    const isApplied = appliedIds.has(id);
+    setAppliedIds((prev) => {
+      const next = new Set(prev);
+      if (isApplied) next.delete(id); else next.add(id);
+      return next;
+    });
+    if (isApplied) {
+      await supabase.from("applied_opportunities").delete().eq("user_id", userId).eq("opportunity_id", id);
+    } else {
+      await supabase.from("applied_opportunities").upsert(
+        { user_id: userId, opportunity_id: id, method: "manual" },
+        { onConflict: "user_id,opportunity_id", ignoreDuplicates: true }
+      );
+    }
+  }
+
+  // Tapping Apply auto-marks applied (method = how they applied), like mobile.
+  async function markApplied(id: string, method: string) {
+    if (!userId || appliedIds.has(id)) return;
+    setAppliedIds((prev) => new Set(prev).add(id));
+    await supabase.from("applied_opportunities").upsert(
+      { user_id: userId, opportunity_id: id, method },
+      { onConflict: "user_id,opportunity_id", ignoreDuplicates: true }
+    );
   }
 
   /* ---------- detail sheet ---------- */
@@ -436,6 +496,23 @@ export default function OpportunitiesFeed({
     );
   }
 
+  function appliedButton(id: string) {
+    const isApplied = appliedIds.has(id);
+    return (
+      <button
+        onClick={() => toggleApplied(id)}
+        className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+          isApplied
+            ? "bg-green-600 border-green-600 text-white"
+            : "border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+        }`}
+        title={isApplied ? "Marked as applied — tap to undo" : "Mark as applied"}
+      >
+        {isApplied ? "✓ Applied" : "Mark applied"}
+      </button>
+    );
+  }
+
   const filterCount = activeFilterCount(filters);
   const gigfitOn = !!gigfitProfileId;
 
@@ -444,6 +521,28 @@ export default function OpportunitiesFeed({
       <div className="flex flex-col h-[calc(100vh-8rem)]">
         {/* Toolbar */}
         <div className="space-y-2 pb-3 border-b border-zinc-200 dark:border-zinc-800">
+          {/* Scope: All / Saved / Applied */}
+          <div className="inline-flex rounded-lg border border-zinc-300 dark:border-zinc-700 p-0.5 bg-white dark:bg-zinc-800">
+            {(["all", "saved", "applied"] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setScope(s)}
+                className={`px-3.5 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  scope === s
+                    ? "bg-blue-600 text-white"
+                    : "text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100"
+                }`}
+              >
+                {s === "all"
+                  ? "All"
+                  : s === "saved"
+                  ? `Saved${savedIds.size ? ` (${savedIds.size})` : ""}`
+                  : `Applied${appliedIds.size ? ` (${appliedIds.size})` : ""}`}
+              </button>
+            ))}
+          </div>
+
           <div className="flex flex-wrap gap-2 items-center">
             <div className="relative flex-1 min-w-[150px] max-w-xs">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" /></svg>
@@ -530,10 +629,20 @@ export default function OpportunitiesFeed({
                   />
                 </div>
               )}
-              {loading ? (
+              {loading || (scope !== "all" && scopeLoading) ? (
                 <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>
+              ) : scope !== "all" && !userId ? (
+                <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">
+                  Sign in to see your {scope} opportunities.
+                </div>
               ) : visible.length === 0 ? (
-                <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">No opportunities match your filters.</div>
+                <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">
+                  {scope === "saved"
+                    ? "Nothing saved yet. Tap the bookmark on any opportunity to save it."
+                    : scope === "applied"
+                    ? "Nothing marked applied yet. Apply to a gig or mark it applied to track it here."
+                    : "No opportunities match your filters."}
+                </div>
               ) : (
                 <div className="space-y-3">
                   {visible.map((opp) => (
@@ -546,7 +655,7 @@ export default function OpportunitiesFeed({
 
           <div className="hidden md:block flex-1 min-w-0 overflow-y-auto">
             {selected ? (
-              <OpportunityCard opp={selected} actions={<div className="flex items-center gap-2">{saveButton(selected.id)}<ShareButton id={selected.id} title={selected.title} /></div>} fit={selectedId ? fitById.get(selectedId) ?? null : null} hideAdminMeta />
+              <OpportunityCard opp={selected} actions={<div className="flex items-center gap-2 flex-wrap justify-end">{saveButton(selected.id)}{appliedButton(selected.id)}<ShareButton id={selected.id} title={selected.title} /></div>} fit={selectedId ? fitById.get(selectedId) ?? null : null} onApply={(kind) => markApplied(selected.id, kind)} hideAdminMeta />
             ) : (
               <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400 text-sm">Select an opportunity to view details</div>
             )}
@@ -607,11 +716,11 @@ export default function OpportunitiesFeed({
                 <div className="flex justify-center pt-2.5 pb-1"><div className="h-1.5 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" /></div>
                 <div className="flex items-center justify-between px-4 pb-3">
                   <button type="button" onClick={closeSheet} className="text-2xl leading-none text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 -ml-1 px-1" aria-label="Close">×</button>
-                  <div className="flex gap-2">{saveButton(selected.id)}<ShareButton id={selected.id} title={selected.title} /></div>
+                  <div className="flex gap-2 flex-wrap">{saveButton(selected.id)}{appliedButton(selected.id)}<ShareButton id={selected.id} title={selected.title} /></div>
                 </div>
               </div>
               <div ref={contentRef} className="flex-1 overflow-y-auto overscroll-contain p-4">
-                <OpportunityCard opp={selected} fit={selectedId ? fitById.get(selectedId) ?? null : null} hideAdminMeta />
+                <OpportunityCard opp={selected} fit={selectedId ? fitById.get(selectedId) ?? null : null} onApply={(kind) => markApplied(selected.id, kind)} hideAdminMeta />
               </div>
             </div>
           </div>
