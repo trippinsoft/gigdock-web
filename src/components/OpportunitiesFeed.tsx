@@ -521,29 +521,22 @@ export default function OpportunitiesFeed({
       <div className="flex flex-col h-[calc(100vh-8rem)]">
         {/* Toolbar */}
         <div className="space-y-2 pb-3 border-b border-zinc-200 dark:border-zinc-800">
-          {/* Scope: All / Saved / Applied */}
-          <div className="inline-flex rounded-lg border border-zinc-300 dark:border-zinc-700 p-0.5 bg-white dark:bg-zinc-800">
-            {(["all", "saved", "applied"] as const).map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setScope(s)}
-                className={`px-3.5 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  scope === s
-                    ? "bg-blue-600 text-white"
-                    : "text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100"
-                }`}
-              >
-                {s === "all"
-                  ? "All"
-                  : s === "saved"
-                  ? `Saved${savedIds.size ? ` (${savedIds.size})` : ""}`
-                  : `Applied${appliedIds.size ? ` (${appliedIds.size})` : ""}`}
-              </button>
-            ))}
-          </div>
-
           <div className="flex flex-wrap gap-2 items-center">
+            {/* Scope: All / Saved / Applied */}
+            <select
+              value={scope}
+              onChange={(e) => setScope(e.target.value as "all" | "saved" | "applied")}
+              aria-label="Show"
+              className={`h-10 px-2.5 rounded-lg border shrink-0 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                scope === "all"
+                  ? "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100"
+                  : "bg-blue-600 border-blue-600 text-white"
+              }`}
+            >
+              <option value="all">All</option>
+              <option value="saved">{`Saved${savedIds.size ? ` (${savedIds.size})` : ""}`}</option>
+              <option value="applied">{`Applied${appliedIds.size ? ` (${appliedIds.size})` : ""}`}</option>
+            </select>
             <div className="relative flex-1 min-w-[150px] max-w-xs">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" /></svg>
               <input
