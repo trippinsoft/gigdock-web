@@ -1,0 +1,15 @@
+import type { MetadataRoute } from "next";
+
+export default function robots(): MetadataRoute.Robots {
+  const base = "https://gigdock.co";
+  return {
+    rules: {
+      userAgent: "*",
+      allow: "/",
+      // Private / non-indexable areas.
+      disallow: ["/admin", "/login", "/signup", "/profile", "/saved"],
+    },
+    sitemap: `${base}/sitemap.xml`,
+    host: base,
+  };
+}

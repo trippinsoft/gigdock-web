@@ -8,8 +8,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "GigDock Admin",
-  description: "Curator dashboard for GigDock opportunity pipeline",
+  metadataBase: new URL("https://gigdock.co"),
+  title: {
+    default: "GigDock — Casting Calls & Gigs",
+    template: "%s · GigDock",
+  },
+  description:
+    "Find casting calls and gig work matched to you. GigDock surfaces opportunities across every market so you never miss the right one.",
 };
 
 export default function RootLayout({
