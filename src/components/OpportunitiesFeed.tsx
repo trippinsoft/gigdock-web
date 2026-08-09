@@ -516,14 +516,44 @@ export default function OpportunitiesFeed({
   const filterCount = activeFilterCount(filters);
   const gigfitOn = !!gigfitProfileId;
 
+  // Scope + GigFit selects — reused inline (desktop) and on the 2nd row (mobile).
+  const scopeSelect = (
+    <select
+      value={scope}
+      onChange={(e) => setScope(e.target.value as "all" | "saved" | "applied")}
+      aria-label="Show"
+      className={`h-10 px-2.5 rounded-lg border shrink-0 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+        scope === "all"
+          ? "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100"
+          : "bg-blue-600 border-blue-600 text-white"
+      }`}
+    >
+      <option value="all">All</option>
+      <option value="saved">{`Saved${savedIds.size ? ` (${savedIds.size})` : ""}`}</option>
+      <option value="applied">{`Applied${appliedIds.size ? ` (${appliedIds.size})` : ""}`}</option>
+    </select>
+  );
+  const gigfitSelect = profiles.length > 0 ? (
+    <select
+      value={gigfitProfileId ?? ""}
+      onChange={(e) => setGigfitProfileId(e.target.value || null)}
+      className={`text-sm h-10 px-2.5 rounded-lg border shrink-0 transition-colors ${
+        gigfitOn ? "bg-blue-600 border-blue-600 text-white" : "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
+      }`}
+    >
+      <option value="">GigFit: Off</option>
+      {profiles.map((p) => <option key={p.id} value={p.id}>GigFit: {p.label}</option>)}
+    </select>
+  ) : null;
+
   return (
     <PublicShell>
       <div className="flex flex-col h-[calc(100vh-8rem)]">
         {/* Toolbar */}
         <div className="space-y-2 pb-3 border-b border-zinc-200 dark:border-zinc-800">
-          {/* Row 1: search + sort */}
+          {/* Row 1: search + sort (+ scope & GigFit inline on desktop) */}
           <div className="flex gap-2 items-center">
-            <div className="relative flex-1 min-w-[150px]">
+            <div className="relative flex-1 min-w-[150px] md:flex-none md:w-96">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" /></svg>
               <input
                 type="search"
@@ -540,47 +570,27 @@ export default function OpportunitiesFeed({
             >
               {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
+            {/* Desktop: scope + GigFit sit next to sort */}
+            <div className="hidden md:flex gap-2 items-center">
+              {scopeSelect}
+              {gigfitSelect}
+            </div>
           </div>
 
-          {/* Row 2: filters + scope + gigfit */}
-          <div className="flex flex-wrap gap-2 items-center">
+          {/* Row 2 (mobile only): filters + scope + gigfit */}
+          <div className="flex flex-wrap gap-2 items-center md:hidden">
             <button
               type="button"
               onClick={openFilters}
-              className="md:hidden inline-flex items-center gap-1.5 text-sm h-10 px-3 rounded-lg border bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 shrink-0"
+              className="inline-flex items-center gap-1.5 text-sm h-10 px-3 rounded-lg border bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 shrink-0"
             >
               Filters
               {filterCount > 0 && (
                 <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 text-xs font-medium bg-blue-600 text-white rounded-full">{filterCount}</span>
               )}
             </button>
-            {/* Scope: All / Saved / Applied */}
-            <select
-              value={scope}
-              onChange={(e) => setScope(e.target.value as "all" | "saved" | "applied")}
-              aria-label="Show"
-              className={`h-10 px-2.5 rounded-lg border shrink-0 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                scope === "all"
-                  ? "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100"
-                  : "bg-blue-600 border-blue-600 text-white"
-              }`}
-            >
-              <option value="all">All</option>
-              <option value="saved">{`Saved${savedIds.size ? ` (${savedIds.size})` : ""}`}</option>
-              <option value="applied">{`Applied${appliedIds.size ? ` (${appliedIds.size})` : ""}`}</option>
-            </select>
-            {profiles.length > 0 && (
-              <select
-                value={gigfitProfileId ?? ""}
-                onChange={(e) => setGigfitProfileId(e.target.value || null)}
-                className={`text-sm h-10 px-2.5 rounded-lg border shrink-0 transition-colors ${
-                  gigfitOn ? "bg-blue-600 border-blue-600 text-white" : "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
-                }`}
-              >
-                <option value="">GigFit: Off</option>
-                {profiles.map((p) => <option key={p.id} value={p.id}>GigFit: {p.label}</option>)}
-              </select>
-            )}
+            {scopeSelect}
+            {gigfitSelect}
           </div>
 
           {selectedProfile && (
