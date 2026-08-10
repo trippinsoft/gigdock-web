@@ -8,12 +8,12 @@ import { stateName, stateSlug } from "@/lib/markets";
 export const metadata: Metadata = {
   title: "GigDock — Casting Calls & Gigs Matched to You",
   description:
-    "GigDock brings casting calls and gig work from every source into one place — matched to your profile, so you never miss the right one.",
+    "GigDock brings casting calls and gig work from across the web into one place — matched to your profile, so you never miss the right one.",
   alternates: { canonical: "/" },
   openGraph: {
     title: "GigDock — Casting Calls & Gigs Matched to You",
     description:
-      "Every casting call in one feed, matched to you. Browse, save, apply, and share.",
+      "Casting calls in one feed, matched to you. Browse, save, apply, and share.",
     type: "website",
     siteName: "GigDock",
   },
@@ -63,7 +63,7 @@ export default async function Home() {
             Never miss a gig that fits you
           </h1>
           <p className="mt-4 text-base sm:text-lg text-zinc-600 dark:text-zinc-400 max-w-xl mx-auto">
-            GigDock brings casting calls and gig work from every source into one
+            GigDock brings casting calls and gig work from across the web into one
             feed — matched to your profile, so the right opportunity finds you.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
@@ -87,12 +87,21 @@ export default async function Home() {
               {marketCount === 1 ? "market" : "markets"} right now.
             </p>
           )}
+          <p className="mt-6 text-xs text-zinc-400 dark:text-zinc-500 max-w-md mx-auto">
+            GigDock is in open beta — we&apos;re still expanding what we cover.{" "}
+            <a
+              href="mailto:alantrippe@gmail.com?subject=GigDock%20feedback"
+              className="text-blue-600 dark:text-blue-400 underline underline-offset-2"
+            >
+              Seeing a gig we missed? Tell us.
+            </a>
+          </p>
         </section>
 
         {/* What you get */}
         <section className="grid sm:grid-cols-3 gap-3">
           {[
-            { h: "Every source, one feed", p: "Casting posts from across the web, normalized into one clean, searchable place." },
+            { h: "Many sources, one feed", p: "Casting posts from across the web, normalized into one clean, searchable place." },
             { h: "GigFit — matched to you", p: "See at a glance which calls fit your profile, and which are a long shot." },
             { h: "Save, apply & share", p: "Bookmark gigs, track what you've applied to, and share any opportunity in a tap." },
           ].map((f) => (
@@ -107,7 +116,7 @@ export default async function Home() {
         {markets.length > 0 && (
           <section className="mt-10">
             <div className="flex items-baseline justify-between mb-3">
-              <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Casting calls by location</h2>
+              <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Opportunities by location</h2>
               <Link href="/casting-calls" className="text-sm font-medium text-blue-600 dark:text-blue-400">All locations →</Link>
             </div>
             <div className="flex flex-wrap gap-2">

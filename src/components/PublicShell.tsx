@@ -48,6 +48,9 @@ export default function PublicShell({ children }: { children: React.ReactNode })
                   GigDock
                 </span>
               </Link>
+              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
+                Beta
+              </span>
               {/* Marketing tagline — desktop only (mobile header stays compact) */}
               <div className="hidden lg:block border-l border-zinc-200 dark:border-zinc-700 pl-3 min-w-0">
                 <div className="text-xs text-zinc-500 dark:text-zinc-400 leading-tight truncate">
