@@ -88,4 +88,5 @@ export type AdminTab =
   | "sources"
   | "hidden"
   | "find"
+  | "feedback"
   | "profile";

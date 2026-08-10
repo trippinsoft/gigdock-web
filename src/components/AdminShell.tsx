@@ -13,6 +13,7 @@ const TABS: { key: AdminTab; label: string; href: string }[] = [
   { key: "sources", label: "Sources", href: "/admin/sources" },
   { key: "hidden", label: "Hidden / Expired", href: "/admin/hidden" },
   { key: "find", label: "Find post", href: "/admin/find" },
+  { key: "feedback", label: "Feedback", href: "/admin/feedback" },
   { key: "profile", label: "My Profile", href: "/admin/profile" },
 ];
 
@@ -35,6 +36,7 @@ export default function AdminShell({
     if (pathname.startsWith("/admin/sources")) return "sources";
     if (pathname.startsWith("/admin/hidden")) return "hidden";
     if (pathname.startsWith("/admin/find")) return "find";
+    if (pathname.startsWith("/admin/feedback")) return "feedback";
     if (pathname.startsWith("/admin/profile")) return "profile";
     return "review";
   }
