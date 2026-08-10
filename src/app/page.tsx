@@ -90,7 +90,7 @@ export default async function Home() {
           <p className="mt-6 text-xs text-zinc-400 dark:text-zinc-500 max-w-md mx-auto">
             GigDock is in open beta — we&apos;re still expanding what we cover.{" "}
             <a
-              href="mailto:alantrippe@gmail.com?subject=GigDock%20feedback"
+              href="mailto:gigdocksupport@gmail.com?subject=GigDock%20feedback"
               className="text-blue-600 dark:text-blue-400 underline underline-offset-2"
             >
               Seeing a gig we missed? Tell us.
