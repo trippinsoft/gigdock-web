@@ -147,7 +147,7 @@ export default function ProfilePage() {
     switch (k) {
       case "markets":
         return coverage.states > 0
-          ? `You're seeing gigs across ${coverage.states} state${coverage.states === 1 ? "" : "s"}. Set your markets to narrow this.`
+          ? `You're seeing gigs across ${coverage.states} state${coverage.states === 1 ? "" : "s"}. Set your regions to narrow this.`
           : null;
       case "gender":
         return coverage.gender > 0
@@ -277,7 +277,7 @@ export default function ProfilePage() {
       {/* Markets — collapsed shows only your selected states; expand to add.
           With nothing selected the full picker opens automatically. */}
       <Section
-        title="Markets"
+        title="Regions"
         hint="States you'll work in. Gigs outside these are filtered out."
         nudge={!draft.markets.length ? nudgeFor("markets") : null}
       >

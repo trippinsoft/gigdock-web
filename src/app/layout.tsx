@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     template: "%s · GigDock",
   },
   description:
-    "Find casting calls and gig work matched to you. GigDock surfaces opportunities across every market so you never miss the right one.",
+    "Find casting calls and gig work matched to you. GigDock surfaces opportunities across every region so you never miss the right one.",
 };
 
 export default function RootLayout({

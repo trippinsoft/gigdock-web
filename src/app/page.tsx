@@ -84,7 +84,7 @@ export default async function Home() {
             <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
               <span className="font-semibold text-zinc-800 dark:text-zinc-200">{total.toLocaleString()}</span> open
               opportunities across <span className="font-semibold text-zinc-800 dark:text-zinc-200">{marketCount}</span>{" "}
-              {marketCount === 1 ? "market" : "markets"} right now.
+              {marketCount === 1 ? "region" : "regions"} right now.
             </p>
           )}
           <p className="mt-6 text-xs text-zinc-400 dark:text-zinc-500 max-w-md mx-auto">

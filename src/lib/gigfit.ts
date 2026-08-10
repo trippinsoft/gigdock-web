@@ -87,7 +87,7 @@ export const PROFILE_FIELD_ORDER: ProfileFieldKey[] = [
 ];
 
 export const PROFILE_FIELD_LABELS: Record<ProfileFieldKey, string> = {
-  markets: "markets",
+  markets: "regions",
   gender: "gender",
   ethnicity: "ethnicity",
   date_of_birth: "age",

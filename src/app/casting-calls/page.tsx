@@ -7,11 +7,11 @@ import { stateName, stateSlug } from "@/lib/markets";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Casting Calls by Location",
+  title: "Opportunities by Location",
   description:
-    "Find casting calls and gig work by state. GigDock aggregates opportunities across every production market — pick yours to see what's open now.",
+    "Find casting calls and gig work by state. GigDock aggregates opportunities across every production region — pick yours to see what's open now.",
   alternates: { canonical: "/casting-calls" },
-  openGraph: { title: "Casting Calls by Location · GigDock", type: "website", siteName: "GigDock" },
+  openGraph: { title: "Opportunities by Location · GigDock", type: "website", siteName: "GigDock" },
 };
 
 async function getMarkets(): Promise<{ code: string; count: number }[]> {
@@ -44,12 +44,12 @@ export default async function CastingCallsHub() {
     <PublicShell>
       <div className="max-w-3xl mx-auto">
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
-          Casting calls by location
+          Opportunities by location
         </h1>
         <p className="text-zinc-600 dark:text-zinc-400 mt-2">
           {total > 0
-            ? `${total.toLocaleString()} open casting calls across ${markets.length} ${markets.length === 1 ? "market" : "markets"}. Pick a state to see what's open now.`
-            : "Browse casting calls by state. New opportunities post daily."}
+            ? `${total.toLocaleString()} open opportunities across ${markets.length} ${markets.length === 1 ? "region" : "regions"}. Pick a state to see what's open now.`
+            : "Browse opportunities by state. New ones post daily."}
         </p>
 
         {markets.length > 0 ? (

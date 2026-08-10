@@ -18,6 +18,10 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   const [menuOpen, setMenuOpen] = useState(false);
   const supabase = createSupabaseBrowser();
 
+  // Profile only makes sense once signed in — hide it for logged-out visitors
+  // (and while auth state is still resolving, to avoid a flash then removal).
+  const nav = NAV.filter((n) => n.href !== "/profile" || signedIn === true);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setSignedIn(!!data.user));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -61,7 +65,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
 
             {/* Desktop nav */}
             <nav className="hidden sm:flex items-center gap-2">
-              {NAV.map((n) => {
+              {nav.map((n) => {
                 const active = pathname.startsWith(n.href);
                 return (
                   <Link
@@ -126,7 +130,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
           <>
             <div className="sm:hidden relative z-30 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
               <nav className="px-4 py-2 flex flex-col gap-0.5">
-                {NAV.map((n) => {
+                {nav.map((n) => {
                   const active = pathname.startsWith(n.href);
                   return (
                     <Link

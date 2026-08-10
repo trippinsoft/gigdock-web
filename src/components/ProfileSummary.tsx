@@ -27,7 +27,7 @@ export default function ProfileSummary({ profile }: { profile: PerformerProfile 
           href="/admin/profile"
           className="font-medium underline underline-offset-2"
         >
-          Start with your market →
+          Start with your region →
         </Link>
       </div>
     );
