@@ -7,12 +7,17 @@
 -- touches the frozen ingest rows.
 --
 -- "Same gig" = ALL of:
---   • >= 2 shared distinctive title tokens (>= 3 chars, so specs like "2xl"
---     count; aggregators keep the spec but rewrite the production name)
 --   • same first work_date
 --   • same pay_min
 --   • compatible state           (equal, OR either side null)
 --   • compatible gender & ethnicity (unspecified on either side = compatible)
+--   • same IDENTITY, using the clean fields ingest-rss extracts:
+--       - enriched rows (both have role_key): same role_key AND non-conflicting
+--         production_name (either unknown, or equal). This survives aggregator
+--         retitles — the production name may be missing on one copy, but the
+--         canonical role still lines up — while keeping DIFFERENT roles of the
+--         same production apart.
+--       - legacy rows (no role_key yet): fall back to >= 2 shared title tokens.
 --
 -- WINNER RULE (updated):
 --   Within a duplicate group, keep ONE survivor, chosen by:
@@ -29,6 +34,17 @@
 -- Depends on canon_gender()/canon_ethnicity() from gigfit_function.sql.
 -- Idempotent — safe to run repeatedly.
 -- ============================================================================
+
+-- Clean identity fields populated by ingest-rss extraction (nullable; legacy
+-- rows stay null and fall back to the title heuristic below until re-enriched).
+alter table public.opportunities add column if not exists production_name text;
+alter table public.opportunities add column if not exists role_key text;
+
+-- Lowercased, punctuation-collapsed form for comparing free text.
+create or replace function public.norm_text(t text)
+returns text language sql immutable as $$
+  select btrim(regexp_replace(lower(coalesce(t, '')), '[^a-z0-9]+', ' ', 'g'));
+$$;
 
 -- Distinctive tokens from a title: >= 3 chars (so size/role specs like "2xl",
 -- "3xl", "6ft" count — aggregators often keep the spec but rewrite everything
@@ -81,6 +97,26 @@ returns text[] language sql immutable as $$
   ) s;
 $$;
 
+-- Distinctive tokens from a canonical role_key. Keeps the specific role noun /
+-- spec (mover, nurse, driver, "2xl") but drops generic role CATEGORIES, so two
+-- different roles in the same production ("background nurse" vs "background
+-- driver") don't match on the shared category word.
+create or replace function public.role_tokens(t text)
+returns text[] language sql immutable as $$
+  select coalesce(array_agg(distinct tok), '{}')
+  from unnest(regexp_split_to_array(lower(coalesce(t, '')), '[^a-z0-9]+')) as tok
+  where length(tok) >= 3
+    and tok not in (
+      'the','and','for','role','roles','who','with','age','over','plus','any',
+      'all','other','need','needed','seeking','type','types','look','looking',
+      'must','can','will','are','portray','play',
+      -- generic role categories (not distinctive between two roles)
+      'featured','background','extra','extras','stand','standin','principal',
+      'double','doubles','photo','model','models','actor','actors','actress',
+      'talent','crew','cast','casting'
+    );
+$$;
+
 -- Main pass: keep one survivor per duplicate group (original company's latest
 -- post), hide the rest.
 create or replace function public.dedup_cross_source()
@@ -89,7 +125,8 @@ declare
   n integer := 0;
 begin
   with active as (
-    select id, source, posted_at, work_date, pay_min, match_state, title, casting_specs
+    select id, source, posted_at, work_date, pay_min, match_state, title,
+           casting_specs, production_name, role_key
     from public.opportunities
     where status = 'active' and deleted_at is null
   ),
@@ -102,17 +139,37 @@ begin
       and a.work_date is not null and a.work_date = b.work_date
       and a.pay_min   is not null and a.pay_min   = b.pay_min
       and (a.match_state is null or b.match_state is null or a.match_state = b.match_state)
-      and cardinality(array(
-            select unnest(public.title_tokens(a.title))
-            intersect
-            select unnest(public.title_tokens(b.title))
-          )) >= 2
       and (cardinality(public.opp_genders(a.casting_specs)) = 0
            or cardinality(public.opp_genders(b.casting_specs)) = 0
            or public.opp_genders(a.casting_specs) && public.opp_genders(b.casting_specs))
       and (cardinality(public.opp_ethnicities(a.casting_specs)) = 0
            or cardinality(public.opp_ethnicities(b.casting_specs)) = 0
            or public.opp_ethnicities(a.casting_specs) && public.opp_ethnicities(b.casting_specs))
+      -- Identity check. Enriched rows (both have a role_key) compare on the CLEAN
+      -- signature: same role, and productions that don't conflict. Un-enriched
+      -- legacy rows fall back to the raw-title token heuristic.
+      and case
+        when a.role_key is not null and b.role_key is not null then
+          (
+            public.norm_text(a.role_key) = public.norm_text(b.role_key)
+            or cardinality(array(
+                 select unnest(public.role_tokens(a.role_key))
+                 intersect
+                 select unnest(public.role_tokens(b.role_key))
+               )) >= 1
+          )
+          and (
+            a.production_name is null or btrim(a.production_name) = ''
+            or b.production_name is null or btrim(b.production_name) = ''
+            or public.norm_text(a.production_name) = public.norm_text(b.production_name)
+          )
+        else
+          cardinality(array(
+            select unnest(public.title_tokens(a.title))
+            intersect
+            select unnest(public.title_tokens(b.title))
+          )) >= 2
+      end
   ),
   -- Symmetric adjacency + each node linked to itself, so every active row has a
   -- neighborhood (its duplicate group) even if it matched nothing.

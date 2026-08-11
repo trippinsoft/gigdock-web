@@ -26,6 +26,8 @@ export interface Opportunity {
   created_at: string;
   updated_at: string;
   dedup_fingerprint: string | null;
+  production_name: string | null;
+  role_key: string | null;
   author_user_id: string | null;
   image_url: string | null;
 }
