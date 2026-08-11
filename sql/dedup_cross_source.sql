@@ -7,7 +7,8 @@
 -- touches the frozen ingest rows.
 --
 -- "Same gig" = ALL of:
---   • >= 2 shared distinctive title tokens (same production)
+--   • >= 2 shared distinctive title tokens (>= 3 chars, so specs like "2xl"
+--     count; aggregators keep the spec but rewrite the production name)
 --   • same first work_date
 --   • same pay_min
 --   • compatible state           (equal, OR either side null)
@@ -29,14 +30,16 @@
 -- Idempotent — safe to run repeatedly.
 -- ============================================================================
 
--- Distinctive tokens from a title: >= 4 chars, minus generic casting/role words
--- and common studio/platform names (which would otherwise falsely link unrelated
--- gigs that merely share "netflix", "casting", etc.).
+-- Distinctive tokens from a title: >= 3 chars (so size/role specs like "2xl",
+-- "3xl", "6ft" count — aggregators often keep the spec but rewrite everything
+-- else), minus generic casting/role/gender words and common studio/platform
+-- names (which would otherwise falsely link unrelated gigs that merely share
+-- "netflix", "casting", "man", etc.).
 create or replace function public.title_tokens(t text)
 returns text[] language sql immutable as $$
   select coalesce(array_agg(distinct tok), '{}')
   from unnest(regexp_split_to_array(lower(coalesce(t, '')), '[^a-z0-9]+')) as tok
-  where length(tok) >= 4
+  where length(tok) >= 3
     and tok not in (
       'casting','call','calls','stand','standin','background','featured','extra',
       'extras','needed','seeking','talent','actor','actors','role','roles','work',
@@ -45,6 +48,10 @@ returns text[] language sql immutable as $$
       'film','films','series','video','videos','commercial','commercials',
       'production','productions','project','projects','paid','union','nonunion',
       'feature','features','movie','movies','show','shows','scene','scenes',
+      -- generic gender / people words (not distinctive to a production)
+      'man','men','male','males','woman','women','female','females','guy','guys',
+      'girl','girls','boy','boys','kid','kids','teen','teens','adult','adults',
+      'and','the','for','with','who','are','you','your','new','old','any','all',
       'netflix','disney','amazon','prime','hulu','marvel','paramount','warner',
       'universal','peacock','apple','sony','showtime','starz','lionsgate'
     );
