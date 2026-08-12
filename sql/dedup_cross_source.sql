@@ -21,15 +21,16 @@
 --
 -- WINNER RULE (updated):
 --   Within a duplicate group, keep ONE survivor, chosen by:
---     1. the company (`source`) that introduced the gig FIRST wins
---        -> a later aggregator repost can never take the slot from the original
---     2. within that winning company, keep its LATEST post
---        -> a company reposting an updated call shows the current version
---     3. stable tiebreak by id
+--     1. a PRIMARY source beats an AGGREGATOR (sources.is_aggregator) — an
+--        aggregator repost never wins over the real casting company, no matter
+--        who posted first (post timestamps can't tell original from aggregator)
+--     2. then the company (`source`) that introduced the gig FIRST wins
+--     3. then that company's LATEST post (an updated repost shows the current one)
+--     4. stable tiebreak by id
 --   Everyone else in the group -> status = 'hidden', notes point to the survivor
 --   (auditable in the Hidden tab, fully reversible).
 --
---   In short: "same company -> newest wins; across companies -> original wins."
+--   In short: "primary beats aggregator; same company -> newest; else original."
 --
 -- Depends on canon_gender()/canon_ethnicity() from gigfit_function.sql.
 -- Idempotent — safe to run repeatedly.
@@ -39,6 +40,11 @@
 -- rows stay null and fall back to the title heuristic below until re-enriched).
 alter table public.opportunities add column if not exists production_name text;
 alter table public.opportunities add column if not exists role_key text;
+
+-- Mark feeds that repost other companies' gigs. An aggregator copy never wins a
+-- duplicate group over a primary source, no matter who posted first. Flag them:
+--   update public.sources set is_aggregator = true where name = 'CL Casting';
+alter table public.sources add column if not exists is_aggregator boolean not null default false;
 
 -- Lowercased, punctuation-collapsed form for comparing free text.
 create or replace function public.norm_text(t text)
@@ -106,6 +112,7 @@ returns text[] language sql immutable as $$
   select coalesce(array_agg(distinct tok), '{}')
   from unnest(regexp_split_to_array(lower(coalesce(t, '')), '[^a-z0-9]+')) as tok
   where length(tok) >= 3
+    and tok !~ '^[0-9]+$'                    -- drop pure numbers (weights, sizes)
     and tok not in (
       'the','and','for','role','roles','who','with','age','over','plus','any',
       'all','other','need','needed','seeking','type','types','look','looking',
@@ -113,7 +120,12 @@ returns text[] language sql immutable as $$
       -- generic role categories (not distinctive between two roles)
       'featured','background','extra','extras','stand','standin','principal',
       'double','doubles','photo','model','models','actor','actors','actress',
-      'talent','crew','cast','casting'
+      'talent','crew','cast','casting',
+      -- gender / people words (identity is matched via casting_specs, not here,
+      -- so "female" alone must never link two different roles)
+      'male','males','female','females','man','men','woman','women','boy','boys',
+      'girl','girls','kid','kids','teen','teens','adult','adults','person',
+      'people','guy','guys','lady','ladies'
     );
 $$;
 
@@ -125,10 +137,12 @@ declare
   n integer := 0;
 begin
   with active as (
-    select id, source, posted_at, work_date, pay_min, match_state, title,
-           casting_specs, production_name, role_key
-    from public.opportunities
-    where status = 'active' and deleted_at is null
+    select o.id, o.source, o.posted_at, o.work_date, o.pay_min, o.match_state,
+           o.title, o.casting_specs, o.production_name, o.role_key,
+           coalesce(s.is_aggregator, false) as is_aggregator
+    from public.opportunities o
+    left join public.sources s on s.name = o.source
+    where o.status = 'active' and o.deleted_at is null
   ),
   -- Unordered "same gig" pairs.
   pairs as (
@@ -182,22 +196,25 @@ begin
   ),
   -- Neighborhood members with their attributes.
   neigh as (
-    select distinct nb.x, a.id as m_id, a.source, a.posted_at
+    select distinct nb.x, a.id as m_id, a.source, a.posted_at, a.is_aggregator
     from adj nb
     join active a on a.id = nb.m
   ),
   -- Ownership time = earliest post from a given company within this neighborhood.
   src_first as (
-    select x, m_id, posted_at,
+    select x, m_id, posted_at, is_aggregator,
            min(posted_at) over (partition by x, source) as source_first
     from neigh
   ),
-  -- Rank each neighborhood: original company first, then that company's latest.
+  -- Rank each neighborhood:
+  --   1. primary sources beat aggregators (aggregator reposts never win)
+  --   2. then the company that introduced the gig first
+  --   3. then that company's latest post
   ranked as (
     select x, m_id,
            row_number() over (
              partition by x
-             order by source_first asc, posted_at desc, m_id asc
+             order by is_aggregator asc, source_first asc, posted_at desc, m_id asc
            ) as rnk
     from src_first
   ),
