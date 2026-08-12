@@ -21,16 +21,18 @@
 --
 -- WINNER RULE (updated):
 --   Within a duplicate group, keep ONE survivor, chosen by:
---     1. a PRIMARY source beats an AGGREGATOR (sources.is_aggregator) — an
---        aggregator repost never wins over the real casting company, no matter
---        who posted first (post timestamps can't tell original from aggregator)
---     2. then the company (`source`) that introduced the gig FIRST wins
---     3. then that company's LATEST post (an updated repost shows the current one)
---     4. stable tiebreak by id
+--     1. optional manual override: a source you tag sources.is_aggregator = true
+--        loses to any untagged source (default: no tags, so this is neutral)
+--     2. the ORIGINAL, detected PER GIG: whichever post's own source name is
+--        mentioned by a sibling post in the group (a reposter credits the real
+--        caster, e.g. CL Casting's post titled "Rose Locke Casting - ..."). This
+--        needs no tagging and works in either direction — the same company can be
+--        original for one gig and the copier for another.
+--     3. then the company (`source`) that introduced the gig FIRST
+--     4. then that company's LATEST post (an updated repost shows the current one)
+--     5. stable tiebreak by id
 --   Everyone else in the group -> status = 'hidden', notes point to the survivor
 --   (auditable in the Hidden tab, fully reversible).
---
---   In short: "primary beats aggregator; same company -> newest; else original."
 --
 -- Depends on canon_gender()/canon_ethnicity() from gigfit_function.sql.
 -- Idempotent — safe to run repeatedly.
@@ -41,9 +43,11 @@
 alter table public.opportunities add column if not exists production_name text;
 alter table public.opportunities add column if not exists role_key text;
 
--- Mark feeds that repost other companies' gigs. An aggregator copy never wins a
--- duplicate group over a primary source, no matter who posted first. Flag them:
---   update public.sources set is_aggregator = true where name = 'CL Casting';
+-- OPTIONAL manual override. The winner is normally decided per-gig (see WINNER
+-- RULE above), so you do NOT need to tag anything. This flag only exists as an
+-- escape hatch: if a specific feed is consistently a problem, tagging it makes it
+-- lose every duplicate group. Default false = neutral.
+--   update public.sources set is_aggregator = true where name = 'Some Feed';
 alter table public.sources add column if not exists is_aggregator boolean not null default false;
 
 -- Lowercased, punctuation-collapsed form for comparing free text.
@@ -138,7 +142,7 @@ declare
 begin
   with active as (
     select o.id, o.source, o.posted_at, o.work_date, o.pay_min, o.match_state,
-           o.title, o.casting_specs, o.production_name, o.role_key,
+           o.title, o.summary, o.casting_specs, o.production_name, o.role_key,
            coalesce(s.is_aggregator, false) as is_aggregator
     from public.opportunities o
     left join public.sources s on s.name = o.source
@@ -196,25 +200,43 @@ begin
   ),
   -- Neighborhood members with their attributes.
   neigh as (
-    select distinct nb.x, a.id as m_id, a.source, a.posted_at, a.is_aggregator
+    select distinct nb.x, a.id as m_id, a.source, a.posted_at, a.is_aggregator,
+           a.title, a.summary
     from adj nb
     join active a on a.id = nb.m
   ),
+  -- Per-gig "who is the original" signal: a member is likely the ORIGINAL when a
+  -- SIBLING post in the same group names its source (e.g. CL Casting's post is
+  -- titled "Rose Locke Casting - ...", so Rose Locke is credited => original).
+  -- Decided fresh per group, works in either direction, needs no source tagging.
+  refd as (
+    select n1.x, n1.m_id, n1.source, n1.posted_at, n1.is_aggregator,
+           exists (
+             select 1 from neigh n2
+             where n2.x = n1.x and n2.m_id <> n1.m_id
+               and length(n1.source) >= 4
+               and position(lower(n1.source) in
+                     lower(coalesce(n2.title, '') || ' ' || coalesce(n2.summary, ''))) > 0
+           ) as credited_by_peer
+    from neigh n1
+  ),
   -- Ownership time = earliest post from a given company within this neighborhood.
   src_first as (
-    select x, m_id, posted_at, is_aggregator,
+    select x, m_id, posted_at, is_aggregator, credited_by_peer,
            min(posted_at) over (partition by x, source) as source_first
-    from neigh
+    from refd
   ),
   -- Rank each neighborhood:
-  --   1. primary sources beat aggregators (aggregator reposts never win)
-  --   2. then the company that introduced the gig first
-  --   3. then that company's latest post
+  --   1. optional manual override: primary sources beat any you tag is_aggregator
+  --   2. the source a sibling CREDITS (the original) beats an uncredited reposter
+  --   3. then the company that introduced the gig first
+  --   4. then that company's latest post
   ranked as (
     select x, m_id,
            row_number() over (
              partition by x
-             order by is_aggregator asc, source_first asc, posted_at desc, m_id asc
+             order by is_aggregator asc, credited_by_peer desc,
+                      source_first asc, posted_at desc, m_id asc
            ) as rnk
     from src_first
   ),
