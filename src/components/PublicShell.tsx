@@ -7,6 +7,8 @@ import { createSupabaseBrowser } from "@/lib/supabase-browser";
 
 const NAV = [
   { href: "/opportunities", label: "Opportunities" },
+  { href: "/casting-calls", label: "By location" },
+  { href: "/gigfit", label: "GigFit" },
   { href: "/profile", label: "Profile" },
 ];
 
@@ -82,12 +84,20 @@ export default function PublicShell({ children }: { children: React.ReactNode })
                 );
               })}
               {signedIn === false && (
-                <Link
-                  href="/login"
-                  className="ml-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-                >
-                  Sign in
-                </Link>
+                <>
+                  <Link
+                    href="/login"
+                    className="ml-1 px-3 py-1.5 rounded-lg text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors"
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="px-3.5 py-1.5 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                  >
+                    Create free account
+                  </Link>
+                </>
               )}
               {signedIn === true && (
                 <button
@@ -148,13 +158,22 @@ export default function PublicShell({ children }: { children: React.ReactNode })
                   );
                 })}
                 {signedIn === false && (
-                  <Link
-                    href="/login"
-                    onClick={() => setMenuOpen(false)}
-                    className="mt-1 px-3 py-2.5 rounded-lg text-base font-medium text-center bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-                  >
-                    Sign in
-                  </Link>
+                  <>
+                    <Link
+                      href="/signup"
+                      onClick={() => setMenuOpen(false)}
+                      className="mt-1 px-3 py-2.5 rounded-lg text-base font-medium text-center bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                    >
+                      Create free account
+                    </Link>
+                    <Link
+                      href="/login"
+                      onClick={() => setMenuOpen(false)}
+                      className="px-3 py-2.5 rounded-lg text-base font-medium text-center text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors"
+                    >
+                      Log in
+                    </Link>
+                  </>
                 )}
                 {signedIn === true && (
                   <button
