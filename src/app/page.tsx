@@ -88,7 +88,7 @@ async function getPreviewOpps(): Promise<Opportunity[]> {
   // Prefer listings with artwork — the inventory is the homepage's imagery.
   const withImg = all.filter((o) => o.image_url);
   const withoutImg = all.filter((o) => !o.image_url);
-  return [...withImg, ...withoutImg].slice(0, 6);
+  return [...withImg, ...withoutImg].slice(0, 3);
 }
 
 /* ---------- small presentational pieces ---------- */
@@ -154,7 +154,7 @@ export default async function Home() {
       <div className="max-w-5xl mx-auto">
         {/* Hero */}
         <section className="text-center pt-8 pb-10 max-w-3xl mx-auto">
-          <span className="inline-block text-xs font-semibold tracking-[0.14em] uppercase text-blue-600 dark:text-blue-400">
+          <span className="inline-block text-sm sm:text-base font-semibold tracking-[0.14em] uppercase text-blue-600 dark:text-blue-400">
             Your Gig Life. Simplified.
           </span>
           <h1 className="mt-3 text-4xl sm:text-6xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance">
@@ -185,7 +185,7 @@ export default async function Home() {
               <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Live opportunities</h2>
               <Link href="/opportunities" className="text-sm font-medium text-blue-600 dark:text-blue-400">View all opportunities →</Link>
             </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {preview.map((o) => <OppPreviewCard key={o.id} o={o} />)}
             </div>
           </section>
