@@ -110,30 +110,30 @@ function OppPreviewCard({ o }: { o: Opportunity }) {
       href={`/opportunities/${o.id}`}
       className="group flex flex-col rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm transition-all"
     >
-      <div className="flex gap-3 p-4">
-        <span className="shrink-0 w-16 h-16 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+      <div className="flex gap-4 p-5">
+        <span className="shrink-0 w-24 h-24 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
           {o.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={o.image_url} alt="" className="w-full h-full object-cover" />
           ) : (
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="text-zinc-400">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="text-zinc-400">
               <rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 8h18M8 5v3M16 5v3" />
             </svg>
           )}
         </span>
         <div className="min-w-0 flex-1">
-          <h3 className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100 leading-snug line-clamp-2">{o.title}</h3>
-          {o.source && <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">{o.source}</p>}
+          <h3 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-zinc-100 leading-snug line-clamp-2">{o.title}</h3>
+          {o.source && <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 truncate">{o.source}</p>}
         </div>
         <span className="shrink-0 text-zinc-300 dark:text-zinc-600 group-hover:text-blue-500" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 3h12a1 1 0 011 1v17l-7-4-7 4V4a1 1 0 011-1z" /></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 3h12a1 1 0 011 1v17l-7-4-7 4V4a1 1 0 011-1z" /></svg>
         </span>
       </div>
-      {meta && <div className="px-4 -mt-1 text-sm text-zinc-600 dark:text-zinc-300 truncate">{meta}</div>}
+      {meta && <div className="px-5 -mt-1.5 text-sm sm:text-[15px] text-zinc-600 dark:text-zinc-300 truncate">{meta}</div>}
       {chips.length > 0 && (
-        <div className="px-4 py-3 mt-2 border-t border-zinc-100 dark:border-zinc-800 flex flex-wrap gap-1.5">
+        <div className="px-5 py-3.5 mt-2.5 border-t border-zinc-100 dark:border-zinc-800 flex flex-wrap gap-1.5">
           {chips.map((c) => (
-            <span key={c} className="text-xs px-2 py-0.5 rounded-full border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400">{c}</span>
+            <span key={c} className="text-xs px-2.5 py-1 rounded-full border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400">{c}</span>
           ))}
         </div>
       )}
@@ -153,12 +153,12 @@ export default async function Home() {
     <PublicShell>
       <div className="max-w-5xl mx-auto">
         {/* Hero */}
-        <section className="text-center pt-8 pb-10 max-w-3xl mx-auto">
+        <section className="text-center pt-8 pb-10">
           <span className="inline-block text-base sm:text-lg font-bold tracking-[0.14em] uppercase text-blue-600 dark:text-blue-400">
             Your Gig Life. Simplified.
           </span>
-          <h1 className="mt-3 text-4xl sm:text-6xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance">
-            Never miss a gig that fits you
+          <h1 className="mt-3 text-4xl sm:text-6xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance lg:whitespace-nowrap">
+            Don&apos;t miss a gig that fits you
           </h1>
           <p className="mt-4 text-base sm:text-lg text-zinc-600 dark:text-zinc-400 max-w-xl mx-auto">
             Find film &amp; TV opportunities from across the web in one place — matched to you with GigFit.
@@ -266,10 +266,11 @@ export default async function Home() {
           </section>
         )}
 
-        {/* Open beta (growth story) + final CTA */}
-        <section className="mb-4 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 p-7 sm:p-9 grid md:grid-cols-2 gap-8 items-center">
-          <div>
-            <span className="inline-block text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
+        {/* Open beta (growth story) + final CTA — two clear halves split by the shield */}
+        <section className="mb-4 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 p-7 sm:p-9 grid md:grid-cols-[1fr_auto_1fr] gap-6 md:gap-0 items-stretch">
+          {/* Left half — growth story */}
+          <div className="flex flex-col justify-center md:pr-8 text-center md:text-left">
+            <span className="inline-block self-center md:self-start text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
               Open Beta
             </span>
             <h2 className="mt-2 text-xl font-bold text-zinc-900 dark:text-zinc-100">We&apos;re growing the Dock.</h2>
@@ -280,16 +281,20 @@ export default async function Home() {
               Seeing a gig we missed? Tell us. →
             </a>
           </div>
-          <div className="flex items-center gap-5">
+
+          {/* Center — the GigDock shield as the divider between the two halves */}
+          <div className="flex items-center justify-center py-4 md:py-0 md:px-8 border-y md:border-y-0 md:border-x border-blue-200 dark:border-blue-900/50">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/gigdock-logo.png" alt="GigDock" className="hidden sm:block h-16 w-16 shrink-0" />
-            <div>
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Ready to find opportunities that fit you?</h3>
-              <Link href="/signup" className="inline-block mt-3 px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm">
-                Create your free account
-              </Link>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">No credit card required.</p>
-            </div>
+            <img src="/gigdock-logo.png" alt="GigDock" className="h-16 w-16 sm:h-20 sm:w-20 shrink-0" />
+          </div>
+
+          {/* Right half — final CTA */}
+          <div className="flex flex-col justify-center md:pl-8 text-center md:text-left">
+            <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Ready to find opportunities that fit you?</h3>
+            <Link href="/signup" className="inline-block self-center md:self-start mt-3 px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm">
+              Create your free account
+            </Link>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">No credit card required.</p>
           </div>
         </section>
       </div>
