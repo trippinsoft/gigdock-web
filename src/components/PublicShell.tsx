@@ -7,7 +7,7 @@ import { createSupabaseBrowser } from "@/lib/supabase-browser";
 
 const NAV = [
   { href: "/opportunities", label: "Opportunities" },
-  { href: "/casting-calls", label: "By location" },
+  { href: "/opportunities/locations", label: "By location" },
   { href: "/gigfit", label: "GigFit" },
   { href: "/profile", label: "Profile" },
 ];

@@ -247,19 +247,19 @@ export default async function Home() {
           <section className="mb-14">
             <div className="flex items-baseline justify-between mb-3">
               <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Browse opportunities by location</h2>
-              <Link href="/casting-calls" className="text-sm font-medium text-blue-600 dark:text-blue-400">All locations →</Link>
+              <Link href="/opportunities/locations" className="text-sm font-medium text-blue-600 dark:text-blue-400">All locations →</Link>
             </div>
             <div className="flex flex-wrap gap-2">
               {markets.map((code) => (
                 <Link
                   key={code}
-                  href={`/casting-calls/${stateSlug(code)}`}
+                  href={`/opportunities/${stateSlug(code)}`}
                   className="px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm text-zinc-800 dark:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-700"
                 >
                   {stateName(code)}
                 </Link>
               ))}
-              <Link href="/casting-calls" className="px-4 py-2 rounded-full border border-blue-200 dark:border-blue-900/50 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30">
+              <Link href="/opportunities/locations" className="px-4 py-2 rounded-full border border-blue-200 dark:border-blue-900/50 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30">
                 All locations →
               </Link>
             </div>

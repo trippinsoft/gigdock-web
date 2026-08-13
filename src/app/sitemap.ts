@@ -33,7 +33,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     new Set(opps.map((o) => o.match_state).filter(Boolean) as string[])
   );
   const marketUrls: MetadataRoute.Sitemap = states.map((code) => ({
-    url: `${BASE}/casting-calls/${stateSlug(code)}`,
+    url: `${BASE}/opportunities/${stateSlug(code)}`,
     changeFrequency: "daily",
     priority: 0.8,
   }));
@@ -42,7 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: BASE, changeFrequency: "daily", priority: 1 },
     { url: `${BASE}/opportunities`, changeFrequency: "daily", priority: 0.9 },
     { url: `${BASE}/gigfit`, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${BASE}/casting-calls`, changeFrequency: "daily", priority: 0.8 },
+    { url: `${BASE}/opportunities/locations`, changeFrequency: "daily", priority: 0.8 },
     ...marketUrls,
     ...oppUrls,
   ];

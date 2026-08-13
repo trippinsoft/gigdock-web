@@ -1,13 +1,10 @@
-import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import type { Opportunity } from "@/lib/types";
 import PublicShell from "@/components/PublicShell";
-import { codeForSlug, stateName } from "@/lib/markets";
+import { stateName } from "@/lib/markets";
 
 const BASE = "https://gigdock.co";
-export const revalidate = 3600;
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 function shortDate(input: string | null): string | null {
@@ -30,24 +27,6 @@ async function getMarket(code: string): Promise<Opportunity[]> {
     .order("posted_at", { ascending: false })
     .limit(200);
   return (data ?? []) as Opportunity[];
-}
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ state: string }>;
-}): Promise<Metadata> {
-  const { state } = await params;
-  const code = codeForSlug(state);
-  if (!code) return { title: "Casting Calls" };
-  const name = stateName(code);
-  const title = `Film & TV Casting Calls in ${name}`;
-  return {
-    title,
-    description: `Current film & TV casting calls, background roles, featured roles, stand-in work, photo-double opportunities, and more in ${name}. Browse open opportunities on GigDock and find the ones that fit you.`,
-    alternates: { canonical: `/casting-calls/${state}` },
-    openGraph: { title: `${title} · GigDock`, type: "website", siteName: "GigDock" },
-  };
 }
 
 function OppCard({ o }: { o: Opportunity }) {
@@ -74,14 +53,9 @@ function OppCard({ o }: { o: Opportunity }) {
   );
 }
 
-export default async function StateMarketPage({
-  params,
-}: {
-  params: Promise<{ state: string }>;
-}) {
-  const { state } = await params;
-  const code = codeForSlug(state);
-  if (!code) notFound();
+// Server-rendered listings for one state/market. Lives under /opportunities/<state>
+// so the URL stays neutral (not tied to "casting-calls") as coverage expands.
+export default async function LocationListing({ code }: { code: string }) {
   const name = stateName(code);
   const opps = await getMarket(code);
 
@@ -103,7 +77,7 @@ export default async function StateMarketPage({
       )}
       <div className="max-w-3xl mx-auto">
         <nav className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
-          <Link href="/casting-calls" className="hover:text-zinc-800 dark:hover:text-zinc-200">Casting Calls</Link>
+          <Link href="/opportunities/locations" className="hover:text-zinc-800 dark:hover:text-zinc-200">Locations</Link>
           <span className="mx-1.5">›</span>
           <span className="text-zinc-700 dark:text-zinc-300">{name}</span>
         </nav>
@@ -114,7 +88,7 @@ export default async function StateMarketPage({
         <p className="text-zinc-600 dark:text-zinc-400 mt-2">
           {opps.length > 0
             ? `${opps.length} open ${opps.length === 1 ? "opportunity" : "opportunities"} in ${name} right now — background, featured, stand-in, and more.`
-            : `No open casting calls in ${name} at the moment. New ones post daily — check back or browse everywhere.`}
+            : `No open opportunities in ${name} at the moment. New ones post daily — check back or browse everywhere.`}
         </p>
 
         {opps.length > 0 && (

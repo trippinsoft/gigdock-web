@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import type { Opportunity } from "@/lib/types";
 import OpportunitiesFeed from "@/components/OpportunitiesFeed";
+import LocationListing from "@/components/LocationListing";
+import { codeForSlug, stateName } from "@/lib/markets";
 
-// A shared opportunity link. Server-rendered here only for the Open Graph preview
-// (so pasted links show a rich card); the body is the full live feed with this
-// gig pre-selected, so visitors land inside GigDock — filters, list, and all —
-// not on a stripped single-post page.
+// One dynamic slot under /opportunities serves two things, disambiguated by slug:
+//   • a known state slug (e.g. "georgia")   -> the location listings page
+//   • a UUID (a shared gig link)             -> that opportunity, in the live feed
+// Keeping locations under /opportunities/<state> keeps the URL neutral as GigDock
+// grows beyond casting calls (no "casting-calls" baked into the path).
 
 async function getOpportunity(id: string): Promise<Opportunity | null> {
   if (!/^[0-9a-f-]{16,}$/i.test(id)) return null;
@@ -69,10 +72,25 @@ function jobPostingLd(o: Opportunity) {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
-  const opp = await getOpportunity(id);
+  const { slug } = await params;
+
+  // Location page metadata.
+  const code = codeForSlug(slug);
+  if (code) {
+    const name = stateName(code);
+    const title = `Film & TV Casting Calls in ${name}`;
+    return {
+      title,
+      description: `Current film & TV casting calls, background roles, featured roles, stand-in work, photo-double opportunities, and more in ${name}. Browse open opportunities on GigDock and find the ones that fit you.`,
+      alternates: { canonical: `/opportunities/${slug}` },
+      openGraph: { title: `${title} · GigDock`, type: "website", siteName: "GigDock" },
+    };
+  }
+
+  // Shared gig link metadata.
+  const opp = await getOpportunity(slug);
   if (!opp) return { title: "Opportunities — GigDock" };
 
   const title = `${opp.title} — GigDock`;
@@ -101,13 +119,19 @@ export async function generateMetadata({
   };
 }
 
-export default async function OpportunityPublicPage({
+export default async function OpportunitySlugPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { id } = await params;
-  const opp = await getOpportunity(id);
+  const { slug } = await params;
+
+  // Known state slug → location listings.
+  const code = codeForSlug(slug);
+  if (code) return <LocationListing code={code} />;
+
+  // Otherwise a shared gig link (or an unknown slug → feed with nothing selected).
+  const opp = await getOpportunity(slug);
   return (
     <>
       {opp && (
@@ -116,7 +140,7 @@ export default async function OpportunityPublicPage({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingLd(opp)) }}
         />
       )}
-      <OpportunitiesFeed initialSelectedId={id} />
+      <OpportunitiesFeed initialSelectedId={slug} />
     </>
   );
 }

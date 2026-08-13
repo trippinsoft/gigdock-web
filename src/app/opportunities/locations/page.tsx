@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: "Opportunities by Location",
   description:
     "Find film & TV casting opportunities by state. GigDock brings opportunities from multiple sources together so you can see what's open in your market.",
-  alternates: { canonical: "/casting-calls" },
+  alternates: { canonical: "/opportunities/locations" },
   openGraph: { title: "Opportunities by Location · GigDock", type: "website", siteName: "GigDock" },
 };
 
@@ -36,7 +36,7 @@ async function getMarkets(): Promise<{ code: string; count: number }[]> {
     .sort((a, b) => b.count - a.count || stateName(a.code).localeCompare(stateName(b.code)));
 }
 
-export default async function CastingCallsHub() {
+export default async function LocationsHub() {
   const markets = await getMarkets();
   const total = markets.reduce((n, m) => n + m.count, 0);
 
@@ -57,7 +57,7 @@ export default async function CastingCallsHub() {
             {markets.map((m) => (
               <Link
                 key={m.code}
-                href={`/casting-calls/${stateSlug(m.code)}`}
+                href={`/opportunities/${stateSlug(m.code)}`}
                 className="flex items-center justify-between px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
               >
                 <span className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{stateName(m.code)}</span>
