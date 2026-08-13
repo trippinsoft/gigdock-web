@@ -58,7 +58,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
               {/* Marketing tagline — desktop only (mobile header stays compact) */}
               <div className="hidden lg:block border-l border-zinc-200 dark:border-zinc-700 pl-3 min-w-0">
                 <div className="text-xs text-zinc-500 dark:text-zinc-400 leading-tight truncate">
-                  Find Opportunities • Manage Gigs • Track Payments • Stay Organized
+                  Film &amp; TV opportunities, all in one place
                 </div>
               </div>
             </div>

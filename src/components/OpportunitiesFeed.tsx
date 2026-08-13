@@ -101,6 +101,7 @@ export default function OpportunitiesFeed({
   const [refreshing, setRefreshing] = useState(false);
   const pullYRef = useRef(0);
   const refreshingRef = useRef(false);
+  const didDoActionRef = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -180,6 +181,34 @@ export default function OpportunitiesFeed({
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Finish a Save / Mark-applied that a logged-out user started before signing
+  // up: they return to /opportunities/<id>?do=save|applied, and once signed in
+  // we complete the action, then clean the URL. (Intent preserved across signup.)
+  useEffect(() => {
+    if (didDoActionRef.current || !userId || !initialSelectedId) return;
+    const doAction = new URLSearchParams(window.location.search).get("do");
+    if (doAction !== "save" && doAction !== "applied") return;
+    didDoActionRef.current = true;
+    const id = initialSelectedId;
+    (async () => {
+      if (doAction === "save") {
+        setSavedIds((prev) => new Set(prev).add(id));
+        await supabase.from("saved_opportunities").upsert(
+          { user_id: userId, opportunity_id: id },
+          { onConflict: "user_id,opportunity_id", ignoreDuplicates: true }
+        );
+      } else {
+        setAppliedIds((prev) => new Set(prev).add(id));
+        await supabase.from("applied_opportunities").upsert(
+          { user_id: userId, opportunity_id: id, method: "manual" },
+          { onConflict: "user_id,opportunity_id", ignoreDuplicates: true }
+        );
+      }
+      router.replace(`/opportunities/${id}`);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, initialSelectedId]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 250);
@@ -263,7 +292,7 @@ export default function OpportunitiesFeed({
 
   /* ---------- save ---------- */
   async function toggleSave(id: string) {
-    if (!userId) { router.push("/signup"); return; }
+    if (!userId) { router.push(`/signup?intent=save&opportunity=${id}`); return; }
     const isSaved = savedIds.has(id);
     setSavedIds((prev) => {
       const next = new Set(prev);
@@ -279,7 +308,7 @@ export default function OpportunitiesFeed({
 
   /* ---------- applied (mirrors the mobile app's applied_opportunities) ---------- */
   async function toggleApplied(id: string) {
-    if (!userId) { router.push("/signup"); return; }
+    if (!userId) { router.push(`/signup?intent=applied&opportunity=${id}`); return; }
     const isApplied = appliedIds.has(id);
     setAppliedIds((prev) => {
       const next = new Set(prev);
@@ -533,7 +562,11 @@ export default function OpportunitiesFeed({
       <option value="applied">{`Applied${appliedIds.size ? ` (${appliedIds.size})` : ""}`}</option>
     </select>
   );
-  const gigfitSelect = profiles.length > 0 ? (
+  // GigFit control. Signed-in users with a profile get the on/off + profile
+  // picker. Everyone else (logged out, or no profile yet) gets a CTA that leads
+  // to the GigFit explainer (anon) or profile setup (signed in) — GigFit is one
+  // of the strongest reasons to create an account, so it stays visible.
+  const gigfitControl = profiles.length > 0 ? (
     <select
       value={gigfitProfileId ?? ""}
       onChange={(e) => setGigfitProfileId(e.target.value || null)}
@@ -544,7 +577,15 @@ export default function OpportunitiesFeed({
       <option value="">GigFit: Off</option>
       {profiles.map((p) => <option key={p.id} value={p.id}>GigFit: {p.label}</option>)}
     </select>
-  ) : null;
+  ) : (
+    <Link
+      href={userId ? "/profile" : "/gigfit"}
+      title="See which opportunities match your profile"
+      className="inline-flex items-center gap-1.5 h-10 px-3 rounded-lg border border-blue-300 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-sm font-medium shrink-0 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+    >
+      ✨ GigFit
+    </Link>
+  );
 
   return (
     <PublicShell>
@@ -573,7 +614,7 @@ export default function OpportunitiesFeed({
             {/* Desktop: scope + GigFit sit next to sort */}
             <div className="hidden md:flex gap-2 items-center">
               {scopeSelect}
-              {gigfitSelect}
+              {gigfitControl}
             </div>
           </div>
 
@@ -590,7 +631,7 @@ export default function OpportunitiesFeed({
               )}
             </button>
             {scopeSelect}
-            {gigfitSelect}
+            {gigfitControl}
           </div>
 
           {selectedProfile && (
@@ -641,7 +682,13 @@ export default function OpportunitiesFeed({
                 <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>
               ) : scope !== "all" && !userId ? (
                 <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">
-                  Sign in to see your {scope} opportunities.
+                  <p>Create a free account to save opportunities and track what you’ve applied to.</p>
+                  <Link
+                    href={`/signup?intent=${scope === "saved" ? "save" : "applied"}`}
+                    className="inline-block mt-3 px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm"
+                  >
+                    Create free account
+                  </Link>
                 </div>
               ) : visible.length === 0 ? (
                 <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">

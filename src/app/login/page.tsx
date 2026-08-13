@@ -1,6 +1,7 @@
 "use client";
 
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
@@ -12,6 +13,10 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const notCurator = searchParams.get("error") === "not_curator";
+  // Consumers arriving from a Save / Applied / GigFit gate pass ?next= so we can
+  // return them to what they were doing (only same-site paths are honored).
+  const rawNext = searchParams.get("next");
+  const next = rawNext && rawNext.startsWith("/") ? rawNext : null;
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -19,7 +24,7 @@ function LoginForm() {
     setError("");
 
     const supabase = createSupabaseBrowser();
-    const { error: authError } = await supabase.auth.signInWithPassword({
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -30,7 +35,23 @@ function LoginForm() {
       return;
     }
 
-    router.push("/admin");
+    // Honor an explicit return path; otherwise send curators to the admin
+    // dashboard and everyone else to the opportunities feed.
+    if (next) {
+      router.push(next);
+    } else {
+      const uid = data.user?.id;
+      let isCurator = false;
+      if (uid) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("is_curator")
+          .eq("user_id", uid)
+          .maybeSingle();
+        isCurator = !!profile?.is_curator;
+      }
+      router.push(isCurator ? "/admin" : "/opportunities");
+    }
     router.refresh();
   }
 
@@ -39,10 +60,10 @@ function LoginForm() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-            GigDock Admin
+            Sign in to GigDock
           </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Curator Dashboard
+            Welcome back — your gig life, simplified.
           </p>
         </div>
 
@@ -98,6 +119,16 @@ function LoginForm() {
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
+
+        <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400 text-center">
+          New to GigDock?{" "}
+          <Link
+            href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}
+            className="text-blue-600 dark:text-blue-400 font-medium"
+          >
+            Create a free account
+          </Link>
+        </p>
       </div>
     </div>
   );

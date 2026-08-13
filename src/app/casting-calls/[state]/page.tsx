@@ -41,10 +41,10 @@ export async function generateMetadata({
   const code = codeForSlug(state);
   if (!code) return { title: "Casting Calls" };
   const name = stateName(code);
-  const title = `Casting Calls & Gigs in ${name}`;
+  const title = `Film & TV Casting Calls in ${name}`;
   return {
     title,
-    description: `Current casting calls, background roles, and gig work in ${name}. Browse open opportunities on GigDock and find the ones that fit you.`,
+    description: `Current film & TV casting calls, background roles, featured roles, stand-in work, photo-double opportunities, and more in ${name}. Browse open opportunities on GigDock and find the ones that fit you.`,
     alternates: { canonical: `/casting-calls/${state}` },
     openGraph: { title: `${title} · GigDock`, type: "website", siteName: "GigDock" },
   };
@@ -109,7 +109,7 @@ export default async function StateMarketPage({
         </nav>
 
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
-          Casting calls &amp; gigs in {name}
+          Film &amp; TV opportunities in {name}
         </h1>
         <p className="text-zinc-600 dark:text-zinc-400 mt-2">
           {opps.length > 0
@@ -124,7 +124,7 @@ export default async function StateMarketPage({
         )}
 
         <div className="mt-8 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 p-6 text-center">
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">See gigs matched to you</h2>
+          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">See opportunities matched to you</h2>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1 max-w-md mx-auto">
             GigDock filters casting calls by role, pay, and location, and shows which ones fit your profile.
           </p>

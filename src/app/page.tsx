@@ -6,14 +6,14 @@ import PublicShell from "@/components/PublicShell";
 import { stateName, stateSlug } from "@/lib/markets";
 
 export const metadata: Metadata = {
-  title: "GigDock — Casting Calls & Gigs Matched to You",
+  title: "GigDock — Film & TV Opportunities Matched to You",
   description:
-    "GigDock brings casting calls and gig work from across the web into one place — matched to your profile, so you never miss the right one.",
+    "Find film & TV casting opportunities from across the web in one place, with GigFit matching to help you quickly see what fits you.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "GigDock — Casting Calls & Gigs Matched to You",
+    title: "GigDock — Film & TV Opportunities Matched to You",
     description:
-      "Casting calls in one feed, matched to you. Browse, save, apply, and share.",
+      "Film & TV opportunities from many sources in one feed, matched to you with GigFit.",
     type: "website",
     siteName: "GigDock",
   },
@@ -57,14 +57,14 @@ export default async function Home() {
         {/* Hero */}
         <section className="text-center pt-8 pb-10">
           <span className="inline-block text-xs font-semibold tracking-[0.14em] uppercase text-blue-600 dark:text-blue-400">
-            The home for your gig life
+            Your Gig Life. Simplified.
           </span>
           <h1 className="mt-3 text-3xl sm:text-5xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance">
             Never miss a gig that fits you
           </h1>
           <p className="mt-4 text-base sm:text-lg text-zinc-600 dark:text-zinc-400 max-w-xl mx-auto">
-            GigDock brings casting calls and gig work from across the web into one
-            feed — matched to your profile, so the right opportunity finds you.
+            Find film &amp; TV opportunities from across the web in one place —
+            matched to you with GigFit.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <Link
@@ -136,9 +136,9 @@ export default async function Home() {
 
         {/* Bottom CTA */}
         <section className="mt-12 mb-4 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 p-7 text-center">
-          <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Find your next gig</h2>
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Find your next opportunity</h2>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1.5 max-w-md mx-auto">
-            Build a quick profile and GigDock highlights the calls that fit you — free.
+            Build a quick profile and GigFit highlights the film &amp; TV opportunities that fit you — free.
           </p>
           <Link
             href="/opportunities"

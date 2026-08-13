@@ -10,11 +10,11 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL("https://gigdock.co"),
   title: {
-    default: "GigDock — Casting Calls & Gigs",
+    default: "GigDock — Film & TV Opportunities",
     template: "%s · GigDock",
   },
   description:
-    "Find casting calls and gig work matched to you. GigDock surfaces opportunities across every region so you never miss the right one.",
+    "Find film & TV casting opportunities from across the web, search them in one place, and use GigFit to see which ones match you.",
 };
 
 export default function RootLayout({

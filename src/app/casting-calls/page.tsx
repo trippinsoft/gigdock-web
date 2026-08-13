@@ -9,7 +9,7 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Opportunities by Location",
   description:
-    "Find casting calls and gig work by state. GigDock aggregates opportunities across every production region — pick yours to see what's open now.",
+    "Find film & TV casting opportunities by state. GigDock brings opportunities from multiple sources together so you can see what's open in your market.",
   alternates: { canonical: "/casting-calls" },
   openGraph: { title: "Opportunities by Location · GigDock", type: "website", siteName: "GigDock" },
 };

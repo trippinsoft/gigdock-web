@@ -255,8 +255,9 @@ export default function ProfilePage() {
           My Casting Profile
         </h2>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-          Used to match you to opportunities. Every field you add sharpens your
-          matches — you don&apos;t have to fill it all in at once.
+          Used only to match you with relevant film &amp; TV casting opportunities.
+          Every detail you add helps GigFit compare your profile with casting
+          requirements — you don&apos;t have to fill it all in at once.
         </p>
       </div>
 
