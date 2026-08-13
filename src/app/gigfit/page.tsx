@@ -36,7 +36,7 @@ export default function GigFitExplainer() {
     <PublicShell>
       <div className="max-w-2xl mx-auto">
         <section className="text-center pt-6 pb-8">
-          <span className="inline-block text-sm sm:text-base font-semibold tracking-[0.14em] uppercase text-blue-600 dark:text-blue-400">
+          <span className="inline-block text-base sm:text-lg font-bold tracking-[0.14em] uppercase text-blue-600 dark:text-blue-400">
             GigFit
           </span>
           <h1 className="mt-3 text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance">

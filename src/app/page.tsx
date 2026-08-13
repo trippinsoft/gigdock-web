@@ -154,7 +154,7 @@ export default async function Home() {
       <div className="max-w-5xl mx-auto">
         {/* Hero */}
         <section className="text-center pt-8 pb-10 max-w-3xl mx-auto">
-          <span className="inline-block text-sm sm:text-base font-semibold tracking-[0.14em] uppercase text-blue-600 dark:text-blue-400">
+          <span className="inline-block text-base sm:text-lg font-bold tracking-[0.14em] uppercase text-blue-600 dark:text-blue-400">
             Your Gig Life. Simplified.
           </span>
           <h1 className="mt-3 text-4xl sm:text-6xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance">
