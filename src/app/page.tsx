@@ -193,49 +193,89 @@ export default async function Home() {
 
         {/* How GigDock works — gather → personalize → act */}
         <section className="mb-14">
-          <h2 className="text-center text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-8">How GigDock works</h2>
-          <div className="grid md:grid-cols-3 gap-4">
-            {/* Many sources, one feed — the clearest wedge, given visual weight */}
-            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-              <div className="flex items-center gap-2 flex-wrap mb-4">
-                {["Facebook", "Instagram", "Casting sites", "Production cos."].map((src) => (
-                  <span key={src} className="text-[11px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">{src}</span>
-                ))}
-                <span className="text-zinc-400">→</span>
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/gigdock-logo.png" alt="" className="h-3.5 w-3.5" /> One feed
-                </span>
-              </div>
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Many sources. One feed.</h3>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1.5 leading-relaxed">
-                Stop checking casting sites and social feeds one by one. GigDock brings film &amp; TV opportunities together in one clean, searchable place.
-              </p>
-            </div>
+          <h2 className="text-center text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
+            How <span className="text-blue-600 dark:text-blue-400">GigDock</span> works
+          </h2>
+          <p className="text-center text-zinc-600 dark:text-zinc-400 mt-3 max-w-xl mx-auto">
+            We bring film &amp; TV opportunities from across the web into one place, so you can find the
+            right gigs and focus on what you do best.
+          </p>
 
+          <div className="grid md:grid-cols-3 gap-4 mt-8">
             {/* GigFit */}
-            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-              <div className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 px-3 py-1.5 rounded-full">
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 flex flex-col">
+              <span className="self-start inline-flex items-center gap-1.5 text-sm font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 px-3 py-1.5 rounded-full">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.5 1.6 6.8L12 17l-6.2 3.7 1.6-6.8L2.2 8.9l6.9-.6z" /></svg>
                 Your matches
+              </span>
+              <div className="mt-5 flex items-center gap-3">
+                <span className="h-11 w-11 shrink-0 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /><circle cx="12" cy="10" r="2.2" /><path d="M8.5 16c.7-2 6.3-2 7 0" /></svg>
+                </span>
+                <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-snug">GigFit — matched to you</h3>
               </div>
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">GigFit — matched to you</h3>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1.5 leading-relaxed">
+              <div className="mt-3 h-1 w-10 rounded-full bg-blue-600" />
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-3 leading-relaxed">
                 Tell us a little about yourself. GigFit compares casting requirements with your profile so you can quickly see which opportunities fit.
               </p>
             </div>
 
+            {/* Many sources, one feed — the hub-and-spoke wedge, centered */}
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 flex flex-col items-center text-center">
+              <svg viewBox="0 0 200 200" className="w-44 h-44 sm:w-48 sm:h-48" role="img" aria-label="Many sources feeding into one GigDock hub">
+                {/* connecting ring + spokes */}
+                <circle cx="100" cy="100" r="68" fill="none" stroke="#bfdbfe" strokeWidth="1.5" strokeDasharray="2 6" />
+                <g stroke="#93c5fd" strokeWidth="2">
+                  <line x1="100" y1="100" x2="100" y2="32" />
+                  <line x1="100" y1="100" x2="159" y2="66" />
+                  <line x1="100" y1="100" x2="159" y2="134" />
+                  <line x1="100" y1="100" x2="100" y2="168" />
+                  <line x1="100" y1="100" x2="41" y2="134" />
+                  <line x1="100" y1="100" x2="41" y2="66" />
+                </g>
+                {/* center hub */}
+                <polygon points="122,100 111,81 89,81 78,100 89,119 111,119" fill="#1d4ed8" />
+                <g stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                  <line x1="100" y1="100" x2="100" y2="90" /><line x1="100" y1="100" x2="108.7" y2="105" /><line x1="100" y1="100" x2="91.3" y2="105" />
+                </g>
+                <circle cx="100" cy="100" r="2.6" fill="#fff" /><circle cx="100" cy="90" r="1.8" fill="#fff" /><circle cx="108.7" cy="105" r="1.8" fill="#fff" /><circle cx="91.3" cy="105" r="1.8" fill="#fff" />
+                {/* source nodes */}
+                <g transform="translate(100,32)"><circle r="18" fill="#2563eb" /><text x="0" y="6" textAnchor="middle" fontSize="19" fontWeight="700" fill="#fff">f</text></g>
+                <g transform="translate(159,66)"><circle r="18" fill="#2563eb" /><rect x="-8" y="-6" width="16" height="12" rx="2" fill="none" stroke="#fff" strokeWidth="1.8" /><path d="M-8 -5 L0 2 L8 -5" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></g>
+                <g transform="translate(159,134)"><circle r="18" fill="#2563eb" /><circle r="7.5" fill="none" stroke="#fff" strokeWidth="1.6" /><path d="M-7.5 0 H7.5" stroke="#fff" strokeWidth="1.5" /><path d="M0 -7.5 C-4.5 -3 -4.5 3 0 7.5 C4.5 3 4.5 -3 0 -7.5 Z" fill="none" stroke="#fff" strokeWidth="1.5" /></g>
+                <g transform="translate(100,168)"><circle r="18" fill="#2563eb" /><rect x="-6.5" y="-8" width="13" height="16" rx="1" fill="none" stroke="#fff" strokeWidth="1.7" /><rect x="-3.6" y="-5" width="2.2" height="2.2" fill="#fff" /><rect x="1.4" y="-5" width="2.2" height="2.2" fill="#fff" /><rect x="-3.6" y="-0.4" width="2.2" height="2.2" fill="#fff" /><rect x="1.4" y="-0.4" width="2.2" height="2.2" fill="#fff" /></g>
+                <g transform="translate(41,134)"><circle r="18" fill="#2563eb" /><circle cy="-3.5" r="3.3" fill="none" stroke="#fff" strokeWidth="1.8" /><path d="M-6.5 8 C-6.5 2 6.5 2 6.5 8" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" /></g>
+                <g transform="translate(41,66)"><circle r="18" fill="#2563eb" /><rect x="-7" y="-7" width="14" height="14" rx="4.5" fill="none" stroke="#fff" strokeWidth="1.8" /><circle r="3.3" fill="none" stroke="#fff" strokeWidth="1.8" /><circle cx="4.3" cy="-4.3" r="1.1" fill="#fff" /></g>
+              </svg>
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Many sources. One feed.</h3>
+              <div className="mt-3 h-1 w-10 rounded-full bg-blue-600" />
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-3 leading-relaxed">
+                Stop checking casting sites and social feeds one by one. GigDock brings film &amp; TV opportunities together in one clean, searchable place.
+              </p>
+            </div>
+
             {/* Save, apply & share */}
-            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-              <div className="mb-4 flex gap-1.5">
-                {[0, 1, 2].map((i) => (
-                  <span key={i} className="h-8 w-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 3h12a1 1 0 011 1v17l-7-4-7 4V4a1 1 0 011-1z" /></svg>
-                  </span>
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 flex flex-col">
+              <div className="flex gap-4">
+                {[
+                  { label: "Save", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12a1 1 0 011 1v17l-7-4-7 4V4a1 1 0 011-1z" /></svg> },
+                  { label: "Apply", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-3" /><path d="M18 3l3 3-8 8-4 1 1-4z" /></svg> },
+                  { label: "Share", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" /><path d="M8.2 10.8l7.6-4.6M8.2 13.2l7.6 4.6" /></svg> },
+                ].map((it) => (
+                  <div key={it.label} className="flex flex-col items-center gap-1">
+                    <span className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">{it.icon}</span>
+                    <span className="text-[11px] text-zinc-500 dark:text-zinc-400">{it.label}</span>
+                  </div>
                 ))}
               </div>
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Save, apply &amp; share</h3>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1.5 leading-relaxed">
+              <div className="mt-5 flex items-center gap-3">
+                <span className="h-11 w-11 shrink-0 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12a1 1 0 011 1v17l-7-4-7 4V4a1 1 0 011-1z" /></svg>
+                </span>
+                <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-snug">Save, apply &amp; share</h3>
+              </div>
+              <div className="mt-3 h-1 w-10 rounded-full bg-blue-600" />
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-3 leading-relaxed">
                 Bookmark the opportunities you&apos;re interested in, track what you&apos;ve applied to, and share any listing in a tap.
               </p>
             </div>
