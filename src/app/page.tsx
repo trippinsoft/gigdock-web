@@ -222,10 +222,11 @@ export default async function Home() {
 
             {/* Many sources, one feed — the hub-and-spoke wedge, centered */}
             <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 flex flex-col items-center text-center">
-              <svg viewBox="0 0 200 200" className="w-44 h-44 sm:w-48 sm:h-48" role="img" aria-label="Many sources feeding into one GigDock hub">
-                {/* connecting ring + spokes */}
+              <svg viewBox="0 0 200 200" className="w-44 h-44 sm:w-48 sm:h-48 mb-1" role="img" aria-label="The GigDock spoke hub with six spokes out to six sources">
+                {/* faint connecting ring */}
                 <circle cx="100" cy="100" r="68" fill="none" stroke="#bfdbfe" strokeWidth="1.5" strokeDasharray="2 6" />
-                <g stroke="#93c5fd" strokeWidth="2">
+                {/* the GigDock spoke mark, opened up: six spokes from the hub out to each source */}
+                <g stroke="#2563eb" strokeWidth="3" strokeLinecap="round">
                   <line x1="100" y1="100" x2="100" y2="32" />
                   <line x1="100" y1="100" x2="159" y2="66" />
                   <line x1="100" y1="100" x2="159" y2="134" />
@@ -233,12 +234,8 @@ export default async function Home() {
                   <line x1="100" y1="100" x2="41" y2="134" />
                   <line x1="100" y1="100" x2="41" y2="66" />
                 </g>
-                {/* center hub */}
-                <polygon points="122,100 111,81 89,81 78,100 89,119 111,119" fill="#1d4ed8" />
-                <g stroke="#fff" strokeWidth="2" strokeLinecap="round">
-                  <line x1="100" y1="100" x2="100" y2="90" /><line x1="100" y1="100" x2="108.7" y2="105" /><line x1="100" y1="100" x2="91.3" y2="105" />
-                </g>
-                <circle cx="100" cy="100" r="2.6" fill="#fff" /><circle cx="100" cy="90" r="1.8" fill="#fff" /><circle cx="108.7" cy="105" r="1.8" fill="#fff" /><circle cx="91.3" cy="105" r="1.8" fill="#fff" />
+                {/* central hub — the GigDock mark's node */}
+                <polygon points="100,74 77.5,87 77.5,113 100,126 122.5,113 122.5,87" fill="#1d4ed8" />
                 {/* source nodes */}
                 <g transform="translate(100,32)"><circle r="18" fill="#2563eb" /><text x="0" y="6" textAnchor="middle" fontSize="19" fontWeight="700" fill="#fff">f</text></g>
                 <g transform="translate(159,66)"><circle r="18" fill="#2563eb" /><rect x="-8" y="-6" width="16" height="12" rx="2" fill="none" stroke="#fff" strokeWidth="1.8" /><path d="M-8 -5 L0 2 L8 -5" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></g>
