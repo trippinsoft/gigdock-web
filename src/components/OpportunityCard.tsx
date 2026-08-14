@@ -251,12 +251,46 @@ function withSubject(href: string, subject: string | null): string {
   return `${href}${sep}subject=${encodeURIComponent(subject)}`;
 }
 
-// Best actionable apply target: explicit link first, else dig one out of
-// the application instructions. Email targets get a pre-filled subject line.
+// Third-party submission/relink apps we don't want to funnel applicants into
+// (Branch/AppsFlyer/Firebase deep links + known casting-submission apps). When
+// the post's link is one of these, we prefer the caster's direct email instead.
+function isRelinkHost(href: string): boolean {
+  let host: string;
+  try {
+    host = new URL(href).hostname.toLowerCase();
+  } catch {
+    return false; // mailto:/tel: or unparseable → not a relink
+  }
+  if (!host) return false;
+  return (
+    host === "app.link" || host.endsWith(".app.link") || // Branch (Source & Cast, etc.)
+    host === "onelink.me" || host.endsWith(".onelink.me") || // AppsFlyer
+    host.endsWith(".page.link") || // Firebase Dynamic Links
+    host.includes("sourceandcast")
+  );
+}
+
+// First email mentioned in the post's instructions/summary, as a mailto:.
+function extractEmailHref(opp: Opportunity): string | null {
+  const blob = [opp.application_info, opp.requirements, opp.summary].filter(Boolean).join("\n");
+  const m = blob.match(/[^\s@]+@[^\s@]+\.[a-z]{2,}/i);
+  return m ? `mailto:${m[0].replace(/[.,);]+$/, "")}` : null;
+}
+
+// Best actionable apply target. Prefer a direct link — but never route the
+// applicant into a third-party submission app; when the only link is one of
+// those, fall back to the caster's email (or, failing that, the original post).
 function getApplyHref(opp: Opportunity): string | null {
-  const base = normalizeHref(opp.link) ?? extractHref(opp.application_info);
-  if (!base) return null;
-  return withSubject(base, extractSubject(opp));
+  const linkHref = normalizeHref(opp.link);
+  if (linkHref && !isRelinkHost(linkHref)) return withSubject(linkHref, extractSubject(opp));
+
+  const emailHref = extractEmailHref(opp);
+  if (emailHref) return withSubject(emailHref, extractSubject(opp));
+
+  const infoHref = extractHref(opp.application_info);
+  if (infoHref && !isRelinkHost(infoHref)) return withSubject(infoHref, extractSubject(opp));
+
+  return null; // only a relink app was available → card falls back to "View original post"
 }
 
 /* ---------- component ---------- */
