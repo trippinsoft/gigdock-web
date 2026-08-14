@@ -78,6 +78,21 @@ export default function ProfilePage() {
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [showAllMarkets, setShowAllMarkets] = useState(false);
   const [coverage, setCoverage] = useState<Coverage | null>(null);
+  // Served markets come from the admin-managed `markets` table so the list can
+  // change without a redeploy; the hardcoded ALL_MARKETS is a safe fallback.
+  const [marketOptions, setMarketOptions] = useState<string[]>(ALL_MARKETS);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("markets")
+        .select("code")
+        .eq("active", true)
+        .order("sort_order", { ascending: true });
+      if (data && data.length) setMarketOptions(data.map((m) => m.code as string));
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -285,7 +300,7 @@ export default function ProfilePage() {
         {showAllMarkets || draft.markets.length === 0 ? (
           <>
             <div className="flex flex-wrap gap-1.5">
-              {ALL_MARKETS.map((code) => (
+              {marketOptions.map((code) => (
                 <MarketChip
                   key={code}
                   code={code}

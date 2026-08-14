@@ -88,7 +88,16 @@ export type AdminTab =
   | "discards"
   | "duplicates"
   | "sources"
+  | "markets"
   | "hidden"
   | "find"
   | "feedback"
   | "profile";
+
+export interface Market {
+  code: string;
+  name: string;
+  active: boolean;
+  sort_order: number;
+  created_at?: string;
+}

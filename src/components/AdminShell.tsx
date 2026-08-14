@@ -11,6 +11,7 @@ const TABS: { key: AdminTab; label: string; href: string }[] = [
   { key: "discards", label: "Discards", href: "/admin/discards" },
   { key: "duplicates", label: "Duplicates", href: "/admin/duplicates" },
   { key: "sources", label: "Sources", href: "/admin/sources" },
+  { key: "markets", label: "Markets", href: "/admin/markets" },
   { key: "hidden", label: "Hidden / Expired", href: "/admin/hidden" },
   { key: "find", label: "Find post", href: "/admin/find" },
   { key: "feedback", label: "Feedback", href: "/admin/feedback" },
@@ -34,6 +35,7 @@ export default function AdminShell({
     if (pathname.startsWith("/admin/discards")) return "discards";
     if (pathname.startsWith("/admin/duplicates")) return "duplicates";
     if (pathname.startsWith("/admin/sources")) return "sources";
+    if (pathname.startsWith("/admin/markets")) return "markets";
     if (pathname.startsWith("/admin/hidden")) return "hidden";
     if (pathname.startsWith("/admin/find")) return "find";
     if (pathname.startsWith("/admin/feedback")) return "feedback";
