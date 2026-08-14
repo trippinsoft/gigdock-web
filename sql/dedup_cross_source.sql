@@ -169,17 +169,44 @@ begin
       and case
         when a.role_key is not null and b.role_key is not null then
           (
-            public.norm_text(a.role_key) = public.norm_text(b.role_key)
-            or cardinality(array(
-                 select unnest(public.role_tokens(a.role_key))
-                 intersect
-                 select unnest(public.role_tokens(b.role_key))
-               )) >= 1
-          )
-          and (
-            a.production_name is null or btrim(a.production_name) = ''
-            or b.production_name is null or btrim(b.production_name) = ''
-            or public.norm_text(a.production_name) = public.norm_text(b.production_name)
+            -- Same production is a strong same-gig signal on its own: date, pay,
+            -- state, gender and ethnicity are already matched above, so two posts
+            -- naming the same production are the same call — UNLESS their role_keys
+            -- are clearly DIFFERENT roles (both have distinctive tokens, none shared,
+            -- e.g. "mover" vs "nurse"). This catches reposts whose role_keys are the
+            -- same meaning but tokenize differently ("stand-in male 6'7" vs
+            -- "stand-in caucasian male 6'7").
+            (
+              a.production_name is not null and btrim(a.production_name) <> ''
+              and b.production_name is not null and btrim(b.production_name) <> ''
+              and public.norm_text(a.production_name) = public.norm_text(b.production_name)
+              and not (
+                cardinality(public.role_tokens(a.role_key)) > 0
+                and cardinality(public.role_tokens(b.role_key)) > 0
+                and cardinality(array(
+                      select unnest(public.role_tokens(a.role_key))
+                      intersect
+                      select unnest(public.role_tokens(b.role_key))
+                    )) = 0
+              )
+            )
+            or
+            -- Otherwise require the role to line up, with productions not conflicting.
+            (
+              (
+                public.norm_text(a.role_key) = public.norm_text(b.role_key)
+                or cardinality(array(
+                     select unnest(public.role_tokens(a.role_key))
+                     intersect
+                     select unnest(public.role_tokens(b.role_key))
+                   )) >= 1
+              )
+              and (
+                a.production_name is null or btrim(a.production_name) = ''
+                or b.production_name is null or btrim(b.production_name) = ''
+                or public.norm_text(a.production_name) = public.norm_text(b.production_name)
+              )
+            )
           )
         else
           cardinality(array(
