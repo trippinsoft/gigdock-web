@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import type { Opportunity } from "@/lib/types";
 import PublicShell from "@/components/PublicShell";
+import { GigFitArt, SaveShareArt } from "@/components/HowItWorksArt";
 import { stateName, stateSlug } from "@/lib/markets";
 
 export const metadata: Metadata = {
@@ -204,11 +205,8 @@ export default async function Home() {
           <div className="grid md:grid-cols-3 gap-4 mt-8">
             {/* GigFit */}
             <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 flex flex-col">
-              <span className="self-start inline-flex items-center gap-1.5 text-sm font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 px-3 py-1.5 rounded-full">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.5 1.6 6.8L12 17l-6.2 3.7 1.6-6.8L2.2 8.9l6.9-.6z" /></svg>
-                Your matches
-              </span>
-              <div className="mt-5 flex items-center gap-3">
+              <div className="mb-4"><GigFitArt /></div>
+              <div className="mt-1 flex items-center gap-3">
                 <span className="h-11 w-11 shrink-0 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /><circle cx="12" cy="10" r="2.2" /><path d="M8.5 16c.7-2 6.3-2 7 0" /></svg>
                 </span>
@@ -253,19 +251,8 @@ export default async function Home() {
 
             {/* Save, apply & share */}
             <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 flex flex-col">
-              <div className="flex gap-4">
-                {[
-                  { label: "Save", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12a1 1 0 011 1v17l-7-4-7 4V4a1 1 0 011-1z" /></svg> },
-                  { label: "Apply", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-3" /><path d="M18 3l3 3-8 8-4 1 1-4z" /></svg> },
-                  { label: "Share", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" /><path d="M8.2 10.8l7.6-4.6M8.2 13.2l7.6 4.6" /></svg> },
-                ].map((it) => (
-                  <div key={it.label} className="flex flex-col items-center gap-1">
-                    <span className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">{it.icon}</span>
-                    <span className="text-[11px] text-zinc-500 dark:text-zinc-400">{it.label}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-5 flex items-center gap-3">
+              <div className="mb-4"><SaveShareArt /></div>
+              <div className="mt-1 flex items-center gap-3">
                 <span className="h-11 w-11 shrink-0 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12a1 1 0 011 1v17l-7-4-7 4V4a1 1 0 011-1z" /></svg>
                 </span>
