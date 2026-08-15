@@ -589,7 +589,7 @@ export default function OpportunitiesFeed({
 
   return (
     <PublicShell>
-      <div className="flex flex-col h-[calc(100dvh-8rem)]">
+      <div className="flex flex-col h-[calc(100dvh-6.5rem)]">
         {/* Toolbar */}
         <div className="space-y-2 pb-3 border-b border-zinc-200 dark:border-zinc-800">
           {/* Row 1: search + sort (+ scope & GigFit inline on desktop) */}
@@ -665,7 +665,7 @@ export default function OpportunitiesFeed({
         {/* List + detail */}
         <div className="flex-1 flex min-h-0 mt-4 gap-6">
           <div className="w-full md:w-[30rem] md:shrink-0 flex flex-col min-h-0">
-            <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pr-1 pb-8">
+            <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pr-1 pb-4">
               {/* Pull-to-refresh indicator (grows as you drag, spins while refreshing) */}
               {(pullY > 0 || refreshing) && (
                 <div
