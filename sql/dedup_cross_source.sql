@@ -155,7 +155,10 @@ begin
     join active b
       on a.id < b.id
       and a.work_date is not null and a.work_date = b.work_date
-      and a.pay_min   is not null and a.pay_min   = b.pay_min
+      -- pay is a compatibility check, not a requirement: many posts omit it, and
+      -- requiring it made no-pay reposts un-dedupable. Equal, or unknown on either
+      -- side, is compatible; two DIFFERENT stated pays still block the match.
+      and (a.pay_min is null or b.pay_min is null or a.pay_min = b.pay_min)
       and (a.match_state is null or b.match_state is null or a.match_state = b.match_state)
       and (cardinality(public.opp_genders(a.casting_specs)) = 0
            or cardinality(public.opp_genders(b.casting_specs)) = 0
