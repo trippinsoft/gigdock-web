@@ -7,7 +7,9 @@
 -- touches the frozen ingest rows.
 --
 -- "Same gig" = ALL of:
---   • same first work_date
+--   • overlapping shoot windows — [work_date .. expires_at] intersect (a repost of
+--     a multi-day shoot may parse the range's start on one copy and its end on
+--     another, so exact-date equality misses them). Both must be dated.
 --   • same pay_min
 --   • compatible state           (equal, OR either side null)
 --   • compatible gender & ethnicity (unspecified on either side = compatible)
@@ -141,7 +143,7 @@ declare
   n integer := 0;
 begin
   with active as (
-    select o.id, o.source, o.posted_at, o.work_date, o.pay_min, o.match_state,
+    select o.id, o.source, o.posted_at, o.work_date, o.expires_at, o.pay_min, o.match_state,
            o.title, o.summary, o.casting_specs, o.production_name, o.role_key,
            coalesce(s.is_aggregator, false) as is_aggregator
     from public.opportunities o
@@ -154,7 +156,14 @@ begin
     from active a
     join active b
       on a.id < b.id
-      and a.work_date is not null and a.work_date = b.work_date
+      -- date COMPATIBILITY (not equality): the SAME multi-day shoot gets reposted
+      -- with different single work_dates — one copy parses the range start (8/11),
+      -- another the end (9/9). Match on OVERLAPPING [work_date .. expires_at]
+      -- windows instead of one identical day. Both sides must still be dated, so
+      -- undated (open-ended) rows don't auto-pair — same as before.
+      and a.work_date is not null and b.work_date is not null
+      and a.work_date <= coalesce(b.expires_at::date, b.work_date)
+      and b.work_date <= coalesce(a.expires_at::date, a.work_date)
       -- pay is a compatibility check, not a requirement: many posts omit it, and
       -- requiring it made no-pay reposts un-dedupable. Equal, or unknown on either
       -- side, is compatible; two DIFFERENT stated pays still block the match.
