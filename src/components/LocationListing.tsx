@@ -39,6 +39,53 @@ function specChips(specs: Opportunity["casting_specs"]): string[] {
   return out.slice(0, 3);
 }
 
+type Pulse = {
+  total: number; newThisWeek: number; medianPay: number | null; activeCompanies: number;
+  companies: [string, number][]; cities: [string, number][];
+};
+
+// Proprietary market intelligence — the SEO moat. Computed from every casting
+// call GigDock tracked in this market over the last 30 days (active + expired),
+// so the numbers stay strong even when few are live right now.
+async function getMarketPulse(code: string): Promise<Pulse> {
+  const supabase = await createSupabaseServer();
+  const since = new Date(Date.now() - 30 * 864e5).toISOString();
+  const week = new Date(Date.now() - 7 * 864e5).toISOString();
+  const { data } = await supabase
+    .from("opportunities")
+    .select("source, pay_min, posted_at, location")
+    .eq("match_state", code)
+    .in("status", ["active", "expired"])
+    .gte("posted_at", since)
+    .limit(2000);
+  const rows = data ?? [];
+  const total = rows.length;
+  const newThisWeek = rows.filter((r) => r.posted_at && r.posted_at >= week).length;
+  const pays = rows.map((r) => r.pay_min as number | null).filter((n): n is number => n != null).sort((a, b) => a - b);
+  const medianPay = pays.length ? pays[Math.floor(pays.length / 2)] : null;
+  const comp = new Map<string, number>();
+  const city = new Map<string, number>();
+  for (const r of rows) {
+    if (r.source) comp.set(r.source, (comp.get(r.source) ?? 0) + 1);
+    const c = (r.location as string | null)?.split(",")[0].trim();
+    if (c) city.set(c, (city.get(c) ?? 0) + 1);
+  }
+  return {
+    total, newThisWeek, medianPay, activeCompanies: comp.size,
+    companies: [...comp.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5),
+    cities: [...city.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8),
+  };
+}
+
+function StatTile({ value, label }: { value: string | number; label: string }) {
+  return (
+    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 text-center">
+      <div className="text-2xl font-extrabold text-zinc-900 dark:text-zinc-100">{value}</div>
+      <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{label}</div>
+    </div>
+  );
+}
+
 async function getMarket(code: string): Promise<Opportunity[]> {
   const today = new Date().toISOString().slice(0, 10);
   const supabase = await createSupabaseServer();
@@ -106,7 +153,7 @@ export default async function LocationListing({ code }: { code: string }) {
   const name = stateName(code);
   const content = getMarketContent(code, name);
   const faqs = marketFaqs(code, name);
-  const opps = await getMarket(code);
+  const [opps, pulse] = await Promise.all([getMarket(code), getMarketPulse(code)]);
   const updated = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
   const breadcrumbLd = {
@@ -184,6 +231,49 @@ export default async function LocationListing({ code }: { code: string }) {
             </div>
           </div>
         </Section>
+
+        {/* Market Pulse — proprietary intelligence (the moat) */}
+        {pulse.total >= 5 && (
+          <Section title={`${name} casting market — last 30 days`}>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <StatTile value={pulse.total} label="casting calls tracked" />
+              <StatTile value={pulse.newThisWeek} label="new this week" />
+              {pulse.medianPay != null && <StatTile value={`$${pulse.medianPay}`} label="median posted rate" />}
+              <StatTile value={pulse.activeCompanies} label="casting companies" />
+            </div>
+
+            {pulse.companies.length >= 3 && (
+              <div className="mt-6">
+                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Most active {name} casting companies this month</h3>
+                <ol className="mt-2 space-y-1">
+                  {pulse.companies.map(([src, n], i) => (
+                    <li key={src} className="flex items-center justify-between text-sm border-b border-zinc-100 dark:border-zinc-800 py-1.5">
+                      <span className="text-zinc-700 dark:text-zinc-300"><span className="text-zinc-400 mr-2">{i + 1}.</span>{src}</span>
+                      <span className="text-zinc-500 dark:text-zinc-400">{n} {n === 1 ? "call" : "calls"}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {pulse.cities.length >= 3 && (
+              <div className="mt-6">
+                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Where {name} gigs are filming</h3>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {pulse.cities.map(([c, n]) => (
+                    <span key={c} className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-full border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300">
+                      {c} <span className="text-zinc-400">{n}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-4">
+              Based on casting calls GigDock tracked in {name} over the last 30 days. Updated {updated}.
+            </p>
+          </Section>
+        )}
 
         {/* About the market (custom markets only) */}
         {content.about && (
