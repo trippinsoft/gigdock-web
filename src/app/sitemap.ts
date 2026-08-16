@@ -16,7 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .select("id, updated_at, match_state")
     .eq("status", "active")
     .is("deleted_at", null)
-    .or(`work_date.is.null,work_date.gte.${today}`)
+    .or(`expires_at.is.null,expires_at.gte.${today}`)
     .order("posted_at", { ascending: false })
     .limit(5000);
 

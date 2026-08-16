@@ -140,7 +140,7 @@ export default function ProfilePage() {
         .select("casting_specs, match_state")
         .eq("status", "active")
         .is("deleted_at", null)
-        .or(`work_date.is.null,work_date.gte.${todayStr}`);
+        .or(`expires_at.is.null,expires_at.gte.${todayStr}`);
       if (!data) return;
       const states = new Set<string>();
       let gender = 0, ethnicity = 0, age = 0, union = 0;

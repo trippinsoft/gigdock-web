@@ -111,7 +111,7 @@ export default function OpportunitiesFeed({
       .select("*")
       .eq("status", "active")
       .is("deleted_at", null)
-      .or(`work_date.is.null,work_date.gte.${todayStr}`)
+      .or(`expires_at.is.null,expires_at.gte.${todayStr}`)
       .order("posted_at", { ascending: false });
     setOpps(data ?? []);
     setLoading(false);
@@ -154,7 +154,7 @@ export default function OpportunitiesFeed({
       .select("*")
       .eq("status", "active")
       .is("deleted_at", null)
-      .or(`work_date.is.null,work_date.gte.${todayStr}`)
+      .or(`expires_at.is.null,expires_at.gte.${todayStr}`)
       .order("posted_at", { ascending: false });
     setOpps(data ?? []);
     refreshingRef.current = false;

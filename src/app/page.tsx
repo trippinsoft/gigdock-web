@@ -60,7 +60,7 @@ async function getMarkets(): Promise<string[]> {
     .select("match_state")
     .eq("status", "active")
     .is("deleted_at", null)
-    .or(`work_date.is.null,work_date.gte.${today}`)
+    .or(`expires_at.is.null,expires_at.gte.${today}`)
     .not("match_state", "is", null)
     .limit(5000);
   const counts = new Map<string, number>();
@@ -82,7 +82,7 @@ async function getPreviewOpps(): Promise<Opportunity[]> {
     .select("*")
     .eq("status", "active")
     .is("deleted_at", null)
-    .or(`work_date.is.null,work_date.gte.${today}`)
+    .or(`expires_at.is.null,expires_at.gte.${today}`)
     .order("posted_at", { ascending: false })
     .limit(24);
   const all = (data ?? []) as Opportunity[];

@@ -80,7 +80,7 @@ export default function ActivePage() {
       .select("*")
       .eq("status", "active")
       .is("deleted_at", null)
-      .or(`work_date.is.null,work_date.gte.${todayStr}`)
+      .or(`expires_at.is.null,expires_at.gte.${todayStr}`)
       .order("posted_at", { ascending: false });
     setOpps(data ?? []);
     setLoading(false);

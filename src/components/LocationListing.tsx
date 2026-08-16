@@ -59,7 +59,7 @@ async function getListings(spec: MarketSpec, cities: string[] | null): Promise<O
     .eq("status", "active")
     .is("deleted_at", null)
     .eq("match_state", spec.stateCode)
-    .or(`work_date.is.null,work_date.gte.${today}`)
+    .or(`expires_at.is.null,expires_at.gte.${today}`)
     .order("posted_at", { ascending: false })
     .limit(500);
   return ((data ?? []) as Opportunity[]).filter((o) => inScope(cities, o)).slice(0, 200);
