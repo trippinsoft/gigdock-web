@@ -3,8 +3,16 @@ import { createSupabaseServer } from "@/lib/supabase-server";
 import type { Opportunity } from "@/lib/types";
 import OpportunitiesFeed from "@/components/OpportunitiesFeed";
 import LocationListing from "@/components/LocationListing";
-import { codeForSlug, stateName } from "@/lib/markets";
-import { getMarketContent } from "@/lib/marketContent";
+import { codeForSlug } from "@/lib/markets";
+import { getSeoMarket, stateSpec, type MarketSpec } from "@/lib/marketContent";
+
+// A slug is a region market (atlanta-ga), a whole state (georgia), or a gig (uuid).
+function resolveMarket(slug: string): MarketSpec | null {
+  const market = getSeoMarket(slug);
+  if (market) return market;
+  const code = codeForSlug(slug);
+  return code ? stateSpec(code, slug) : null;
+}
 
 // One dynamic slot under /opportunities serves two things, disambiguated by slug:
 //   • a known state slug (e.g. "georgia")   -> the location listings page
@@ -78,16 +86,14 @@ export async function generateMetadata({
   const { slug } = await params;
 
   // Location page metadata.
-  const code = codeForSlug(slug);
-  if (code) {
-    const name = stateName(code);
-    const content = getMarketContent(code, name);
-    const title = `Casting Calls in ${name} — ${content.tagline}`;
+  const spec = resolveMarket(slug);
+  if (spec) {
+    const title = `${spec.name} Casting Calls & Background Acting Jobs`;
     return {
       title,
-      description: content.intro,
+      description: spec.content.intro,
       alternates: { canonical: `/opportunities/${slug}` },
-      openGraph: { title: `Casting Calls in ${name} · GigDock`, description: content.intro, type: "website", siteName: "GigDock" },
+      openGraph: { title: `${spec.name} Casting Calls · GigDock`, description: spec.content.intro, type: "website", siteName: "GigDock" },
     };
   }
 
@@ -128,9 +134,9 @@ export default async function OpportunitySlugPage({
 }) {
   const { slug } = await params;
 
-  // Known state slug → location listings.
-  const code = codeForSlug(slug);
-  if (code) return <LocationListing code={code} />;
+  // Region market (atlanta-ga) or whole state (georgia) → location landing page.
+  const spec = resolveMarket(slug);
+  if (spec) return <LocationListing spec={spec} />;
 
   // Otherwise a shared gig link (or an unknown slug → feed with nothing selected).
   const opp = await getOpportunity(slug);

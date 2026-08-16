@@ -1,40 +1,57 @@
-// Editorial content for market (state/province) landing pages. The whole point
-// of these pages is to rank for "casting calls in <market>" — so each needs
-// GENUINELY useful, market-specific substance, not a templated fill-in-the-blank
-// (Google flags those as thin/doorway pages). Flagship markets get full write-ups
-// here; the rest fall back to a lighter, still-honest generic template until we
-// add their content.
+// SEO market/state content + registry. Neutral URL architecture:
+//   /opportunities/atlanta-ga  -> a production MARKET (region: Atlanta + metro/film towns)
+//   /opportunities/georgia     -> the STATEWIDE view (Atlanta + Savannah + Macon + …)
+// The searcher's vocabulary ("Atlanta casting calls", "background acting jobs")
+// lives in titles/H1/body — never baked into the path. Market pages are the
+// primary SEO surface; states serve a genuinely broader purpose.
+//
+// Content must be GENUINELY useful per market (real studios, pay, cities). Thin
+// swap-the-name templates are doorway pages — so only markets with real content
+// + recurring inventory get built/indexed.
+
+import { stateName } from "@/lib/markets";
 
 export type Faq = { q: string; a: string };
 
 export type MarketContent = {
-  /** Distinctive; used in <title> after the state name. */
+  /** Distinctive; used in <title> after the market name. */
   tagline: string;
   /** 2–3 sentence server-rendered intro under the H1. */
   intro: string;
   /** Evergreen "about this market" paragraphs — omit for generic markets. */
   about?: string[];
-  /** One-line note on typical background/extra pay in this market. */
+  /** One-line note on typical background/extra pay. */
   payNote: string;
-  /** Notable production hubs / cities in the market (chips). */
+  /** Notable production hubs / towns (chips). */
   hubs?: string[];
   /** Market-specific FAQ (merged after the universal questions). */
   faqs?: Faq[];
-  /** True only for markets with hand-written content. */
-  custom?: boolean;
 };
 
-// Casting role types — universal across markets, used for the "types of work"
-// section and (later) role×market landing pages.
+// A resolved page target — either a city/region market or a whole state.
+export type MarketSpec = {
+  slug: string;
+  kind: "market" | "state";
+  /** Display name: "Atlanta" or "Georgia". */
+  name: string;
+  stateCode: string;
+  /** Present for market pages → listings are scoped to these cities. */
+  cities?: string[];
+  content: MarketContent;
+};
+
+/* ---------------- role types (universal) ---------------- */
+
 export const ROLE_TYPES: { slug: string; label: string; blurb: string }[] = [
   { slug: "background-actor", label: "Background actors & extras", blurb: "Non-speaking roles that fill out scenes — the bread and butter of film & TV work, and the easiest way to start with no experience." },
   { slug: "featured-background", label: "Featured background", blurb: "Background roles the camera lingers on — a specific look or action that stands out without lines." },
   { slug: "stand-in", label: "Stand-ins", blurb: "Match a principal actor's height and coloring to hold their place while crew sets lights and camera. Steady, longer bookings." },
-  { slug: "photo-double", label: "Photo doubles", blurb: "Fill in for a principal actor in specific shots (hands, over-the-shoulder, distance) where the face isn't clearly seen." },
+  { slug: "photo-double", label: "Photo doubles", blurb: "Fill in for a principal in specific shots (hands, over-the-shoulder, distance) where the face isn't clearly seen." },
   { slug: "principal", label: "Featured & principal", blurb: "Speaking and named roles, usually cast through agents and auditions." },
 ];
 
-// Questions that apply to essentially every market — the state name is injected.
+/* ---------------- FAQs ---------------- */
+
 export function universalFaqs(name: string, payNote: string): Faq[] {
   return [
     {
@@ -56,48 +73,99 @@ export function universalFaqs(name: string, payNote: string): Faq[] {
   ];
 }
 
-const MARKET_CONTENT: Record<string, MarketContent> = {
-  GA: {
-    custom: true,
-    tagline: "Background, Extras, Stand-Ins & Film/TV Jobs",
-    intro:
-      "Georgia is one of the busiest film and television production hubs in the world — background actors, extras, stand-ins, and photo doubles are booked here every week. GigDock gathers current Georgia casting calls from casting companies and sources across the state into one searchable feed, updated daily.",
-    about: [
-      "Thanks to Georgia's 30% film & television tax credit, the state has become known as the \"Hollywood of the South\" (or \"Y'allywood\"). Major studios anchor the industry here — Trilith Studios in Fayetteville, Tyler Perry Studios and Assembly Studios in Atlanta, Blackhall/Shadowbox, and EUE/Screen Gems — and Marvel features, Netflix and Disney+ series, and countless independent productions shoot across the metro year-round.",
-      "That volume means a steady stream of paid background and extras work for people of every look and age. Productions cluster around metro Atlanta and nearby towns — Fayetteville, Senoia, Covington (\"the Hollywood of the South\"), and Peachtree City — with additional work in Savannah and Columbus. You do not need to live in Atlanta proper; many calls list a report location and self-travel radius.",
-    ],
-    payNote: "$100–$210 for a 12-hour day",
-    hubs: ["Atlanta", "Fayetteville", "Senoia", "Covington", "Savannah", "Columbus"],
-    faqs: [
-      {
-        q: "What's filming in Georgia right now?",
-        a: "It changes constantly — Georgia hosts Marvel films, major Netflix, Disney+, Apple, and network series, plus features and commercials, all shooting simultaneously. Rather than tracking each production, watch the live GigDock feed above: every current Georgia casting call from the sources we cover is aggregated in one place.",
-      },
-      {
-        q: "Is casting work in Georgia union or non-union?",
-        a: "Both. A large share of Georgia background work is non-union and open to newcomers, while SAG-AFTRA (Atlanta local) covers union productions at higher rates. Many casting calls specify which they are; GigDock shows union status on each listing so you can filter for what fits you.",
-      },
-      {
-        q: "Where is most film work in Georgia located?",
-        a: "The core is metro Atlanta and the surrounding production towns — Fayetteville (Trilith), Senoia, Covington, and Peachtree City — with a secondary hub in Savannah. Report locations are listed on each casting call.",
-      },
-    ],
+/* ---------------- market registry ---------------- */
+
+// Cities that make up the Atlanta production market (metro + surrounding film towns).
+const ATLANTA_CITIES = [
+  "Atlanta", "Fayetteville", "Senoia", "Covington", "Peachtree City", "Griffin",
+  "Stone Mountain", "Norcross", "Decatur", "Douglasville", "Conyers", "Marietta",
+  "Newnan", "Jonesboro", "Brooks", "Lithonia", "Palmetto", "Union City",
+  "College Park", "Hampton", "McDonough", "Madison", "Rutledge", "Social Circle",
+  "Monroe", "Porterdale", "Grantville", "Moreland", "Sharpsburg", "Tyrone",
+  "Hapeville", "Forest Park", "Duluth", "Lawrenceville", "Alpharetta", "Roswell",
+  "Sandy Springs", "Kennesaw", "Acworth", "Woodstock", "Canton", "Cartersville",
+  "Locust Grove", "Villa Rica", "Winder", "Loganville", "Snellville", "Tucker",
+];
+
+const ATLANTA_CONTENT: MarketContent = {
+  tagline: "Background Acting Jobs, Extras & Film/TV Casting",
+  intro:
+    "Atlanta is one of the busiest film and television production markets in the world — background actors, extras, stand-ins, and photo doubles are booked across the metro every week. GigDock gathers current Atlanta casting calls from casting companies and sources into one searchable feed, updated daily.",
+  about: [
+    "Thanks to Georgia's 30% film & television tax credit, Atlanta became known as the \"Hollywood of the South\" (or \"Y'allywood\"). Major studios anchor the market — Trilith Studios in Fayetteville, Tyler Perry Studios and Assembly Studios in Atlanta, Blackhall/Shadowbox, and EUE/Screen Gems — and Marvel features, Netflix and Disney+ series, and countless independent productions shoot here year-round.",
+    "That volume means a steady stream of paid background and extras work for people of every look and age. Productions cluster across the metro and its film towns — Atlanta, Fayetteville, Senoia, Covington (\"the Hollywood of the South\"), Peachtree City, Griffin, and Newnan. You don't need to live inside Atlanta's city limits; most calls list a report location and a self-travel radius.",
+  ],
+  payNote: "$100–$210 for a 12-hour day",
+  hubs: ["Atlanta", "Fayetteville", "Senoia", "Covington", "Peachtree City", "Griffin", "Newnan"],
+  faqs: [
+    {
+      q: "What's filming in Atlanta right now?",
+      a: "It changes constantly — Atlanta hosts Marvel films, major Netflix, Disney+, Apple, and network series, plus features and commercials, all shooting simultaneously. Rather than tracking each production, watch the live GigDock feed above: every current Atlanta-area casting call from the sources we cover is aggregated in one place.",
+    },
+    {
+      q: "Is casting work in Atlanta union or non-union?",
+      a: "Both. A large share of Atlanta background work is non-union and open to newcomers, while SAG-AFTRA (Atlanta local) covers union productions at higher rates. GigDock shows union status on each listing so you can filter for what fits you.",
+    },
+    {
+      q: "Do I have to live in Atlanta to do background work here?",
+      a: "No. The Atlanta market spans the whole metro and nearby film towns — Fayetteville, Senoia, Covington, Peachtree City, Griffin, Newnan and more. Each casting call lists its report location and, often, how far you'd need to self-travel.",
+    },
+  ],
+};
+
+const SEO_MARKETS: Record<string, MarketSpec> = {
+  "atlanta-ga": {
+    slug: "atlanta-ga",
+    kind: "market",
+    name: "Atlanta",
+    stateCode: "GA",
+    cities: ATLANTA_CITIES,
+    content: ATLANTA_CONTENT,
   },
 };
 
-export function getMarketContent(code: string, name: string): MarketContent {
-  const c = MARKET_CONTENT[code];
-  if (c) return c;
-  // Generic fallback — honest and useful, but intentionally lighter (no fabricated
-  // studios/productions) until real per-market content is written.
+// Statewide content (broader than any single market). Georgia is written; others
+// use a generic-but-honest template until real content is added.
+const STATE_CONTENT: Record<string, MarketContent> = {
+  GA: {
+    tagline: "Film & TV Casting Calls Statewide",
+    intro:
+      "Find film & TV casting calls across Georgia — from the Atlanta production market to Savannah, Macon, Augusta, and Columbus. GigDock gathers Georgia casting calls from casting companies and sources into one searchable feed, updated daily.",
+    about: [
+      "Georgia is a top-tier film production state thanks to its 30% tax credit, with the bulk of work centered on metro Atlanta and its film towns, plus a growing hub in Savannah and productions in Columbus and Macon.",
+    ],
+    payNote: "$100–$210 for a 12-hour day",
+    hubs: ["Atlanta metro", "Savannah", "Columbus", "Macon", "Augusta"],
+  },
+};
+
+function genericState(name: string): MarketContent {
   return {
-    tagline: "Background, Extras & Film/TV Jobs",
+    tagline: "Film & TV Casting Calls & Background Jobs",
     intro: `Find current film & TV casting calls in ${name} — background actors, extras, stand-ins, photo doubles, and featured roles. GigDock gathers ${name} opportunities from casting companies and sources into one searchable feed, updated daily.`,
     payNote: "a set rate for a guaranteed number of hours (often $100–$150 for non-union work)",
   };
 }
 
-export function marketFaqs(code: string, name: string): Faq[] {
-  const c = getMarketContent(code, name);
-  return [...universalFaqs(name, c.payNote), ...(c.faqs ?? [])];
+/* ---------------- resolvers ---------------- */
+
+export function getSeoMarket(slug: string): MarketSpec | null {
+  return SEO_MARKETS[slug] ?? null;
+}
+
+export function seoMarketSlugs(): string[] {
+  return Object.keys(SEO_MARKETS);
+}
+
+/** State spec from a 2-letter code (for /opportunities/<state> pages). */
+export function stateSpec(code: string, slug: string): MarketSpec {
+  const name = stateName(code);
+  return {
+    slug, kind: "state", name, stateCode: code,
+    content: STATE_CONTENT[code] ?? genericState(name),
+  };
+}
+
+export function specFaqs(spec: MarketSpec): Faq[] {
+  return [...universalFaqs(spec.name, spec.content.payNote), ...(spec.content.faqs ?? [])];
 }
