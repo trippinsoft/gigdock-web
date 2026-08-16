@@ -40,14 +40,17 @@ function specChips(specs: Opportunity["casting_specs"]): string[] {
   return out.slice(0, 3);
 }
 
-// A market spec scopes results to a set of cities; a state spec is the whole state.
-function inScope(spec: MarketSpec, citySet: Set<string> | null, o: { location: string | null }): boolean {
-  if (!citySet) return true;
-  const c = cityOf(o.location)?.toLowerCase();
-  return !!c && citySet.has(c);
+// A market scopes results to its cities (state pages take everything). Match on
+// any city name appearing ANYWHERE in the location, so messy strings like
+// "SW ATL @ 285 Border, Atlanta, GA" still count as Atlanta.
+function inScope(cityList: string[] | null, o: { location: string | null }): boolean {
+  if (!cityList) return true;
+  const loc = (o.location ?? "").toLowerCase();
+  if (!loc) return false;
+  return cityList.some((c) => loc.includes(c.toLowerCase()));
 }
 
-async function getListings(spec: MarketSpec, citySet: Set<string> | null): Promise<Opportunity[]> {
+async function getListings(spec: MarketSpec, cities: string[] | null): Promise<Opportunity[]> {
   const today = new Date().toISOString().slice(0, 10);
   const supabase = await createSupabaseServer();
   const { data } = await supabase
@@ -59,7 +62,7 @@ async function getListings(spec: MarketSpec, citySet: Set<string> | null): Promi
     .or(`work_date.is.null,work_date.gte.${today}`)
     .order("posted_at", { ascending: false })
     .limit(500);
-  return ((data ?? []) as Opportunity[]).filter((o) => inScope(spec, citySet, o)).slice(0, 200);
+  return ((data ?? []) as Opportunity[]).filter((o) => inScope(cities, o)).slice(0, 200);
 }
 
 type Pulse = {
@@ -70,7 +73,7 @@ type Pulse = {
 // Proprietary market intelligence (the SEO moat) — 30-day activity from GigDock's
 // own data, scoped to the market's cities. Throughput stays strong even when few
 // calls are live right now.
-async function getPulse(spec: MarketSpec, citySet: Set<string> | null): Promise<Pulse> {
+async function getPulse(spec: MarketSpec, cities: string[] | null): Promise<Pulse> {
   const supabase = await createSupabaseServer();
   const since = new Date(Date.now() - 30 * 864e5).toISOString();
   const week = new Date(Date.now() - 7 * 864e5).toISOString();
@@ -81,7 +84,7 @@ async function getPulse(spec: MarketSpec, citySet: Set<string> | null): Promise<
     .in("status", ["active", "expired"])
     .gte("posted_at", since)
     .limit(3000);
-  const rows = (data ?? []).filter((r) => inScope(spec, citySet, r as { location: string | null }));
+  const rows = (data ?? []).filter((r) => inScope(cities, r as { location: string | null }));
   const total = rows.length;
   const newThisWeek = rows.filter((r) => r.posted_at && r.posted_at >= week).length;
   const pays = rows.map((r) => r.pay_min as number | null).filter((n): n is number => n != null).sort((a, b) => a - b);
@@ -149,9 +152,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default async function LocationListing({ spec }: { spec: MarketSpec }) {
   const { name, content, slug } = spec;
-  const citySet = spec.cities ? new Set(spec.cities.map((c) => c.toLowerCase())) : null;
+  const cities = spec.cities ?? null;
   const faqs = specFaqs(spec);
-  const [opps, pulse] = await Promise.all([getListings(spec, citySet), getPulse(spec, citySet)]);
+  const [opps, pulse] = await Promise.all([getListings(spec, cities), getPulse(spec, cities)]);
   const updated = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
   const breadcrumbLd = {
