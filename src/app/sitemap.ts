@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { stateSlug } from "@/lib/markets";
 
-const BASE = "https://gigdock.co";
+const BASE = "https://www.gigdock.co";
 
 export const revalidate = 3600; // refresh hourly
 

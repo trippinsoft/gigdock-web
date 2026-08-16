@@ -4,6 +4,7 @@ import type { Opportunity } from "@/lib/types";
 import OpportunitiesFeed from "@/components/OpportunitiesFeed";
 import LocationListing from "@/components/LocationListing";
 import { codeForSlug, stateName } from "@/lib/markets";
+import { getMarketContent } from "@/lib/marketContent";
 
 // One dynamic slot under /opportunities serves two things, disambiguated by slug:
 //   • a known state slug (e.g. "georgia")   -> the location listings page
@@ -80,12 +81,13 @@ export async function generateMetadata({
   const code = codeForSlug(slug);
   if (code) {
     const name = stateName(code);
-    const title = `Film & TV Casting Calls in ${name}`;
+    const content = getMarketContent(code, name);
+    const title = `Casting Calls in ${name} — ${content.tagline}`;
     return {
       title,
-      description: `Current film & TV casting calls, background roles, featured roles, stand-in work, photo-double opportunities, and more in ${name}. Browse open opportunities on GigDock and find the ones that fit you.`,
+      description: content.intro,
       alternates: { canonical: `/opportunities/${slug}` },
-      openGraph: { title: `${title} · GigDock`, type: "website", siteName: "GigDock" },
+      openGraph: { title: `Casting Calls in ${name} · GigDock`, description: content.intro, type: "website", siteName: "GigDock" },
     };
   }
 
