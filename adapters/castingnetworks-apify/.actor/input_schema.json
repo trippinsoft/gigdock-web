@@ -1,0 +1,60 @@
+{
+  "title": "Casting Networks market listings — input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "market": {
+      "title": "Market slug",
+      "type": "string",
+      "description": "Market label stored as market_relevance on each record (e.g. atlanta).",
+      "default": "atlanta",
+      "editor": "textfield"
+    },
+    "startUrl": {
+      "title": "Start URL (public market page)",
+      "type": "string",
+      "description": "Public Casting Networks market page. Public pages only — no login.",
+      "default": "https://www.castingnetworks.com/atlanta-casting-calls/",
+      "editor": "textfield"
+    },
+    "pageParam": {
+      "title": "Pagination query param",
+      "type": "string",
+      "description": "URL param used for pagination (recon observed 'current_page').",
+      "default": "current_page",
+      "editor": "textfield"
+    },
+    "maxPages": {
+      "title": "Max pages",
+      "type": "integer",
+      "description": "Safety cap on pages fetched per run.",
+      "default": 25,
+      "minimum": 1,
+      "maximum": 500
+    },
+    "maxConcurrency": {
+      "title": "Max concurrency",
+      "type": "integer",
+      "description": "Keep low (1–2) to stay polite.",
+      "default": 1,
+      "minimum": 1,
+      "maximum": 5
+    },
+    "minDelayMs": {
+      "title": "Min delay between pages (ms)",
+      "type": "integer",
+      "description": "Politeness delay between page fetches.",
+      "default": 1500,
+      "minimum": 0,
+      "maximum": 60000
+    },
+    "proxyConfiguration": {
+      "title": "Proxy",
+      "type": "object",
+      "description": "Optional Apify proxy. Not required if the page is reachable directly.",
+      "editor": "proxy",
+      "default": { "useApifyProxy": false }
+    }
+  },
+  "required": ["startUrl"]
+}

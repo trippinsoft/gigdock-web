@@ -1,0 +1,14 @@
+{
+  "name": "gigdock-castingnetworks-actor",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Apify actor: Casting Networks public market listings -> GigDock-normalized role records.",
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "apify": "^3.2.6",
+    "crawlee": "^3.11.5"
+  },
+  "scripts": {
+    "start": "node main.js"
+  }
+}

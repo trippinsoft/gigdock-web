@@ -1,0 +1,23 @@
+{
+  "actorSpecification": 1,
+  "name": "gigdock-castingnetworks",
+  "title": "GigDock — Casting Networks market listings",
+  "description": "Collects public Casting Networks market listings and emits GigDock-normalized role records (project/role, factual fields only, no copied descriptions). Public pages only; no login or anti-bot bypass.",
+  "version": "0.1",
+  "input": "./input_schema.json",
+  "storages": {
+    "dataset": {
+      "actorSpecification": 1,
+      "title": "GigDock-normalized casting roles",
+      "views": {
+        "overview": {
+          "title": "Overview",
+          "transformation": {
+            "fields": ["production_name", "role_key", "title", "pay_rate", "market_relevance", "work_location", "apply_by", "source_url"]
+          },
+          "display": { "component": "table" }
+        }
+      }
+    }
+  }
+}
