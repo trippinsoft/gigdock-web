@@ -28,15 +28,23 @@ export type MarketContent = {
   faqs?: Faq[];
 };
 
-// A resolved page target — either a city/region market or a whole state.
+// A resolved page target — either a production-market region or a whole state.
 export type MarketSpec = {
   slug: string;
   kind: "market" | "state";
   /** Display name: "Atlanta" or "Georgia". */
   name: string;
   stateCode: string;
-  /** Present for market pages → listings are scoped to these cities. */
+  /** Region markets scope listings to these cities (metro + surrounding film towns). */
   cities?: string[];
+  /** Text signals that assign an opportunity to this market with higher confidence
+   *  than a city match — e.g. a post that says "Atlanta local hire" even though the
+   *  shoot is in Fayetteville. Matched against title + summary + location. */
+  terms?: string[];
+  /** Only index (sitemap + follow/index) markets we've deemed ready — real content
+   *  AND enough recurring inventory. Prevents thin/doorway pages while we build the
+   *  capability for many markets. Flip to true when a market is genuinely ready. */
+  indexable?: boolean;
   content: MarketContent;
 };
 
@@ -120,7 +128,45 @@ const SEO_MARKETS: Record<string, MarketSpec> = {
     name: "Atlanta",
     stateCode: "GA",
     cities: ATLANTA_CITIES,
+    terms: ["atlanta"],
+    indexable: true,
     content: ATLANTA_CONTENT,
+  },
+
+  // ---- Curated market registry (capability built now; indexed only when ready) ----
+  // These carry real state scoping + city/term matching so the template, Market
+  // Pulse, and listings all work today, but stay OUT of the sitemap and are
+  // noindex until each has genuine recurring inventory and fuller content.
+  // Expand this list intentionally — never auto-generate a page per city.
+  "nashville-tn": {
+    slug: "nashville-tn",
+    kind: "market",
+    name: "Nashville",
+    stateCode: "TN",
+    cities: ["Nashville", "Franklin", "Murfreesboro", "Hendersonville", "Brentwood", "Gallatin", "Columbia", "Clarksville"],
+    terms: ["nashville", "middle tennessee"],
+    indexable: false,
+    content: genericMarket("Nashville", "Tennessee"),
+  },
+  "los-angeles-ca": {
+    slug: "los-angeles-ca",
+    kind: "market",
+    name: "Los Angeles",
+    stateCode: "CA",
+    cities: ["Los Angeles", "Burbank", "Hollywood", "Santa Clarita", "Long Beach", "Pasadena", "Culver City", "Santa Monica", "Glendale", "Valencia"],
+    terms: ["los angeles", "l.a.", "greater los angeles", "socal", "southern california"],
+    indexable: false,
+    content: genericMarket("Los Angeles", "California"),
+  },
+  "new-york-ny": {
+    slug: "new-york-ny",
+    kind: "market",
+    name: "New York",
+    stateCode: "NY",
+    cities: ["New York", "Brooklyn", "Queens", "Bronx", "Staten Island", "Manhattan", "Yonkers", "Long Island City"],
+    terms: ["new york", "nyc", "new york city", "tri-state"],
+    indexable: false,
+    content: genericMarket("New York", "New York"),
   },
 };
 
@@ -138,6 +184,17 @@ const STATE_CONTENT: Record<string, MarketContent> = {
     hubs: ["Atlanta metro", "Savannah", "Columbus", "Macon", "Augusta"],
   },
 };
+
+// Honest-but-generic content for a curated market we haven't hand-written yet.
+// Used only by non-indexable registry stubs so the template renders while we
+// build real per-market copy.
+function genericMarket(name: string, state: string): MarketContent {
+  return {
+    tagline: "Background Acting Jobs, Extras & Film/TV Casting",
+    intro: `Find current film & TV casting calls in the ${name} area — background actors, extras, stand-ins, photo doubles, and featured roles across ${state}. GigDock gathers ${name} opportunities from casting companies and sources into one searchable feed, updated daily.`,
+    payNote: "a set rate for a guaranteed number of hours (often $100–$200 for non-union work)",
+  };
+}
 
 function genericState(name: string): MarketContent {
   return {
