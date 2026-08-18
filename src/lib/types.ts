@@ -43,6 +43,8 @@ export interface CastingCriteria {
   work_type?: string;         // "background" | "featured" | ...
   skills?: string[];
   vehicle?: string[];
+  height_min_inches?: number; // stated height requirement, in inches (6'7" = 79)
+  height_max_inches?: number; // for a single stated height, min == max
 }
 
 export interface RawIngestion {
