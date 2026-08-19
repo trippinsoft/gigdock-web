@@ -272,8 +272,8 @@ function Guide() {
       <figure className="mt-8">
         <div className="flex flex-col sm:flex-row items-center justify-center gap-5">
           <PhoneShot
-            src="/guides/gigdock-app-my-gigs-paid-unpaid.png"
-            alt="The GigDock app's My Gigs screen, listing each background gig with its dates, location and pay — one gig marked Paid at $500 of $500, another marked Unpaid at $0 of $318.75."
+            src="/guides/gigdock-app-gig-detail-earnings.png"
+            alt="The GigDock app's Gig Detail screen for a Hardee's commercial, showing an earnings summary of $500 gross earned, $450 received and $50 outstanding, plus the payment structure with a $250 guarantee and a 1.5x overtime multiplier."
           />
           <PhoneShot
             src="/guides/gigdock-app-payments-summary.png"
