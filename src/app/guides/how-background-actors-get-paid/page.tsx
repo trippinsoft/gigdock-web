@@ -218,12 +218,9 @@ function Guide() {
       <div className="mt-6 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 p-6">
         <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Keep every gig and paycheck in one place</h3>
         <p className="mt-1.5 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
-          You can track all of this yourself with a spreadsheet or notes app. GigDock was built specifically to make it
-          easier for working background actors: record each gig with its rate, hours and bumps, then record your gross
-          and net pay and mark the gig as paid — giving you one place to see what you’ve worked, what you’ve earned, and
-          which gigs still haven’t been marked paid. GigDock also brings casting opportunities from multiple sources into
-          one feed, so you can manage both sides of gig life: finding the next opportunity and keeping track of the work
-          you’ve already done.
+          Skip the spreadsheet. GigDock keeps every gig — rate, hours, bumps, gross and net pay, and what’s still
+          unpaid — in one place, and gathers casting calls from across the web into one feed. Find your next gig and
+          keep track of the last one.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link href="/opportunities/atlanta-ga" className="px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm">Browse Atlanta casting calls</Link>
