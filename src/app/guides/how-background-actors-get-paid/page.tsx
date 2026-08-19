@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import PublicShell from "@/components/PublicShell";
+
+const HERO = "/guides/gigdock-hero-how-background-actors-get-paid.png";
 
 const BASE = "https://www.gigdock.co";
 const PATH = "/guides/how-background-actors-get-paid";
@@ -12,7 +15,11 @@ export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: PATH },
-  openGraph: { title: TITLE, description: DESCRIPTION, type: "article", siteName: "GigDock", url: `${BASE}${PATH}` },
+  openGraph: {
+    title: TITLE, description: DESCRIPTION, type: "article", siteName: "GigDock", url: `${BASE}${PATH}`,
+    images: [{ url: HERO, width: 757, height: 475, alt: "How Do Background Actors Get Paid? — a GigDock guide" }],
+  },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, images: [HERO] },
 };
 
 // One source of truth for the on-page FAQ and the FAQPage schema.
@@ -49,6 +56,20 @@ function H2({ children }: { children: React.ReactNode }) {
 function P({ children }: { children: React.ReactNode }) {
   return <p className="mt-3 leading-relaxed">{children}</p>;
 }
+function Figure({ src, alt, w, h }: { src: string; alt: string; w: number; h: number }) {
+  return (
+    <figure className="mt-6">
+      <Image
+        src={src}
+        alt={alt}
+        width={w}
+        height={h}
+        sizes="(max-width: 672px) 100vw, 672px"
+        className="w-full h-auto rounded-xl border border-zinc-200 dark:border-zinc-800"
+      />
+    </figure>
+  );
+}
 
 function Guide() {
   return (
@@ -59,11 +80,19 @@ function Guide() {
         <span className="text-zinc-700 dark:text-zinc-300">Getting paid</span>
       </nav>
 
-      <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance">
-        How do background actors get paid?
-      </h1>
+      {/* Branded hero carries the visible title; the h1 stays for SEO + screen readers. */}
+      <Image
+        src={HERO}
+        alt="How Do Background Actors Get Paid? — a background actor sitting in a director's chair on a film set, from GigDock."
+        width={757}
+        height={475}
+        priority
+        sizes="(max-width: 672px) 100vw, 672px"
+        className="w-full h-auto rounded-2xl"
+      />
+      <h1 className="sr-only">How do background actors get paid?</h1>
 
-      <p className="mt-4 text-lg text-zinc-700 dark:text-zinc-300 leading-relaxed">
+      <p className="mt-6 text-lg text-zinc-700 dark:text-zinc-300 leading-relaxed">
         Background actors are typically booked at a stated rate covering a set number of hours — for example,{" "}
         <strong>$150/10</strong> — with additional pay potentially due for overtime, certain wardrobe or production
         requirements, and other adjustments often called <strong>bumps</strong>.
@@ -78,9 +107,22 @@ function Guide() {
         your paycheck.
       </P>
 
+      <Figure
+        src="/guides/gigdock-how-pay-works-infographic.png"
+        alt="How background actor pay works, step by step: casting call, work the gig, sign your voucher/timecard, payroll processes it, then you get your paycheck."
+        w={740}
+        h={475}
+      />
+
       <H2>The basics: rate + guaranteed hours</H2>
       <P>Background jobs are commonly advertised using shorthand such as:</P>
       <p className="mt-3 text-center text-2xl font-bold text-zinc-900 dark:text-zinc-100">$150/10</p>
+      <Figure
+        src="/guides/gigdock-rate-150-10-explainer.png"
+        alt="What a $150/10 background booking means: a $150 base guarantee for 10 hours, plus possible overtime and bumps for wardrobe, personal vehicle, wet work, or a pet — adding up to a higher potential gross before taxes."
+        w={708}
+        h={462}
+      />
       <P>
         That generally means the booking guarantees <strong>$150 for up to 10 hours</strong> under the terms of that
         job. If the booking is structured as a guaranteed rate and you’re released early, you generally still receive the
@@ -214,6 +256,13 @@ function Guide() {
         Then, when the payment arrives, compare the actual gross payment with what you expected. That simple habit makes
         it far easier to catch discrepancies while you still have the information necessary to investigate them.
       </P>
+
+      <Figure
+        src="/guides/gigdock-payment-tracking-visual.png"
+        alt="GigDock's gig dashboard showing each background gig's production, rate, hours, bumps, gross and net pay, and whether it's paid or unpaid, with totals for gross earned, net earned, and unpaid balance."
+        w={777}
+        h={435}
+      />
 
       <div className="mt-6 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 p-6">
         <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Keep every gig and paycheck in one place</h3>
