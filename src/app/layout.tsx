@@ -16,6 +16,9 @@ export const metadata: Metadata = {
   },
   description:
     "Find film & TV casting opportunities from across the web, search them in one place, and use GigFit to see which ones match you.",
+  verification: {
+    google: "xvWtOKDdBu-899OibwWoUMCLPP_tYJjjAEgMzPOxND0",
+  },
 };
 
 export default function RootLayout({
