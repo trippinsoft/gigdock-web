@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { stateSlug } from "@/lib/markets";
-import { seoMarketSlugs } from "@/lib/marketContent";
+import { indexableMarketSlugs } from "@/lib/marketContent";
 
 const BASE = "https://www.gigdock.co";
 
@@ -40,7 +40,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   // Region market pages (e.g. /opportunities/atlanta-ga) — the primary SEO pages.
-  const regionUrls: MetadataRoute.Sitemap = seoMarketSlugs().map((slug) => ({
+  // Only INDEXABLE markets (real content + inventory); stubs render but stay out.
+  const regionUrls: MetadataRoute.Sitemap = indexableMarketSlugs().map((slug) => ({
     url: `${BASE}/opportunities/${slug}`,
     changeFrequency: "daily",
     priority: 0.9,

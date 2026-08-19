@@ -214,6 +214,30 @@ export function seoMarketSlugs(): string[] {
   return Object.keys(SEO_MARKETS);
 }
 
+/** Slugs of markets marked ready to INDEX (real content + recurring inventory).
+ *  Only these belong in the sitemap and get index/follow; the rest render but
+ *  stay noindex, so we build capability without shipping thin doorway pages. */
+export function indexableMarketSlugs(): string[] {
+  return Object.values(SEO_MARKETS).filter((m) => m.indexable).map((m) => m.slug);
+}
+
+/** Evidence-based membership: does this opportunity belong to `spec`?
+ *  - A state spec (no cities/terms) matches everything already scoped to its state.
+ *  - A market spec matches when one of its TERMS appears anywhere in the post
+ *    (title + summary + location), or one of its CITIES appears in the location.
+ *  Callers pre-filter by state; this narrows a state's opps to the market. */
+export function belongsToMarket(
+  spec: MarketSpec,
+  o: { title?: string | null; summary?: string | null; location?: string | null }
+): boolean {
+  if (!spec.cities?.length && !spec.terms?.length) return true; // state page / unscoped
+  const loc = (o.location ?? "").toLowerCase();
+  const hay = `${o.title ?? ""} ${o.summary ?? ""} ${o.location ?? ""}`.toLowerCase();
+  if (spec.terms?.some((t) => hay.includes(t.toLowerCase()))) return true;
+  if (spec.cities?.some((c) => loc.includes(c.toLowerCase()))) return true;
+  return false;
+}
+
 /** State spec from a 2-letter code (for /opportunities/<state> pages). */
 export function stateSpec(code: string, slug: string): MarketSpec {
   const name = stateName(code);

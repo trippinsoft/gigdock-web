@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import type { Opportunity } from "@/lib/types";
 import PublicShell from "@/components/PublicShell";
-import { ROLE_TYPES, specFaqs, type MarketSpec } from "@/lib/marketContent";
+import { ROLE_TYPES, specFaqs, belongsToMarket, type MarketSpec } from "@/lib/marketContent";
 
 const BASE = "https://www.gigdock.co";
 
@@ -40,17 +40,23 @@ function specChips(specs: Opportunity["casting_specs"]): string[] {
   return out.slice(0, 3);
 }
 
-// A market scopes results to its cities (state pages take everything). Match on
-// any city name appearing ANYWHERE in the location, so messy strings like
-// "SW ATL @ 285 Border, Atlanta, GA" still count as Atlanta.
-function inScope(cityList: string[] | null, o: { location: string | null }): boolean {
-  if (!cityList) return true;
-  const loc = (o.location ?? "").toLowerCase();
-  if (!loc) return false;
-  return cityList.some((c) => loc.includes(c.toLowerCase()));
+// Honest counts: distinct productions (grouping a project's roles) vs. individual
+// roles vs. distinct sources — so we show "38 opportunities · 126 roles · 18
+// sources" instead of an inflated role total. A role with no production groups as
+// its own opportunity.
+function honestCounts(opps: Opportunity[]): { opportunities: number; roles: number; sources: number } {
+  const projects = new Set<string>();
+  const sources = new Set<string>();
+  let ungrouped = 0;
+  for (const o of opps) {
+    const p = (o.production_name ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    if (p) projects.add(p); else ungrouped++;
+    if (o.source) sources.add(o.source);
+  }
+  return { opportunities: projects.size + ungrouped, roles: opps.length, sources: sources.size };
 }
 
-async function getListings(spec: MarketSpec, cities: string[] | null): Promise<Opportunity[]> {
+async function getListings(spec: MarketSpec): Promise<Opportunity[]> {
   const today = new Date().toISOString().slice(0, 10);
   const supabase = await createSupabaseServer();
   const { data } = await supabase
@@ -62,7 +68,8 @@ async function getListings(spec: MarketSpec, cities: string[] | null): Promise<O
     .or(`expires_at.is.null,expires_at.gte.${today}`)
     .order("posted_at", { ascending: false })
     .limit(500);
-  return ((data ?? []) as Opportunity[]).filter((o) => inScope(cities, o)).slice(0, 200);
+  // Narrow the state's active opps to this market by evidence (terms/cities).
+  return ((data ?? []) as Opportunity[]).filter((o) => belongsToMarket(spec, o)).slice(0, 200);
 }
 
 type Pulse = {
@@ -73,18 +80,18 @@ type Pulse = {
 // Proprietary market intelligence (the SEO moat) — 30-day activity from GigDock's
 // own data, scoped to the market's cities. Throughput stays strong even when few
 // calls are live right now.
-async function getPulse(spec: MarketSpec, cities: string[] | null): Promise<Pulse> {
+async function getPulse(spec: MarketSpec): Promise<Pulse> {
   const supabase = await createSupabaseServer();
   const since = new Date(Date.now() - 30 * 864e5).toISOString();
   const week = new Date(Date.now() - 7 * 864e5).toISOString();
   const { data } = await supabase
     .from("opportunities")
-    .select("source, pay_min, posted_at, location")
+    .select("source, pay_min, posted_at, location, title, summary")
     .eq("match_state", spec.stateCode)
     .in("status", ["active", "expired"])
     .gte("posted_at", since)
     .limit(3000);
-  const rows = (data ?? []).filter((r) => inScope(cities, r as { location: string | null }));
+  const rows = (data ?? []).filter((r) => belongsToMarket(spec, r as { title: string | null; summary: string | null; location: string | null }));
   const total = rows.length;
   const newThisWeek = rows.filter((r) => r.posted_at && r.posted_at >= week).length;
   const pays = rows.map((r) => r.pay_min as number | null).filter((n): n is number => n != null).sort((a, b) => a - b);
@@ -152,9 +159,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default async function LocationListing({ spec }: { spec: MarketSpec }) {
   const { name, content, slug } = spec;
-  const cities = spec.cities ?? null;
   const faqs = specFaqs(spec);
-  const [opps, pulse] = await Promise.all([getListings(spec, cities), getPulse(spec, cities)]);
+  const [opps, pulse] = await Promise.all([getListings(spec), getPulse(spec)]);
+  const counts = honestCounts(opps);
   const updated = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
   const breadcrumbLd = {
@@ -192,7 +199,18 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
         </h1>
         <p className="mt-4 text-zinc-600 dark:text-zinc-400 leading-relaxed">{content.intro}</p>
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
-          {opps.length > 0 && <span><span className="font-semibold text-zinc-800 dark:text-zinc-200">{opps.length}</span> open right now</span>}
+          {opps.length > 0 && (
+            <span>
+              <span className="font-semibold text-zinc-800 dark:text-zinc-200">{counts.opportunities}</span>{" "}
+              {counts.opportunities === 1 ? "opportunity" : "opportunities"} open
+              {counts.roles !== counts.opportunities && (
+                <> · <span className="font-semibold text-zinc-800 dark:text-zinc-200">{counts.roles}</span> roles</>
+              )}
+              {counts.sources > 0 && (
+                <> · from <span className="font-semibold text-zinc-800 dark:text-zinc-200">{counts.sources}</span> {counts.sources === 1 ? "source" : "sources"}</>
+              )}
+            </span>
+          )}
           <span>Updated {updated}</span>
         </div>
 

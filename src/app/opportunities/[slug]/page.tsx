@@ -89,10 +89,14 @@ export async function generateMetadata({
   const spec = resolveMarket(slug);
   if (spec) {
     const title = `${spec.name} Casting Calls & Background Acting Jobs`;
+    // Market stubs we haven't deemed ready still render (to build capability) but
+    // stay noindex so we never ship thin doorway pages; ready markets + states index.
+    const noindex = spec.kind === "market" && !spec.indexable;
     return {
       title,
       description: spec.content.intro,
       alternates: { canonical: `/opportunities/${slug}` },
+      ...(noindex ? { robots: { index: false, follow: true } } : {}),
       openGraph: { title: `${spec.name} Casting Calls · GigDock`, description: spec.content.intro, type: "website", siteName: "GigDock" },
     };
   }
