@@ -268,6 +268,13 @@ function Guide() {
         Then, when the payment arrives, compare the actual gross payment with what you expected. That simple habit makes
         it far easier to catch discrepancies while you still have the information necessary to investigate them.
       </P>
+      <P>
+        Want an easy way to keep track of what you&rsquo;re owed?{" "}
+        <Link href="/guides/how-to-track-background-acting-gigs-and-payments" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+          Track your background acting gigs and pay
+        </Link>{" "}
+        — includes a free spreadsheet.
+      </P>
 
       <figure className="mt-8">
         <div className="flex flex-col sm:flex-row items-center justify-center gap-5">

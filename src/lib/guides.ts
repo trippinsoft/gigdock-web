@@ -16,6 +16,12 @@ export const GUIDES: Guide[] = [
     blurb:
       "Rates and guaranteed hours, bumps and adjustments, overtime, who actually cuts the check, and when the money arrives.",
   },
+  {
+    slug: "how-to-track-background-acting-gigs-and-payments",
+    title: "How to Track Background Acting Gigs & Payments (+ Free Spreadsheet)",
+    blurb:
+      "The exact fields to record for every gig, a free downloadable tracker, and how to catch a missing or wrong paycheck.",
+  },
 ];
 
 export function guideSlugs(): string[] {
