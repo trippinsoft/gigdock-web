@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   alternates: { canonical: PATH },
   openGraph: {
     title: TITLE, description: DESCRIPTION, type: "article", siteName: "GigDock", url: `${BASE}${PATH}`,
-    images: [{ url: HERO, width: 757, height: 475, alt: "How Do Background Actors Get Paid? — a GigDock guide" }],
+    images: [{ url: HERO, width: 1584, height: 993, alt: "How Do Background Actors Get Paid? — a GigDock guide" }],
   },
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, images: [HERO] },
 };
@@ -84,8 +84,8 @@ function Guide() {
       <Image
         src={HERO}
         alt="How Do Background Actors Get Paid? — a background actor sitting in a director's chair on a film set, from GigDock."
-        width={757}
-        height={475}
+        width={1584}
+        height={993}
         priority
         sizes="(max-width: 672px) 100vw, 672px"
         className="w-full h-auto rounded-2xl"
