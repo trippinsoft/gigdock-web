@@ -70,6 +70,18 @@ function Figure({ src, alt, w, h }: { src: string; alt: string; w: number; h: nu
     </figure>
   );
 }
+function PhoneShot({ src, alt }: { src: string; alt: string }) {
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={1206}
+      height={2622}
+      sizes="240px"
+      className="w-full max-w-[230px] h-auto rounded-[1.75rem] border border-zinc-200 dark:border-zinc-800 shadow-sm"
+    />
+  );
+}
 
 function Guide() {
   return (
@@ -256,6 +268,22 @@ function Guide() {
         Then, when the payment arrives, compare the actual gross payment with what you expected. That simple habit makes
         it far easier to catch discrepancies while you still have the information necessary to investigate them.
       </P>
+
+      <figure className="mt-8">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-5">
+          <PhoneShot
+            src="/guides/gigdock-app-my-gigs-paid-unpaid.png"
+            alt="The GigDock app's My Gigs screen, listing each background gig with its dates, location and pay — one gig marked Paid at $500 of $500, another marked Unpaid at $0 of $318.75."
+          />
+          <PhoneShot
+            src="/guides/gigdock-app-payments-summary.png"
+            alt="The GigDock app's Payments summary, showing total received versus outstanding pay for the month and a chart of payments received over time."
+          />
+        </div>
+        <figcaption className="mt-3 text-center text-sm text-zinc-500 dark:text-zinc-400">
+          Tracking gigs and payments in the GigDock app — what&rsquo;s paid, what&rsquo;s still owed.
+        </figcaption>
+      </figure>
 
       <div className="mt-6 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 p-6">
         <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Keep every gig and paycheck in one place</h3>
