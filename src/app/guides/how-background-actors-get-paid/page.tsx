@@ -54,9 +54,9 @@ function Guide() {
   return (
     <article className="mx-auto max-w-2xl py-4 text-zinc-800 dark:text-zinc-200">
       <nav className="text-sm text-zinc-500 dark:text-zinc-400 mb-3" aria-label="Breadcrumb">
-        <Link href="/opportunities" className="hover:text-zinc-800 dark:hover:text-zinc-200">GigDock</Link>
+        <Link href="/guides" className="hover:text-zinc-800 dark:hover:text-zinc-200">Guides</Link>
         <span className="mx-1.5">›</span>
-        <span className="text-zinc-700 dark:text-zinc-300">Guides</span>
+        <span className="text-zinc-700 dark:text-zinc-300">Getting paid</span>
       </nav>
 
       <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance">

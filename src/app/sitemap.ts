@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { stateSlug } from "@/lib/markets";
 import { indexableMarketSlugs } from "@/lib/marketContent";
+import { guideSlugs } from "@/lib/guides";
 
 const BASE = "https://www.gigdock.co";
 
@@ -52,8 +53,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/opportunities`, changeFrequency: "daily", priority: 0.9 },
     { url: `${BASE}/gigfit`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE}/opportunities/locations`, changeFrequency: "daily", priority: 0.8 },
-    // Evergreen guides.
-    { url: `${BASE}/guides/how-background-actors-get-paid`, changeFrequency: "monthly", priority: 0.8 },
+    // Evergreen guides hub + each guide (from the registry).
+    { url: `${BASE}/guides`, changeFrequency: "weekly", priority: 0.7 },
+    ...guideSlugs().map((slug) => ({
+      url: `${BASE}/guides/${slug}`,
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    })),
     ...regionUrls,
     ...marketUrls,
     ...oppUrls,
