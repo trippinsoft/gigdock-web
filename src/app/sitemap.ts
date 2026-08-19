@@ -52,6 +52,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/opportunities`, changeFrequency: "daily", priority: 0.9 },
     { url: `${BASE}/gigfit`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE}/opportunities/locations`, changeFrequency: "daily", priority: 0.8 },
+    // Evergreen guides.
+    { url: `${BASE}/guides/how-background-actors-get-paid`, changeFrequency: "monthly", priority: 0.8 },
     ...regionUrls,
     ...marketUrls,
     ...oppUrls,
