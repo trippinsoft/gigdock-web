@@ -177,6 +177,13 @@ export default async function Home() {
             <ValueProp icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z" /><path d="M9 12l2 2 4-4" /></svg>}>Matched to your profile</ValueProp>
             <ValueProp icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 3h12a1 1 0 011 1v17l-7-4-7 4V4a1 1 0 011-1z" /></svg>}>Save, apply &amp; share</ValueProp>
           </div>
+          <p className="mt-5 text-sm text-zinc-500 dark:text-zinc-400">
+            New to background acting?{" "}
+            <Link href="/guides/how-background-actors-get-paid" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+              Learn how background actors get paid
+            </Link>
+            .
+          </p>
         </section>
 
         {/* Live opportunity preview — real listings are the homepage's imagery */}

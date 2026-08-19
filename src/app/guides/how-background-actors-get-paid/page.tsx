@@ -257,13 +257,6 @@ function Guide() {
         it far easier to catch discrepancies while you still have the information necessary to investigate them.
       </P>
 
-      <Figure
-        src="/guides/gigdock-payment-tracking-visual.png"
-        alt="GigDock's gig dashboard showing each background gig's production, rate, hours, bumps, gross and net pay, and whether it's paid or unpaid, with totals for gross earned, net earned, and unpaid balance."
-        w={777}
-        h={435}
-      />
-
       <div className="mt-6 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 p-6">
         <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Keep every gig and paycheck in one place</h3>
         <p className="mt-1.5 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">

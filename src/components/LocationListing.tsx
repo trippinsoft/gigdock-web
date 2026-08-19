@@ -214,6 +214,14 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
           <span>Updated {updated}</span>
         </div>
 
+        <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+          New to background work?{" "}
+          <Link href="/guides/how-background-actors-get-paid" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+            Read how background actors get paid
+          </Link>{" "}
+          — rates, bumps, and when the check actually comes.
+        </p>
+
         <Section title={`Open casting calls in ${name}`}>
           {opps.length > 0 ? (
             <div className="space-y-2">{opps.map((o) => <OppCard key={o.id} o={o} />)}</div>
