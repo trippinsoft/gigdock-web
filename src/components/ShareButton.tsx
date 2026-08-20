@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { track } from "@/lib/analytics";
 
 /**
  * Share menu with explicit channels (Copy link · Email · Text · WhatsApp), like
@@ -37,6 +38,10 @@ export default function ShareButton({
   const sms = `sms:?&body=${encodeURIComponent(body)}`;
   const whatsapp = `https://wa.me/?text=${encodeURIComponent(body)}`;
 
+  function shared(method: string) {
+    track("opportunity_shared", { opportunity_id: id, method });
+  }
+
   async function copy() {
     try {
       await navigator.clipboard.writeText(url);
@@ -45,6 +50,7 @@ export default function ShareButton({
     } catch {
       /* no-op */
     }
+    shared("copy_link");
     setOpen(false);
   }
 
@@ -81,7 +87,7 @@ export default function ShareButton({
             Copy link
           </button>
 
-          <a role="menuitem" href={email} onClick={() => setOpen(false)} className={item}>
+          <a role="menuitem" href={email} onClick={() => { shared("email"); setOpen(false); }} className={item}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500">
               <rect x="3" y="5" width="18" height="14" rx="2" />
               <path d="m3 7 9 6 9-6" />
@@ -89,14 +95,14 @@ export default function ShareButton({
             Email
           </a>
 
-          <a role="menuitem" href={sms} onClick={() => setOpen(false)} className={item}>
+          <a role="menuitem" href={sms} onClick={() => { shared("sms"); setOpen(false); }} className={item}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500">
               <path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.4 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z" />
             </svg>
             Text message
           </a>
 
-          <a role="menuitem" href={whatsapp} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)} className={item}>
+          <a role="menuitem" href={whatsapp} target="_blank" rel="noopener noreferrer" onClick={() => { shared("whatsapp"); setOpen(false); }} className={item}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366" aria-hidden="true">
               <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm5.62 14.11c-.24.66-1.39 1.26-1.9 1.31-.49.05-.94.24-3.18-.66-2.68-1.06-4.38-3.8-4.51-3.98-.13-.18-1.09-1.45-1.09-2.76s.69-1.96.93-2.23c.24-.26.53-.33.71-.33.18 0 .35.002.51.01.16.008.38-.06.6.46.24.55.79 1.9.86 2.03.07.13.11.29.02.46-.09.18-.13.29-.26.44-.13.16-.28.35-.4.47-.13.13-.26.28-.11.53.15.26.66 1.09 1.42 1.76.98.87 1.8 1.14 2.06 1.27.26.13.4.11.55-.07.15-.18.63-.74.8-.99.16-.26.33-.21.55-.13.22.08 1.4.66 1.64.79.24.13.4.19.46.29.06.11.06.62-.18 1.28Z" />
             </svg>

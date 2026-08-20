@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { track } from "@/lib/analytics";
 import type { Opportunity } from "@/lib/types";
 import type { GigFitResult } from "@/lib/gigfit";
 
@@ -462,7 +463,23 @@ export default function OpportunityCard({
             href={applyHref}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => onApply?.(applyIsEmail ? "email" : "url")}
+            onClick={() => {
+              const kind = applyIsEmail ? "email" : "url";
+              if (hideAdminMeta) {
+                let host: string | undefined;
+                try { host = applyIsEmail ? undefined : new URL(applyHref).host; } catch { /* mailto/other */ }
+                track("opportunity_applied", {
+                  opportunity_id: opp.id,
+                  production_name: opp.production_name,
+                  market: opp.match_state,
+                  source: opp.source,
+                  pay_min: opp.pay_min,
+                  method: kind,
+                  apply_host: host,
+                });
+              }
+              onApply?.(kind);
+            }}
             className="block w-full text-center sm:inline-block sm:w-auto rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-6 py-3 transition-colors"
           >
             {applyIsEmail ? "Apply via Email" : "Apply on company site"}

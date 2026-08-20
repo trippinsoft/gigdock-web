@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import type { Opportunity } from "@/lib/types";
 import PublicShell from "@/components/PublicShell";
+import TrackEvent from "@/components/TrackEvent";
 import { ROLE_TYPES, specFaqs, belongsToMarket, type MarketSpec } from "@/lib/marketContent";
 
 const BASE = "https://www.gigdock.co";
@@ -186,6 +187,16 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       {opps.length > 0 && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
+      <TrackEvent
+        event="opportunity_list_viewed"
+        props={{
+          market: slug,
+          results_count: counts.opportunities,
+          roles: counts.roles,
+          sources: counts.sources,
+          surface: "market_page",
+        }}
+      />
 
       <div className="max-w-3xl mx-auto pb-8">
         <nav className="text-sm text-zinc-500 dark:text-zinc-400 mb-3" aria-label="Breadcrumb">

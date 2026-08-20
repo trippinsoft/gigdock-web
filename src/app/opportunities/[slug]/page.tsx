@@ -3,6 +3,7 @@ import { createSupabaseServer } from "@/lib/supabase-server";
 import type { Opportunity } from "@/lib/types";
 import OpportunitiesFeed from "@/components/OpportunitiesFeed";
 import LocationListing from "@/components/LocationListing";
+import TrackEvent from "@/components/TrackEvent";
 import { codeForSlug } from "@/lib/markets";
 import { getSeoMarket, stateSpec, type MarketSpec } from "@/lib/marketContent";
 
@@ -147,10 +148,23 @@ export default async function OpportunitySlugPage({
   return (
     <>
       {opp && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingLd(opp)) }}
-        />
+        <>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingLd(opp)) }}
+          />
+          <TrackEvent
+            event="opportunity_viewed"
+            props={{
+              opportunity_id: opp.id,
+              production_name: opp.production_name,
+              market: opp.match_state,
+              source: opp.source,
+              pay_min: opp.pay_min,
+              surface: "shared_link",
+            }}
+          />
+        </>
       )}
       <OpportunitiesFeed initialSelectedId={slug} />
     </>
