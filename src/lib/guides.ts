@@ -18,9 +18,9 @@ export const GUIDES: Guide[] = [
   },
   {
     slug: "how-to-track-background-acting-gigs-and-payments",
-    title: "How to Track Background Acting Gigs & Payments (+ Free Spreadsheet)",
+    title: "How to Track Your Background Acting Gigs & Payments",
     blurb:
-      "The exact fields to record for every gig, a free downloadable tracker, and how to catch a missing or wrong paycheck.",
+      "The exact fields to record for every gig, when to record them, and how to catch a missing or wrong paycheck.",
   },
 ];
 

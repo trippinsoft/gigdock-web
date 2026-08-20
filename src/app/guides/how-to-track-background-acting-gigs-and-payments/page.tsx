@@ -5,10 +5,9 @@ import PublicShell from "@/components/PublicShell";
 
 const BASE = "https://www.gigdock.co";
 const PATH = "/guides/how-to-track-background-acting-gigs-and-payments";
-const TITLE = "How to Track Background Acting Gigs & Payments (+ Free Spreadsheet)";
+const TITLE = "How to Track Your Background Acting Gigs & Payments";
 const DESCRIPTION =
-  "A simple system for tracking your background acting gigs and pay — the exact fields to record, a free downloadable spreadsheet template, and how to catch a missing or wrong paycheck.";
-const TRACKER = "/guides/gigdock-gig-payment-tracker.xlsx";
+  "A simple system for tracking your background acting gigs and pay — the exact fields to record, when to record them, and how to catch a missing or wrong paycheck.";
 const HERO = "/guides/gigdock-hero-track-gigs-and-pay.png";
 
 export const metadata: Metadata = {
@@ -33,7 +32,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Should background actors use a spreadsheet to track payments?",
-    a: "A spreadsheet can work well if you're comfortable creating and maintaining your own system — you'd typically need a row for every gig and columns for rates, hours, bumps, payments and payment status, kept updated after every job. A purpose-built app like GigDock organizes the same gig and payment information without requiring you to build your own structure.",
+    a: "A spreadsheet can work well if you're comfortable creating and maintaining your own system — you'd typically need a row for every gig and columns for rates, hours, bumps, payments and payment status, kept updated after every job. A purpose-built app such as GigDock organizes those same types of gig and payment information without requiring you to build your own tracking structure.",
   },
   {
     q: "How can I tell if a background acting payment is missing?",
@@ -61,44 +60,9 @@ function P({ children }: { children: React.ReactNode }) {
 function Figure({ src, alt, w, h }: { src: string; alt: string; w: number; h: number }) {
   return (
     <figure className="mt-6">
-      <Image
-        src={src}
-        alt={alt}
-        width={w}
-        height={h}
-        sizes="(max-width: 672px) 100vw, 672px"
-        className="w-full h-auto rounded-xl border border-zinc-200 dark:border-zinc-800"
-      />
+      <Image src={src} alt={alt} width={w} height={h} sizes="(max-width: 672px) 100vw, 672px"
+        className="w-full h-auto rounded-xl border border-zinc-200 dark:border-zinc-800" />
     </figure>
-  );
-}
-function PhoneFig({ src, alt, caption }: { src: string; alt: string; caption: string }) {
-  return (
-    <figure className="mt-6 flex flex-col items-center">
-      <Image
-        src={src}
-        alt={alt}
-        width={1206}
-        height={2622}
-        sizes="240px"
-        className="w-full max-w-[240px] h-auto rounded-[1.75rem] border border-zinc-200 dark:border-zinc-800 shadow-sm"
-      />
-      <figcaption className="mt-3 text-center text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">{caption}</figcaption>
-    </figure>
-  );
-}
-function DownloadButton() {
-  return (
-    <a
-      href={TRACKER}
-      download
-      className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm"
-    >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-        <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-      Download the free Gig &amp; Pay Tracker
-    </a>
   );
 }
 const PaidLink = () => (
@@ -116,68 +80,31 @@ function Guide() {
         <span className="text-zinc-700 dark:text-zinc-300">Tracking gigs &amp; pay</span>
       </nav>
 
-      {/* Branded hero carries the visible title + hook; the h1 stays for SEO + screen readers. */}
-      <Image
-        src={HERO}
-        alt="How to Track Your Background Acting Gigs and Pay — a background actor on a film set at night, from GigDock."
-        width={1672}
-        height={941}
-        priority
-        sizes="(max-width: 672px) 100vw, 672px"
-        className="w-full h-auto rounded-2xl"
-      />
+      <Image src={HERO} alt="How to Track Your Background Acting Gigs and Pay — a background actor on a film set at night, from GigDock."
+        width={1672} height={941} priority sizes="(max-width: 672px) 100vw, 672px" className="w-full h-auto rounded-2xl" />
       <h1 className="sr-only">How to track your background acting gigs and pay</h1>
 
       <p className="mt-6 text-lg text-zinc-700 dark:text-zinc-300 leading-relaxed">
         You worked the gig. A few weeks and several jobs later, can you still remember exactly what you were supposed to
         be paid?
       </p>
-      <P>
-        What was the rate? How many hours did you work? Was there a car or wardrobe bump? Did the payment arrive? And if
-        it did, was the amount right?
-      </P>
-      <P>
-        The easiest way to protect yourself is to keep one reliable record of every gig you work — what you were booked
-        for, what happened on set, and what you were eventually paid.
-      </P>
-      <P>
-        You can build your own spreadsheet or tracking system to do this manually (there&rsquo;s a free template below),
-        or you can use GigDock, which was built specifically to keep your background gigs and payments organized in one
-        place.
-      </P>
-      <div className="mt-6"><DownloadButton /></div>
-      <P>
-        Not sure how rates, guaranteed hours and bumps work? Read <PaidLink /> first. This guide builds on those basics.
-      </P>
+      <P>What was the rate? How many hours did you work? Was there a car or wardrobe bump? Did the payment arrive? And if it did, was the amount right?</P>
+      <P>The easiest way to protect yourself is to keep one reliable record of every gig you work — what you were booked for, what happened on set, and what you were eventually paid.</P>
+      <P>You can build your own spreadsheet or tracking system to do this manually. Or you can use GigDock, which was built specifically to keep your background gigs and payments organized in one place.</P>
+      <P>Not sure how rates, guaranteed hours and bumps work? Read <PaidLink /> first. This guide builds on those basics.</P>
 
       <H2>Why tracking your gigs matters</H2>
       <P>Background work involves more moving pieces than many new actors expect.</P>
-      <P>
-        One company may cast you. You may work on several different productions in the same month. Your rate might
-        include guaranteed hours. Your final pay may include overtime or additional bumps. And the company that processes
-        your payment may be different from the casting company that booked you.
-      </P>
+      <P>One company may cast you. You may work on several different productions in the same month. Your rate might include guaranteed hours. Your final pay may include overtime or additional bumps. And the company that processes your payment may be different from the casting company that booked you.</P>
       <P>Then time passes. You work another gig. And another.</P>
-      <P>
-        A payment arrives — but do you remember whether you were expecting $175, $225 or $275? That is how small
-        discrepancies and missing payments become difficult to catch.
-      </P>
-      <P>
-        A good tracking system replaces <em>&ldquo;I think that&rsquo;s right&rdquo;</em> with{" "}
-        <em>&ldquo;Here&rsquo;s exactly what I recorded.&rdquo;</em>
-      </P>
+      <P>A payment arrives — but do you remember whether you were expecting $175, $225 or $275? That is how small discrepancies and missing payments become difficult to catch.</P>
+      <P>A good tracking system replaces <em>&ldquo;I think that&rsquo;s right&rdquo;</em> with <em>&ldquo;Here&rsquo;s exactly what I recorded.&rdquo;</em></P>
 
       <H2>What should you track for every background-acting gig?</H2>
-      <P>
-        Whether you use a spreadsheet, notes app, GigDock or another system, there are several pieces of information worth
-        keeping for every job.
-      </P>
-      <Figure
-        src="/guides/gigdock-what-to-track-infographic.png"
+      <P>Whether you use a spreadsheet, notes app, GigDock or another system, there are several pieces of information worth keeping for every job.</P>
+      <Figure src="/guides/gigdock-what-to-track-infographic.png"
         alt="What to track for every gig: production, casting company, payroll company, date worked, rate and guaranteed hours, actual hours, bumps/adjustments, voucher or reference info, estimated gross, actual gross pay, net pay, and paid/unpaid status."
-        w={1600}
-        h={1050}
-      />
+        w={1600} h={1050} />
       <ol className="mt-4 list-decimal space-y-3 pl-5">
         <li><strong>Production</strong> — the movie, TV show, commercial or other project you worked on. If you work multiple dates on the same production, keep each workday associated with the correct gig.</li>
         <li><strong>Casting company</strong> — the company that booked you. Especially helpful if you work with several casting companies at once.</li>
@@ -194,62 +121,36 @@ function Guide() {
       </ol>
 
       <H2>Track the gig at three moments</H2>
-      <P>You don&rsquo;t need to spend much time on records if you update them at the right moments.</P>
-      <Figure
-        src="/guides/gigdock-track-three-moments-infographic.png"
+      <P>You don&rsquo;t need to spend much time maintaining your records if you update them at the right moments.</P>
+      <Figure src="/guides/gigdock-track-three-moments-infographic.png"
         alt="Track the gig at three moments — when you're booked (production, casting company, date, advertised rate, guaranteed hours), when you wrap (actual hours, bumps, voucher, verify what was recorded), and when you're paid (actual gross, net pay, mark paid, compare with what you recorded)."
-        w={1600}
-        h={900}
-      />
+        w={1600} h={900} />
       <H3>When you&rsquo;re booked</H3>
-      <P>Record the production, casting company, date, advertised rate and guaranteed hours — while the booking is easy to find.</P>
+      <P>Record the production, casting company, date, advertised rate and guaranteed hours — this preserves the original booking information while it&rsquo;s easy to find.</P>
       <H3>When you wrap</H3>
-      <P>Update your actual hours worked, applicable bumps or adjustments, and voucher/reference information. If possible, verify your work record is correct before you leave.</P>
+      <P>Update your actual hours worked, applicable bumps or adjustments, and voucher or reference information. If possible, verify that the information on your work record is correct before you leave.</P>
       <H3>When you&rsquo;re paid</H3>
       <P>Record the actual gross pay, net pay, payment information and paid status — then compare the payment with what you recorded. If something seems wrong, you now have a much better starting point for figuring out why.</P>
 
       <H2>You can build your own tracking system</H2>
-      <P>
-        You don&rsquo;t need special software. You could create a spreadsheet with one row for every gig and columns for:
-      </P>
+      <P>You could create a spreadsheet with one row for every gig and columns for:</P>
       <p className="mt-3 rounded-lg bg-zinc-100 dark:bg-zinc-800/60 px-4 py-3 text-center text-sm font-semibold text-zinc-800 dark:text-zinc-200 overflow-x-auto">
         Production · Date · Casting Company · Rate · Hours · Bumps · Expected Pay · Actual Gross · Net Pay · Paid
       </p>
-      <P>
-        Then update it every time you book a job, wrap a job, or receive payment. That works — but it also means
-        you&rsquo;re building and maintaining your own system, and as the number of gigs grows, so does everything
-        you&rsquo;re juggling across casting companies, productions and payments.
-      </P>
-      <P>
-        Don&rsquo;t want to build it from scratch? Download our free template — it has every field above, and it
-        estimates your expected gross and the difference versus what you were actually paid:
-      </P>
-      <div className="mt-4"><DownloadButton /></div>
+      <P>Then update that spreadsheet every time you book a job, wrap a job or receive payment. That works — but it also means you&rsquo;re building and maintaining your own system, and as the number of gigs grows, so does everything you&rsquo;re juggling across casting companies, productions and payments.</P>
 
-      <Figure
-        src="/guides/gigdock-manual-vs-gigdock-infographic.png"
-        alt="Manual tracking versus GigDock: a spreadsheet works, but you build and maintain your own fields and updates, while GigDock is a purpose-built place to record gigs, rates, hours and bumps, log gross and net payments, keep gig history and payment info together, and see which gigs aren't yet marked paid."
-        w={1600}
-        h={930}
-      />
+      <Figure src="/guides/gigdock-manual-vs-gigdock-infographic.png"
+        alt="Manual tracking versus GigDock: creating your own spreadsheet or notes system works, but you build and maintain your own fields and updates, while GigDock is a purpose-built place to record gigs, rates, hours and bumps, log gross and net payments, keep gig history and payment info together, and see which gigs aren't yet marked paid."
+        w={1600} h={930} />
 
       <H2>Or use GigDock</H2>
-      <P>
-        GigDock gives people working gigs in TV &amp; film one place to keep their work organized. Record your gigs,
-        rates, hours and bumps, then add your gross and net payment when it arrives — so your gig history and payment
-        information stay together instead of being scattered across casting notices, messages, notes and spreadsheets.
-      </P>
-
-      <PhoneFig
-        src="/guides/gigdock-app-gig-detail-earnings.png"
-        alt="The GigDock app's Gig Detail screen showing gross earned, received and outstanding pay, plus the payment structure with a guarantee and a 1.5x overtime multiplier."
-        caption="Keep the rate, hours, bumps and payment information for a gig together."
-      />
-      <PhoneFig
-        src="/guides/gigdock-app-payments-summary.png"
-        alt="The GigDock app's Payments summary, showing total received versus outstanding pay for the month and a chart of payments received over time."
-        caption="See your recorded payments and which gigs haven't yet been marked paid."
-      />
+      <P>If you&rsquo;d rather not create and maintain a spreadsheet yourself, that&rsquo;s the problem GigDock was built to solve. Instead of building your own tracking system, GigDock gives people working gigs in TV &amp; film one place to record and manage the details of their gig work:</P>
+      <ul className="mt-3 list-disc space-y-1.5 pl-5">
+        <li>Gigs, rates, hours and bumps</li>
+        <li>Gross and net payments</li>
+        <li>Payment status</li>
+      </ul>
+      <P>So your work history and payment information stay together rather than being scattered across casting notices, messages, notes and spreadsheets. And when you look back later, you can see which gigs you&rsquo;ve recorded as paid and which you haven&rsquo;t.</P>
 
       <H2>Tracking shouldn&rsquo;t become another job</H2>
       <P>The goal isn&rsquo;t to create more administrative work — it&rsquo;s the opposite. You want enough recorded that you can answer a few simple questions at any time:</P>
@@ -260,21 +161,16 @@ function Guide() {
         <li>What did I ultimately get paid?</li>
         <li>Which gigs haven&rsquo;t I marked paid yet?</li>
       </ul>
-      <P>
-        If you can answer those quickly, you&rsquo;re far less dependent on memory when a payment arrives weeks after the
-        job. And if you&rsquo;re doing background work regularly, that&rsquo;s exactly the kind of organization GigDock is
-        designed to provide.
-      </P>
+      <P>If you can answer those quickly, you&rsquo;re far less dependent on memory when a payment arrives weeks after the job. And if you&rsquo;re doing background work regularly, that&rsquo;s exactly the kind of organization GigDock is designed to provide.</P>
 
       <div className="mt-6 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 p-6">
-        <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Track your gigs and payments</h3>
+        <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Track your gigs and payments with GigDock</h3>
         <p className="mt-1.5 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
-          Start with the free spreadsheet, and let GigDock take over when maintaining it becomes another chore — one
-          place for your gigs, rates, hours, bumps and payments, plus casting calls from across the web in one feed.
+          Keep your own spreadsheet if you like — or let GigDock keep your gigs, rates, hours, bumps and payments in one
+          place, plus casting calls from across the web in one feed.
         </p>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <DownloadButton />
-          <Link href="/opportunities/atlanta-ga" className="inline-flex items-center px-5 py-3 rounded-full border border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-semibold text-sm hover:bg-white dark:hover:bg-zinc-800">Browse casting calls</Link>
+        <div className="mt-4">
+          <Link href="/opportunities/atlanta-ga" className="inline-flex items-center px-5 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm">Browse casting calls</Link>
         </div>
       </div>
 
