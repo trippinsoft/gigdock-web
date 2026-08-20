@@ -20,23 +20,27 @@ export const metadata: Metadata = {
 const FAQ: { q: string; a: string }[] = [
   {
     q: "What's the best way to track background acting gigs?",
-    a: "Keep one running record with every gig. At minimum, track the production, date worked, rate, hours, applicable bumps or adjustments, expected/estimated pay, actual payment and whether the gig has been paid. A spreadsheet works well — the most important thing is consistently recording the information while it's still fresh.",
+    a: "Keep one consistent record for every gig you work. At minimum, record the production, date worked, advertised rate, actual hours, applicable bumps, payment amount and whether you've been paid. You can build your own spreadsheet or use an app designed for gig tracking — the most important thing is recording the information consistently while it's still fresh.",
   },
   {
-    q: "What should I write down after every background gig?",
-    a: "Record the production and casting company, payroll provider when known, date worked, advertised rate, guaranteed hours, actual hours, applicable bumps or adjustments, voucher/reference information and payment status. Those records give you something concrete to compare with your payment later.",
+    q: "What should I write down after a background acting job?",
+    a: "Record the production, casting company, date worked, advertised rate, actual hours and applicable bumps or adjustments, and keep your voucher or reference information when possible. Once payment arrives, add the actual gross and net amounts and mark the gig paid.",
   },
   {
-    q: "Is there a free background-actor pay tracker?",
-    a: "Yes. You can download the free spreadsheet included with this guide and use it in Excel or Google Sheets. It has all the fields covered here and estimates your expected gross and the difference versus what you were actually paid.",
+    q: "Should background actors use a spreadsheet to track payments?",
+    a: "A spreadsheet can work well if you're comfortable creating and maintaining your own system — you'd typically need a row for every gig and columns for rates, hours, bumps, payments and payment status, kept updated after every job. A purpose-built app like GigDock organizes the same gig and payment information without requiring you to build your own structure.",
   },
   {
-    q: "Do I need an app to track my acting payments?",
-    a: "No — a spreadsheet can work completely fine. A purpose-built app becomes useful when you're working enough gigs that maintaining the spreadsheet itself starts becoming difficult. GigDock lets you record gig and payment details in one place instead of maintaining your own tracking system.",
+    q: "How can I tell if a background acting payment is missing?",
+    a: "Keep every gig in your tracking system until you've recorded its payment. That way you don't have to remember which productions still owe you money — you can simply review the gigs you haven't yet marked paid. If a payment appears late, check the terms of the booking or applicable union agreement before following up.",
   },
   {
-    q: "How do I know whether a background-acting payment is late or missing?",
-    a: "Don't rely on memory — keep each gig listed until you've recorded its payment. If a job remains unpaid beyond the timeframe applicable to that production, you'll immediately know which payment needs investigation. For SAG-AFTRA-covered productions, specific contractual payment rules and claim procedures may apply.",
+    q: "Should I track gross pay or net pay?",
+    a: "Ideally, track both. Gross pay tells you what you earned before deductions; net pay tells you what you actually received after deductions. Keeping both makes it easier to distinguish a payroll discrepancy from normal taxes or other deductions.",
+  },
+  {
+    q: "Why should I keep my voucher?",
+    a: "Your voucher or electronic work record can contain important information about your hours and applicable adjustments. Keeping it gives you documentation to refer back to if the payment you receive doesn't match what you expected.",
   },
 ];
 
@@ -49,16 +53,19 @@ function H3({ children }: { children: React.ReactNode }) {
 function P({ children }: { children: React.ReactNode }) {
   return <p className="mt-3 leading-relaxed">{children}</p>;
 }
-function PhoneShot({ src, alt }: { src: string; alt: string }) {
+function PhoneFig({ src, alt, caption }: { src: string; alt: string; caption: string }) {
   return (
-    <Image
-      src={src}
-      alt={alt}
-      width={1206}
-      height={2622}
-      sizes="240px"
-      className="w-full max-w-[230px] h-auto rounded-[1.75rem] border border-zinc-200 dark:border-zinc-800 shadow-sm"
-    />
+    <figure className="mt-6 flex flex-col items-center">
+      <Image
+        src={src}
+        alt={alt}
+        width={1206}
+        height={2622}
+        sizes="240px"
+        className="w-full max-w-[240px] h-auto rounded-[1.75rem] border border-zinc-200 dark:border-zinc-800 shadow-sm"
+      />
+      <figcaption className="mt-3 text-center text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">{caption}</figcaption>
+    </figure>
   );
 }
 function DownloadButton() {
@@ -96,204 +103,131 @@ function Guide() {
       <p className="mt-3 text-xl font-semibold text-blue-600 dark:text-blue-400">Never lose track of another paycheck.</p>
 
       <p className="mt-5 text-lg text-zinc-700 dark:text-zinc-300 leading-relaxed">
-        You worked the gig. Now, three or four jobs later, can you remember exactly what you were supposed to be paid?
+        You worked the gig. A few weeks and several jobs later, can you still remember exactly what you were supposed to
+        be paid?
       </p>
       <P>
-        What was the base rate? How long did you work? Was there a car or wardrobe bump? Which payroll company was
-        handling it? Did that check ever arrive?
+        What was the rate? How many hours did you work? Was there a car or wardrobe bump? Did the payment arrive? And if
+        it did, was the amount right?
       </P>
       <P>
-        You don&rsquo;t need a complicated system to keep track of background-acting pay. You need one reliable record
-        with every gig in one place: what you worked, what you expected to earn, and what you actually received.
+        The easiest way to protect yourself is to keep one reliable record of every gig you work — what you were booked
+        for, what happened on set, and what you were eventually paid.
       </P>
       <P>
-        You can start with the free spreadsheet below. If you&rsquo;re working regularly, GigDock gives you a simpler way
-        to keep the same information organized without managing rows and columns yourself.
+        You can build your own spreadsheet or tracking system to do this manually (there&rsquo;s a free template below),
+        or you can use GigDock, which was built specifically to keep your background gigs and payments organized in one
+        place.
       </P>
-
       <div className="mt-6"><DownloadButton /></div>
-      <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-        Free Excel / Google Sheets template with the fields covered in this guide.
-      </p>
-
-      <H2>Why tracking your gigs can pay for itself</H2>
-      <P>Background work involves more moving pieces than most new actors expect.</P>
       <P>
-        A casting company may book you. A production or payroll provider may handle your payment. Your final gross pay
-        may include additional hours, bumps or other adjustments. And the payment doesn&rsquo;t necessarily arrive while
-        the details of that workday are still fresh in your mind.
-      </P>
-      <P>That&rsquo;s where things get lost.</P>
-      <P>
-        Maybe you forget a car adjustment. Maybe the hours on a payment don&rsquo;t match what you recorded. Maybe a
-        payment simply hasn&rsquo;t arrived and you don&rsquo;t notice because you&rsquo;ve worked eight gigs since then.
-      </P>
-      <P>
-        A tracker gives you something much better than <em>&ldquo;I think that&rsquo;s right.&rdquo;</em> It gives you a
-        record.
-      </P>
-      <P>
-        Not sure how rates, guaranteed hours and bumps work? Start with <PaidLink />. This guide builds on those basics.
+        Not sure how rates, guaranteed hours and bumps work? Read <PaidLink /> first. This guide builds on those basics.
       </P>
 
-      <H2>What to track for every background-acting gig</H2>
+      <H2>Why tracking your gigs matters</H2>
+      <P>Background work involves more moving pieces than many new actors expect.</P>
       <P>
-        Whether you use a spreadsheet, notes app or GigDock, capture the information you&rsquo;ll need later to
-        reconstruct the job.
+        One company may cast you. You may work on several different productions in the same month. Your rate might
+        include guaranteed hours. Your final pay may include overtime or additional bumps. And the company that processes
+        your payment may be different from the casting company that booked you.
+      </P>
+      <P>Then time passes. You work another gig. And another.</P>
+      <P>
+        A payment arrives — but do you remember whether you were expecting $175, $225 or $275? That is how small
+        discrepancies and missing payments become difficult to catch.
+      </P>
+      <P>
+        A good tracking system replaces <em>&ldquo;I think that&rsquo;s right&rdquo;</em> with{" "}
+        <em>&ldquo;Here&rsquo;s exactly what I recorded.&rdquo;</em>
       </P>
 
-      <H3>Production, casting company and payroll provider</H3>
+      <H2>What should you track for every background-acting gig?</H2>
       <P>
-        These may not all be the same company. Record the production you worked on, who booked you, and — when you know
-        it — the company handling payroll.
+        Whether you use a spreadsheet, notes app, GigDock or another system, there are several pieces of information worth
+        keeping for every job.
       </P>
-
-      <H3>Date worked and location</H3>
-      <P>
-        Record when and where you worked. This becomes especially useful when you&rsquo;re working multiple dates on the
-        same production.
-      </P>
-
-      <H3>Advertised rate and guaranteed hours</H3>
-      <P>Record the booking exactly as it was offered. For example:</P>
-      <p className="mt-3 text-center text-2xl font-bold text-zinc-900 dark:text-zinc-100">$150/10</p>
-      <P>Don&rsquo;t rely on finding the casting notice again several weeks later.</P>
-
-      <H3>Actual hours worked</H3>
-      <P>
-        Record your call and wrap times or total hours worked. Additional compensation may apply when you work beyond the
-        hours covered by your booking, depending on the production, applicable agreement and employment rules.
-      </P>
-
-      <H3>Bumps and other adjustments</H3>
-      <P>
-        Write down any additional compensation that applied to your job — such as wardrobe, personal-auto use, wet work
-        or other applicable adjustments. For SAG-AFTRA-covered work, the union specifically advises background performers
-        to check their voucher at wrap and make sure applicable adjustments are recorded before leaving set.
-      </P>
-
-      <H3>Estimated gross pay</H3>
-      <P>Keep an estimate of what you expect the production to pay before deductions. For a simple booking, that might be:</P>
-      <p className="mt-3 rounded-lg bg-zinc-100 dark:bg-zinc-800/60 px-4 py-3 text-center font-semibold text-zinc-800 dark:text-zinc-200">
-        Guaranteed pay + additional pay/overtime + bumps or adjustments = estimated gross
-      </p>
-      <P>
-        Treat this as an estimate rather than an official payroll calculation. Overtime and adjustment rules can vary by
-        production and applicable agreement.
-      </P>
-
-      <H3>Voucher or reference number</H3>
-      <P>
-        Keep your voucher, electronic voucher or other work record whenever possible. SAG-AFTRA recognizes approved
-        electronic vouchers as equivalents to traditional paper vouchers for covered productions.
-      </P>
-
-      <H3>Payment timing or follow-up date</H3>
-      <P>
-        Rather than relying on memory, record when you expect to check on the payment if it hasn&rsquo;t arrived. For
-        SAG-AFTRA-covered work, contractual payment requirements may apply, and SAG-AFTRA advises covered background
-        actors who have not received initial payment after the applicable period to follow its claim-inquiry process. For
-        non-union work, timing can vary based on the production and terms of the booking.
-      </P>
-
-      <H3>Actual gross and net pay</H3>
-      <P>
-        When payment arrives, record both amounts when available. <strong>Gross pay</strong> tells you what payroll says
-        you earned before deductions; <strong>net pay</strong> tells you what actually reached you after deductions.
-        Comparing expected gross with actual gross is much more useful than comparing your estimate with the amount
-        deposited into your bank account.
-      </P>
-
-      <H3>Paid or unpaid</H3>
-      <P>
-        This may be the simplest field in the entire tracker — and one of the most valuable. When you&rsquo;re working
-        frequently, you should be able to see which jobs still haven&rsquo;t been marked paid without trying to remember
-        them.
-      </P>
-
-      <H3>Notes</H3>
-      <P>
-        Record anything else that might matter later. If you find yourself thinking, <em>I&rsquo;ll remember that</em>,
-        put it in the notes instead.
-      </P>
-
-      <H2>Get the free background-actor pay spreadsheet</H2>
-      <P>The free Gig &amp; Pay Tracker contains the fields above and gives you one row for every job.</P>
-      <div className="mt-4"><DownloadButton /></div>
-      <P>Start by replacing the example row with your own gig. The spreadsheet can help you organize:</P>
-      <ul className="mt-3 list-disc space-y-1.5 pl-5">
-        <li>Production and casting information</li>
-        <li>Rate and guaranteed hours</li>
-        <li>Actual hours</li>
-        <li>Bumps and adjustments</li>
-        <li>Estimated gross pay</li>
-        <li>Voucher / reference information</li>
-        <li>Actual gross and net payment</li>
-        <li>Paid / unpaid status</li>
-        <li>Notes</li>
-      </ul>
-      <P>
-        The goal isn&rsquo;t to turn a spreadsheet into a payroll system. It&rsquo;s to give you enough information to
-        recognize when something deserves a closer look.
-      </P>
-
-      <H2>Use your tracker at three moments</H2>
-      <P>The easiest system is one that you update while the information is still fresh.</P>
-      <ol className="mt-3 list-decimal space-y-3 pl-5">
-        <li>
-          <strong>When you&rsquo;re booked.</strong> Add the production, casting company, work date and advertised rate.
-          This also preserves the original terms of the booking before the casting notice disappears or becomes hard to find.
-        </li>
-        <li>
-          <strong>When you wrap.</strong> Record your actual hours and applicable bumps or adjustments. Keep your voucher
-          or electronic work record when possible, and verify that the information is correct before leaving set.
-        </li>
-        <li>
-          <strong>When you&rsquo;re paid.</strong> Enter the actual gross and net amounts, mark the gig paid, and compare
-          the payment with what you recorded. If something doesn&rsquo;t match, you now have the information necessary to
-          investigate instead of trying to reconstruct the workday from memory.
-        </li>
+      <ol className="mt-4 list-decimal space-y-3 pl-5">
+        <li><strong>Production</strong> — the movie, TV show, commercial or other project you worked on. If you work multiple dates on the same production, keep each workday associated with the correct gig.</li>
+        <li><strong>Casting company</strong> — the company that booked you. Especially helpful if you work with several casting companies at once.</li>
+        <li><strong>Payroll company or payment source</strong> — when you know it. The company that casts you isn&rsquo;t necessarily the one that handles your paycheck.</li>
+        <li><strong>Date worked</strong> — an exact record of each date, especially if you return to the same production.</li>
+        <li><strong>Advertised rate and guaranteed hours</strong> — exactly as offered (e.g. <strong>$150/10</strong>), so you have the original booking terms even if the notice is hard to find later.</li>
+        <li><strong>Actual hours worked</strong> — your call and wrap times, or total hours. Beyond the hours in your booking, additional compensation may apply depending on the production and agreement.</li>
+        <li><strong>Bumps and other adjustments</strong> — wardrobe, personal vehicle, wet work, smoke, props, special hair/makeup, or other production-specific adjustments. Under a SAG-AFTRA agreement, make sure applicable adjustments are reflected on your voucher before leaving set whenever possible.</li>
+        <li><strong>Voucher or reference information</strong> — keep your voucher, electronic voucher, or confirmation number whenever you&rsquo;re permitted to.</li>
+        <li><strong>What you expected to earn</strong> — your own estimate before deductions (base/guaranteed pay + additional hours + applicable bumps). An estimate, not an official payroll calculation.</li>
+        <li><strong>Actual gross pay</strong> — the amount you earned before deductions; usually the most useful number to compare with what you expected.</li>
+        <li><strong>Net pay</strong> — what actually reached you after deductions. Gross and net aren&rsquo;t the same, so a smaller deposit doesn&rsquo;t necessarily mean an error.</li>
+        <li><strong>Paid or unpaid</strong> — maybe the most important field of all. Once you&rsquo;ve worked dozens of gigs, you shouldn&rsquo;t have to <em>remember</em> which ones are unpaid — you should be able to <em>see</em> it.</li>
       </ol>
 
-      <H2>When a spreadsheet starts becoming a chore</H2>
-      <P>A spreadsheet can work extremely well — especially when you&rsquo;re just getting started.</P>
+      <H2>Track the gig at three moments</H2>
+      <P>You don&rsquo;t need to spend much time on records if you update them at the right moments.</P>
+      <H3>When you&rsquo;re booked</H3>
+      <P>Record the production, casting company, date, advertised rate and guaranteed hours — while the booking is easy to find.</P>
+      <H3>When you wrap</H3>
+      <P>Update your actual hours worked, applicable bumps or adjustments, and voucher/reference information. If possible, verify your work record is correct before you leave.</P>
+      <H3>When you&rsquo;re paid</H3>
+      <P>Record the actual gross pay, net pay, payment information and paid status — then compare the payment with what you recorded. If something seems wrong, you now have a much better starting point for figuring out why.</P>
+
+      <H2>You can build your own tracking system</H2>
       <P>
-        But imagine you&rsquo;ve worked 40 or 50 gigs. Now you&rsquo;re maintaining rows, finding old bookings, checking
-        payments and trying to remember which jobs are still outstanding. That&rsquo;s the problem GigDock was built to
-        simplify.
+        You don&rsquo;t need special software. You could create a spreadsheet with one row for every gig and columns for:
+      </P>
+      <p className="mt-3 rounded-lg bg-zinc-100 dark:bg-zinc-800/60 px-4 py-3 text-center text-sm font-semibold text-zinc-800 dark:text-zinc-200 overflow-x-auto">
+        Production · Date · Casting Company · Rate · Hours · Bumps · Expected Pay · Actual Gross · Net Pay · Paid
+      </p>
+      <P>
+        Then update it every time you book a job, wrap a job, or receive payment. That works — but it also means
+        you&rsquo;re building and maintaining your own system, and as the number of gigs grows, so does everything
+        you&rsquo;re juggling across casting companies, productions and payments.
       </P>
       <P>
-        With GigDock, you can record your gigs, rates, hours and bumps in one place, then record your gross and net
-        payment when it arrives. That makes it easier to keep your gig history together and see which gigs you
-        haven&rsquo;t yet marked paid.
+        Don&rsquo;t want to build it from scratch? Download our free template — it has every field above, and it
+        estimates your expected gross and the difference versus what you were actually paid:
+      </P>
+      <div className="mt-4"><DownloadButton /></div>
+
+      <H2>Or use a tool built for background actors</H2>
+      <P>
+        That&rsquo;s the problem GigDock was created to simplify. Instead of building your own tracking system, GigDock
+        gives you one place to record and manage the details of your gig work — your gigs, rates, hours, bumps, and gross
+        and net payments — so your work history and payment information stay together instead of scattered across casting
+        notices, messages, notes and spreadsheets. When you look back later, you can see which gigs you&rsquo;ve recorded
+        as paid and which you haven&rsquo;t.
       </P>
 
-      <figure className="mt-6">
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-5">
-          <PhoneShot
-            src="/guides/gigdock-app-gig-detail-earnings.png"
-            alt="The GigDock app's Gig Detail screen showing gross earned, received and outstanding pay, plus the payment structure with a guarantee and a 1.5x overtime multiplier."
-          />
-          <PhoneShot
-            src="/guides/gigdock-app-payments-summary.png"
-            alt="The GigDock app's Payments summary, showing total received versus outstanding pay for the month and a chart of payments received over time."
-          />
-        </div>
-        <figcaption className="mt-3 text-center text-sm text-zinc-500 dark:text-zinc-400">
-          Your gig and payment information together in the GigDock mobile app.
-        </figcaption>
-      </figure>
+      <PhoneFig
+        src="/guides/gigdock-app-gig-detail-earnings.png"
+        alt="The GigDock app's Gig Detail screen showing gross earned, received and outstanding pay, plus the payment structure with a guarantee and a 1.5x overtime multiplier."
+        caption="Keep the rate, hours, bumps and payment information for a gig together."
+      />
+      <PhoneFig
+        src="/guides/gigdock-app-payments-summary.png"
+        alt="The GigDock app's Payments summary, showing total received versus outstanding pay for the month and a chart of payments received over time."
+        caption="See your recorded payments and which gigs haven't yet been marked paid."
+      />
 
-      <H2>Start with the spreadsheet. Move beyond it when you need to.</H2>
+      <H2>Tracking shouldn&rsquo;t become another job</H2>
+      <P>The goal isn&rsquo;t to create more administrative work — it&rsquo;s the opposite. You want enough recorded that you can answer a few simple questions at any time:</P>
+      <ul className="mt-3 list-disc space-y-1.5 pl-5">
+        <li>What did I work?</li>
+        <li>What was the rate?</li>
+        <li>Were there additional bumps or hours?</li>
+        <li>What did I ultimately get paid?</li>
+        <li>Which gigs haven&rsquo;t I marked paid yet?</li>
+      </ul>
       <P>
-        There is nothing wrong with a spreadsheet. In fact, we&rsquo;d rather you track your gigs in a spreadsheet than
-        not track them at all.
+        If you can answer those quickly, you&rsquo;re far less dependent on memory when a payment arrives weeks after the
+        job. And if you&rsquo;re doing background work regularly, that&rsquo;s exactly the kind of organization GigDock is
+        designed to provide.
       </P>
+
       <div className="mt-6 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 p-6">
-        <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
-          And if maintaining the spreadsheet eventually becomes one more thing you have to remember, GigDock gives you a
-          purpose-built place to manage your gig history and payments — and brings casting opportunities from multiple
-          sources together so you can start looking for the next one.
+        <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Track your gigs and payments</h3>
+        <p className="mt-1.5 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+          Start with the free spreadsheet, and let GigDock take over when maintaining it becomes another chore — one
+          place for your gigs, rates, hours, bumps and payments, plus casting calls from across the web in one feed.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <DownloadButton />
@@ -310,13 +244,6 @@ function Guide() {
           </div>
         ))}
       </div>
-
-      <H2>Sources</H2>
-      <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm text-zinc-600 dark:text-zinc-400">
-        <li>
-          SAG-AFTRA — <a href="https://www.sagaftra.org/empowered-background-actor" target="_blank" rel="noopener noreferrer nofollow" className="text-blue-600 hover:underline dark:text-blue-400">The Empowered Background Actor</a> (vouchers, adjustments, payment timing and claim inquiries).
-        </li>
-      </ul>
 
       <p className="mt-8 text-sm text-zinc-500 dark:text-zinc-400">
         General information for background actors and extras, not legal, payroll or tax advice. Pay, overtime and
