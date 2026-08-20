@@ -188,13 +188,11 @@ function Guide() {
       </P>
       <div className="mt-4"><DownloadButton /></div>
 
-      <H2>Or use a tool built for background actors</H2>
+      <H2>Or use GigDock</H2>
       <P>
-        That&rsquo;s the problem GigDock was created to simplify. Instead of building your own tracking system, GigDock
-        gives you one place to record and manage the details of your gig work — your gigs, rates, hours, bumps, and gross
-        and net payments — so your work history and payment information stay together instead of scattered across casting
-        notices, messages, notes and spreadsheets. When you look back later, you can see which gigs you&rsquo;ve recorded
-        as paid and which you haven&rsquo;t.
+        GigDock gives people working gigs in TV &amp; film one place to keep their work organized. Record your gigs,
+        rates, hours and bumps, then add your gross and net payment when it arrives — so your gig history and payment
+        information stay together instead of being scattered across casting notices, messages, notes and spreadsheets.
       </P>
 
       <PhoneFig
