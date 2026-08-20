@@ -9,12 +9,17 @@ const TITLE = "How to Track Background Acting Gigs & Payments (+ Free Spreadshee
 const DESCRIPTION =
   "A simple system for tracking your background acting gigs and pay — the exact fields to record, a free downloadable spreadsheet template, and how to catch a missing or wrong paycheck.";
 const TRACKER = "/guides/gigdock-gig-payment-tracker.xlsx";
+const HERO = "/guides/gigdock-hero-track-gigs-and-pay.png";
 
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: PATH },
-  openGraph: { title: TITLE, description: DESCRIPTION, type: "article", siteName: "GigDock", url: `${BASE}${PATH}` },
+  openGraph: {
+    title: TITLE, description: DESCRIPTION, type: "article", siteName: "GigDock", url: `${BASE}${PATH}`,
+    images: [{ url: HERO, width: 1672, height: 941, alt: "How to Track Your Background Acting Gigs and Pay — a GigDock guide" }],
+  },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, images: [HERO] },
 };
 
 const FAQ: { q: string; a: string }[] = [
@@ -52,6 +57,20 @@ function H3({ children }: { children: React.ReactNode }) {
 }
 function P({ children }: { children: React.ReactNode }) {
   return <p className="mt-3 leading-relaxed">{children}</p>;
+}
+function Figure({ src, alt, w, h }: { src: string; alt: string; w: number; h: number }) {
+  return (
+    <figure className="mt-6">
+      <Image
+        src={src}
+        alt={alt}
+        width={w}
+        height={h}
+        sizes="(max-width: 672px) 100vw, 672px"
+        className="w-full h-auto rounded-xl border border-zinc-200 dark:border-zinc-800"
+      />
+    </figure>
+  );
 }
 function PhoneFig({ src, alt, caption }: { src: string; alt: string; caption: string }) {
   return (
@@ -97,12 +116,19 @@ function Guide() {
         <span className="text-zinc-700 dark:text-zinc-300">Tracking gigs &amp; pay</span>
       </nav>
 
-      <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance">
-        How to track your background acting gigs and pay
-      </h1>
-      <p className="mt-3 text-xl font-semibold text-blue-600 dark:text-blue-400">Never lose track of another paycheck.</p>
+      {/* Branded hero carries the visible title + hook; the h1 stays for SEO + screen readers. */}
+      <Image
+        src={HERO}
+        alt="How to Track Your Background Acting Gigs and Pay — a background actor on a film set at night, from GigDock."
+        width={1672}
+        height={941}
+        priority
+        sizes="(max-width: 672px) 100vw, 672px"
+        className="w-full h-auto rounded-2xl"
+      />
+      <h1 className="sr-only">How to track your background acting gigs and pay</h1>
 
-      <p className="mt-5 text-lg text-zinc-700 dark:text-zinc-300 leading-relaxed">
+      <p className="mt-6 text-lg text-zinc-700 dark:text-zinc-300 leading-relaxed">
         You worked the gig. A few weeks and several jobs later, can you still remember exactly what you were supposed to
         be paid?
       </p>
@@ -146,6 +172,12 @@ function Guide() {
         Whether you use a spreadsheet, notes app, GigDock or another system, there are several pieces of information worth
         keeping for every job.
       </P>
+      <Figure
+        src="/guides/gigdock-what-to-track-infographic.png"
+        alt="What to track for every gig: production, casting company, payroll company, date worked, rate and guaranteed hours, actual hours, bumps/adjustments, voucher or reference info, estimated gross, actual gross pay, net pay, and paid/unpaid status."
+        w={1600}
+        h={1050}
+      />
       <ol className="mt-4 list-decimal space-y-3 pl-5">
         <li><strong>Production</strong> — the movie, TV show, commercial or other project you worked on. If you work multiple dates on the same production, keep each workday associated with the correct gig.</li>
         <li><strong>Casting company</strong> — the company that booked you. Especially helpful if you work with several casting companies at once.</li>
@@ -163,6 +195,12 @@ function Guide() {
 
       <H2>Track the gig at three moments</H2>
       <P>You don&rsquo;t need to spend much time on records if you update them at the right moments.</P>
+      <Figure
+        src="/guides/gigdock-track-three-moments-infographic.png"
+        alt="Track the gig at three moments — when you're booked (production, casting company, date, advertised rate, guaranteed hours), when you wrap (actual hours, bumps, voucher, verify what was recorded), and when you're paid (actual gross, net pay, mark paid, compare with what you recorded)."
+        w={1600}
+        h={900}
+      />
       <H3>When you&rsquo;re booked</H3>
       <P>Record the production, casting company, date, advertised rate and guaranteed hours — while the booking is easy to find.</P>
       <H3>When you wrap</H3>
@@ -187,6 +225,13 @@ function Guide() {
         estimates your expected gross and the difference versus what you were actually paid:
       </P>
       <div className="mt-4"><DownloadButton /></div>
+
+      <Figure
+        src="/guides/gigdock-manual-vs-gigdock-infographic.png"
+        alt="Manual tracking versus GigDock: a spreadsheet works, but you build and maintain your own fields and updates, while GigDock is a purpose-built place to record gigs, rates, hours and bumps, log gross and net payments, keep gig history and payment info together, and see which gigs aren't yet marked paid."
+        w={1600}
+        h={930}
+      />
 
       <H2>Or use GigDock</H2>
       <P>
