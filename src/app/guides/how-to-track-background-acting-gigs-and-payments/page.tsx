@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import PublicShell from "@/components/PublicShell";
+import AppCta from "@/components/AppCta";
 
 const BASE = "https://www.gigdock.co";
 const PATH = "/guides/how-to-track-background-acting-gigs-and-payments";
@@ -163,16 +164,10 @@ function Guide() {
       </ul>
       <P>If you can answer those quickly, you&rsquo;re far less dependent on memory when a payment arrives weeks after the job. And if you&rsquo;re doing background work regularly, that&rsquo;s exactly the kind of organization GigDock is designed to provide.</P>
 
-      <div className="mt-6 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 p-6">
-        <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Track your gigs and payments with GigDock</h3>
-        <p className="mt-1.5 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
-          Keep your own spreadsheet if you like — or let GigDock keep your gigs, rates, hours, bumps and payments in one
-          place, plus casting calls from across the web in one feed.
-        </p>
-        <div className="mt-4">
-          <Link href="/opportunities/atlanta-ga" className="inline-flex items-center px-5 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm">Browse casting calls</Link>
-        </div>
-      </div>
+      <AppCta heading="Track your gigs and payments with GigDock" ctaLabel="See how GigDock works">
+        Keep your own spreadsheet if you like — or let the GigDock app keep your gigs, rates, hours, bumps and payments
+        in one place. It&rsquo;s in beta now, ahead of launch — join the beta to be among the first to use it.
+      </AppCta>
 
       <H2>Frequently asked questions</H2>
       <div className="mt-4 divide-y divide-zinc-200 dark:divide-zinc-800">

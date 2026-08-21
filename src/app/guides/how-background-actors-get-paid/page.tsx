@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import PublicShell from "@/components/PublicShell";
+import AppCta from "@/components/AppCta";
 
 const HERO = "/guides/gigdock-hero-how-background-actors-get-paid.png";
 
@@ -304,6 +305,11 @@ function Guide() {
           <Link href="/opportunities" className="px-5 py-2.5 rounded-full border border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800">Explore GigDock</Link>
         </div>
       </div>
+
+      <AppCta heading="Keep your gigs and payments together with GigDock" ctaLabel="See how GigDock works">
+        The app that keeps your gigs, hours and pay — gross and net — in one place is in beta now, ahead of launch. Join
+        the beta to be among the first to use it on iPhone or Android.
+      </AppCta>
 
       <H2>Frequently asked questions</H2>
       <div className="mt-4 divide-y divide-zinc-200 dark:divide-zinc-800">

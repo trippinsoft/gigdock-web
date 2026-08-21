@@ -10,6 +10,7 @@ const NAV = [
   { href: "/opportunities/locations", label: "By location" },
   { href: "/gigfit", label: "GigFit" },
   { href: "/guides", label: "Guides" },
+  { href: "/app", label: "Get the app" },
   { href: "/profile", label: "Profile" },
 ];
 

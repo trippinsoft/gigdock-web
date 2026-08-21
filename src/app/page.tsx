@@ -5,6 +5,7 @@ import { createSupabaseServer } from "@/lib/supabase-server";
 import type { Opportunity } from "@/lib/types";
 import PublicShell from "@/components/PublicShell";
 import { GigFitArt, SaveShareArt } from "@/components/HowItWorksArt";
+import AppCta from "@/components/AppCta";
 import { stateName, stateSlug } from "@/lib/markets";
 
 export const metadata: Metadata = {
@@ -328,6 +329,11 @@ export default async function Home() {
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">No credit card required.</p>
           </div>
         </section>
+
+        <AppCta center heading="See everything GigDock can do" ctaLabel="See how GigDock works">
+          Find casting calls here, then track the gigs you book — dates, hours, bumps, and what you were paid, gross and
+          net — in the GigDock app. It&rsquo;s in beta now, ahead of launch.
+        </AppCta>
       </div>
     </PublicShell>
   );

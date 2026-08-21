@@ -3,6 +3,7 @@ import { createSupabaseServer } from "@/lib/supabase-server";
 import type { Opportunity } from "@/lib/types";
 import PublicShell from "@/components/PublicShell";
 import TrackEvent from "@/components/TrackEvent";
+import AppCta from "@/components/AppCta";
 import { ROLE_TYPES, specFaqs, belongsToMarket, type MarketSpec } from "@/lib/marketContent";
 
 const BASE = "https://www.gigdock.co";
@@ -328,6 +329,11 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1.5 max-w-md mx-auto">Create a free GigDock account to save opportunities, track what you&apos;ve applied to, and see which {name} calls match your profile.</p>
           <Link href="/signup" className="inline-block mt-4 px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm">Create your free account</Link>
         </section>
+
+        <AppCta center heading="Want these opportunities on your phone?" ctaLabel="Join the GigDock beta">
+          Booked one of these? The GigDock app keeps your gigs, hours and pay — gross and net — in one place. It&rsquo;s
+          in beta now, ahead of launch — join the beta to try it early on iPhone or Android.
+        </AppCta>
       </div>
     </PublicShell>
   );
