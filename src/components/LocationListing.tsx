@@ -4,7 +4,7 @@ import type { Opportunity } from "@/lib/types";
 import PublicShell from "@/components/PublicShell";
 import TrackEvent from "@/components/TrackEvent";
 import AppCta from "@/components/AppCta";
-import OpportunityListItem from "@/components/OpportunityListItem";
+import OpportunitiesFeed from "@/components/OpportunitiesFeed";
 import { ROLE_TYPES, specFaqs, belongsToMarket, marketsInState, type MarketSpec } from "@/lib/marketContent";
 import { stateName, stateSlug } from "@/lib/markets";
 
@@ -165,7 +165,8 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
         }}
       />
 
-      <div className="max-w-3xl mx-auto pb-8">
+      <div className="pb-8">
+       <div className="max-w-3xl mx-auto">
         <nav className="text-sm text-zinc-500 dark:text-zinc-400 mb-3" aria-label="Breadcrumb">
           {trail.map((c, i) => (
             <span key={c.href}>
@@ -225,21 +226,30 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
           </div>
         )}
 
-        <Section title={`Open casting calls in ${name}`}>
-          {opps.length > 0 ? (
-            <div className="space-y-3">{opps.map((o) => <OpportunityListItem key={o.id} opp={o} href={`/opportunities/${o.id}`} now={now} />)}</div>
-          ) : (
-            <p className="text-zinc-600 dark:text-zinc-400">No open casting calls in {name} at the moment — new ones post daily. Create a free account and GigDock will surface {name} opportunities the moment they land.</p>
-          )}
-          <div className="mt-6 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 p-6 text-center">
-            <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">See which {name} calls fit you</h3>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1 max-w-md mx-auto">GigFit compares casting requirements with your profile so you can spot the ones worth your time.</p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-              <Link href="/gigfit" className="px-6 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm">Find my matches</Link>
-              <Link href="/opportunities" className="px-6 py-2.5 rounded-full border border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800">Browse all opportunities</Link>
-            </div>
+       </div>
+
+       {/* Wider band: the SAME opportunity browser as /opportunities, scoped to
+           this location and SSR-seeded so the listings are crawlable. */}
+       <div className="max-w-5xl mx-auto mt-10">
+         <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100">Open casting calls in {name}</h2>
+         {opps.length > 0 ? (
+           <div className="mt-4">
+             <OpportunitiesFeed initialOpps={opps} embedded scopeLabel={name} now={now} />
+           </div>
+         ) : (
+           <p className="mt-4 text-zinc-600 dark:text-zinc-400">No open casting calls in {name} at the moment — new ones post daily. Create a free account and GigDock will surface {name} opportunities the moment they land.</p>
+         )}
+       </div>
+
+       <div className="max-w-3xl mx-auto">
+        <div className="mt-8 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 p-6 text-center">
+          <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">See which {name} calls fit you</h3>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1 max-w-md mx-auto">GigFit compares casting requirements with your profile so you can spot the ones worth your time.</p>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/gigfit" className="px-6 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm">Find my matches</Link>
+            <Link href="/opportunities" className="px-6 py-2.5 rounded-full border border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800">Browse all opportunities</Link>
           </div>
-        </Section>
+        </div>
 
         {pulse.total >= 5 && (
           <Section title={`${name} casting market — last 30 days`}>
@@ -325,6 +335,7 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
           Booked one of these? The GigDock app keeps your gigs, hours and pay — gross and net — in one place. It&rsquo;s
           in beta now, ahead of launch — join the beta to try it early on iPhone or Android.
         </AppCta>
+       </div>
       </div>
     </PublicShell>
   );
