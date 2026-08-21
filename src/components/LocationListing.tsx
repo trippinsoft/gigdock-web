@@ -183,7 +183,7 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance">
           {name}{" "}Casting Calls &amp; Background Acting Opportunities
         </h1>
-        <p className="mt-4 max-w-3xl text-zinc-600 dark:text-zinc-400 leading-relaxed">{content.intro}</p>
+        <p className="mt-4 text-zinc-600 dark:text-zinc-400 leading-relaxed">{content.intro}</p>
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
           {opps.length > 0 && (
             <span>

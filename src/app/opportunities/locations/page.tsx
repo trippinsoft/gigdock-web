@@ -68,7 +68,7 @@ export default async function LocationsHub() {
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
           Film &amp; TV opportunities by location
         </h1>
-        <p className="max-w-3xl text-zinc-600 dark:text-zinc-400 mt-2 leading-relaxed">
+        <p className="text-zinc-600 dark:text-zinc-400 mt-2 leading-relaxed">
           GigDock aggregates casting calls from across the web. Here&rsquo;s where work is posting right now —
           {total > 0 ? ` ${total.toLocaleString()} open ${total === 1 ? "opportunity" : "opportunities"} across ${states.length} ${states.length === 1 ? "state" : "states"}.` : " new opportunities post daily."}{" "}
           Pick a market or a state.
@@ -78,7 +78,7 @@ export default async function LocationsHub() {
         {markets.length > 0 && (
           <section className="mt-8">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Popular markets</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
               {markets.map(({ spec, count }) => (
                 <Link
                   key={spec.slug}
@@ -107,7 +107,7 @@ export default async function LocationsHub() {
         <section className="mt-8">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Browse by state</h2>
           {states.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mt-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
               {states.map((m) => (
                 <Link
                   key={m.code}
