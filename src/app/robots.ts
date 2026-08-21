@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
       // Private / non-indexable areas.
-      disallow: ["/admin", "/login", "/signup", "/profile", "/saved"],
+      disallow: ["/admin", "/login", "/signup", "/profile", "/saved", "/feedback"],
     },
     sitemap: `${base}/sitemap.xml`,
     host: base,
