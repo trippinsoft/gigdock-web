@@ -214,7 +214,7 @@ export default function Page() {
               site after site and more time finding work that fits.</p>
             <p>Save opportunities you want to revisit and keep track of the ones you&rsquo;ve applied to, so a promising
               casting call doesn&rsquo;t disappear into your screenshots or social feed.</p>
-            <p><strong>GigFit</strong> helps you quickly see how an opportunity&rsquo;s requirements line up with your
+            <p><strong>GigFit</strong>{" "}helps you quickly see how an opportunity&rsquo;s requirements line up with your
               profile, making it easier to focus on the opportunities that may fit you best.</p>
           </Feature>
 
