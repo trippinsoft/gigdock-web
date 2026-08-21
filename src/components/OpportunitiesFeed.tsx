@@ -45,17 +45,37 @@ const DISMISS_THRESHOLD = 110;
 const PULL_TRIGGER = 70; // px pulled (after damping) before a refresh fires
 const PULL_MAX = 110; // cap on the visual pull distance
 
+// How many opportunities the embedded (location-page) list shows before linking
+// out to the full search — keeps the SEO content below the feed reachable.
+const EMBED_CAP = 25;
+
 export default function OpportunitiesFeed({
   initialSelectedId,
+  initialOpps,
+  embedded = false,
+  scopeLabel,
+  now,
 }: {
   /** When set (a shared /opportunities/[id] link), that gig opens pre-selected. */
   initialSelectedId?: string;
+  /** Server-seeded, already-scoped opportunities. When present the feed renders
+   *  these (SSR-crawlable) instead of client-fetching the whole active set. */
+  initialOpps?: Opportunity[];
+  /** Presentation mode only: flow layout for embedding inside a content page
+   *  (location pages). The cards, detail and actions are identical either way. */
+  embedded?: boolean;
+  /** e.g. "Atlanta" — used only for scoped empty-state / count copy. */
+  scopeLabel?: string;
+  /** Stable render-time clock (from the server on SSR-seeded pages) so the
+   *  cards' relative times hydrate without a mismatch. */
+  now?: number;
 } = {}) {
   const router = useRouter();
   const supabase = createSupabaseBrowser();
+  const seeded = !!initialOpps;
 
-  const [opps, setOpps] = useState<Opportunity[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [opps, setOpps] = useState<Opportunity[]>(initialOpps ?? []);
+  const [loading, setLoading] = useState(!initialOpps);
 
   const [userId, setUserId] = useState<string | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
@@ -118,13 +138,16 @@ export default function OpportunitiesFeed({
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  // Client-fetch the whole active set only when we weren't handed a scoped set.
+  useEffect(() => { if (!seeded) load(); }, [load, seeded]);
 
-  // Initial scope from ?scope= (e.g. the old /saved route redirects here).
+  // Initial scope from ?scope= (e.g. the old /saved route redirects here). Not
+  // used embedded — a location page is always the "all in this market" view.
   useEffect(() => {
+    if (embedded) return;
     const s = new URLSearchParams(window.location.search).get("scope");
     if (s === "saved" || s === "applied") setScope(s);
-  }, []);
+  }, [embedded]);
 
   // Saved/Applied show the user's own list regardless of active status (so an
   // expired-but-saved gig still appears), fetched by id.
@@ -476,7 +499,10 @@ export default function OpportunitiesFeed({
 
   // Pull-to-refresh from the list itself: drag down from the top of the list.
   // Native non-passive listener so preventDefault() beats the browser gesture.
+  // Pull-to-refresh is a page gesture and would re-fetch the whole (unscoped)
+  // set — skip it entirely when embedded / seeded.
   useEffect(() => {
+    if (embedded || seeded) return;
     const el = listRef.current;
     if (!el) return;
     let startY = 0;
@@ -559,7 +585,9 @@ export default function OpportunitiesFeed({
   const gigfitOn = !!gigfitProfileId;
 
   // Scope + GigFit selects — reused inline (desktop) and on the 2nd row (mobile).
-  const scopeSelect = (
+  // The Saved/Applied scope tabs are a personal-feed concept; a location page is
+  // always the "all in this market" view, so we hide them when embedded.
+  const scopeSelect = embedded ? null : (
     <select
       value={scope}
       onChange={(e) => setScope(e.target.value as "all" | "saved" | "applied")}
@@ -600,9 +628,20 @@ export default function OpportunitiesFeed({
     </Link>
   );
 
-  return (
-    <PublicShell>
-      <div className="flex flex-col h-[calc(100dvh-6.5rem)]">
+  // Presentation-only layout switch. Embedded = flow layout (for a location page):
+  // the list flows and is capped, the detail is sticky. App = fixed-viewport with
+  // internal scroll. Same cards/detail/actions either way.
+  const shown = embedded ? visible.slice(0, EMBED_CAP) : visible;
+  const moreCount = embedded ? Math.max(0, visible.length - EMBED_CAP) : 0;
+  const rowCls = embedded ? "flex flex-col md:flex-row mt-4 gap-6 items-start" : "flex-1 flex min-h-0 mt-4 gap-6";
+  const listColCls = embedded ? "w-full md:w-[30rem] md:shrink-0" : "w-full md:w-[30rem] md:shrink-0 flex flex-col min-h-0";
+  const listScrollCls = embedded ? "pb-2" : "flex-1 min-h-0 overflow-y-auto overscroll-y-contain pr-1 pb-4";
+  const detailColCls = embedded
+    ? "hidden md:block flex-1 min-w-0 sticky top-20 self-start max-h-[calc(100dvh-6rem)] overflow-y-auto"
+    : "hidden md:block flex-1 min-w-0 overflow-y-auto";
+
+  const content = (
+    <div className={embedded ? "" : "flex flex-col h-[calc(100dvh-6.5rem)]"}>
         {/* Toolbar */}
         <div className="space-y-2 pb-3 border-b border-zinc-200 dark:border-zinc-800">
           {/* Row 1: search + sort (+ scope & GigFit inline on desktop) */}
@@ -676,9 +715,9 @@ export default function OpportunitiesFeed({
         </div>
 
         {/* List + detail */}
-        <div className="flex-1 flex min-h-0 mt-4 gap-6">
-          <div className="w-full md:w-[30rem] md:shrink-0 flex flex-col min-h-0">
-            <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pr-1 pb-4">
+        <div className={rowCls}>
+          <div className={listColCls}>
+            <div ref={listRef} className={listScrollCls}>
               {/* Pull-to-refresh indicator (grows as you drag, spins while refreshing) */}
               {(pullY > 0 || refreshing) && (
                 <div
@@ -709,23 +748,30 @@ export default function OpportunitiesFeed({
                     ? "Nothing saved yet. Tap the bookmark on any opportunity to save it."
                     : scope === "applied"
                     ? "Nothing marked applied yet. Apply to a gig or mark it applied to track it here."
+                    : embedded && scopeLabel
+                    ? `No open casting calls in ${scopeLabel} match your filters right now — new ones post daily.`
                     : "No opportunities match your filters."}
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {visible.map((opp) => (
-                    <OpportunityListItem key={opp.id} opp={opp} selected={opp.id === selectedId} onSelect={() => { track("opportunity_viewed", { opportunity_id: opp.id, production_name: opp.production_name, market: opp.match_state, source: opp.source, pay_min: opp.pay_min, surface: "feed" }); openSheet(opp.id); }} fit={fitById.get(opp.id) ?? null} saved={savedIds.has(opp.id)} onToggleSave={() => toggleSave(opp.id)} />
+                  {shown.map((opp) => (
+                    <OpportunityListItem key={opp.id} opp={opp} selected={opp.id === selectedId} href={`/opportunities/${opp.id}`} now={now} onSelect={() => { track("opportunity_viewed", { opportunity_id: opp.id, production_name: opp.production_name, market: opp.match_state, source: opp.source, pay_min: opp.pay_min, surface: embedded ? "location" : "feed" }); openSheet(opp.id); }} fit={fitById.get(opp.id) ?? null} saved={savedIds.has(opp.id)} onToggleSave={() => toggleSave(opp.id)} />
                   ))}
+                  {moreCount > 0 && (
+                    <Link href="/opportunities" className="block text-center py-3 text-sm font-semibold text-blue-600 hover:underline dark:text-blue-400">
+                      View all {visible.length} opportunities in the full search →
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
           </div>
 
-          <div className="hidden md:block flex-1 min-w-0 overflow-y-auto">
+          <div className={detailColCls}>
             {selected ? (
               <OpportunityCard opp={selected} actions={<div className="flex items-center gap-2 flex-wrap justify-end">{saveButton(selected.id)}{appliedButton(selected.id)}<ShareButton id={selected.id} title={selected.title} /></div>} fit={selectedId ? fitById.get(selectedId) ?? null : null} onApply={(kind) => markApplied(selected.id, kind)} hideAdminMeta />
             ) : (
-              <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400 text-sm">Select an opportunity to view details</div>
+              <div className="flex items-center justify-center h-full min-h-[12rem] text-zinc-500 dark:text-zinc-400 text-sm">Select an opportunity to view details</div>
             )}
           </div>
         </div>
@@ -794,6 +840,7 @@ export default function OpportunitiesFeed({
           </div>
         )}
       </div>
-    </PublicShell>
   );
+
+  return embedded ? content : <PublicShell>{content}</PublicShell>;
 }
