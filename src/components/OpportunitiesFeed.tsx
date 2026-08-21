@@ -23,6 +23,7 @@ import {
   type GigFitRow,
   type PerformerProfile,
 } from "@/lib/gigfit";
+import { track } from "@/lib/analytics";
 
 type SortKey = "recent" | "shoot-date" | "apply-by";
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
@@ -292,8 +293,13 @@ export default function OpportunitiesFeed({
 
   /* ---------- save ---------- */
   async function toggleSave(id: string) {
-    if (!userId) { router.push(`/signup?intent=save&opportunity=${id}`); return; }
+    if (!userId) {
+      track("opportunity_saved", { opportunity_id: id, signed_in: false });
+      router.push(`/signup?intent=save&opportunity=${id}`);
+      return;
+    }
     const isSaved = savedIds.has(id);
+    track(isSaved ? "opportunity_unsaved" : "opportunity_saved", { opportunity_id: id, signed_in: true });
     setSavedIds((prev) => {
       const next = new Set(prev);
       if (isSaved) next.delete(id); else next.add(id);
@@ -308,8 +314,15 @@ export default function OpportunitiesFeed({
 
   /* ---------- applied (mirrors the mobile app's applied_opportunities) ---------- */
   async function toggleApplied(id: string) {
-    if (!userId) { router.push(`/signup?intent=applied&opportunity=${id}`); return; }
+    if (!userId) {
+      track("opportunity_applied", { opportunity_id: id, method: "manual", signed_in: false });
+      router.push(`/signup?intent=applied&opportunity=${id}`);
+      return;
+    }
     const isApplied = appliedIds.has(id);
+    track(isApplied ? "opportunity_unapplied" : "opportunity_applied", {
+      opportunity_id: id, method: "manual", signed_in: true,
+    });
     setAppliedIds((prev) => {
       const next = new Set(prev);
       if (isApplied) next.delete(id); else next.add(id);
@@ -701,7 +714,7 @@ export default function OpportunitiesFeed({
               ) : (
                 <div className="space-y-3">
                   {visible.map((opp) => (
-                    <OpportunityListItem key={opp.id} opp={opp} selected={opp.id === selectedId} onSelect={() => openSheet(opp.id)} fit={fitById.get(opp.id) ?? null} saved={savedIds.has(opp.id)} onToggleSave={() => toggleSave(opp.id)} />
+                    <OpportunityListItem key={opp.id} opp={opp} selected={opp.id === selectedId} onSelect={() => { track("opportunity_viewed", { opportunity_id: opp.id, production_name: opp.production_name, market: opp.match_state, source: opp.source, pay_min: opp.pay_min, surface: "feed" }); openSheet(opp.id); }} fit={fitById.get(opp.id) ?? null} saved={savedIds.has(opp.id)} onToggleSave={() => toggleSave(opp.id)} />
                   ))}
                 </div>
               )}

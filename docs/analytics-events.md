@@ -20,9 +20,17 @@ funnel lives in one place: discover on the web → track in the app.
 | `[Amplitude] Page Viewed` | Any page load (autocapture) | url, referrer (automatic) |
 | `[Amplitude] Session Start/End` | Session boundaries (autocapture) | — |
 | `opportunity_list_viewed` | A market landing page renders (`/opportunities/<market>`) | `market`, `results_count`, `roles`, `sources`, `surface: "market_page"` |
-| `opportunity_viewed` | A shared gig link opens (`/opportunities/<uuid>`) | `opportunity_id`, `production_name`, `market`, `source`, `pay_min`, `surface: "shared_link"` |
+| `opportunity_viewed` | A gig is opened — the feed detail sheet (`surface: "feed"`) or a shared link (`surface: "shared_link"`) | `opportunity_id`, `production_name`, `market`, `source`, `pay_min`, `surface` |
 | `opportunity_shared` | A share channel is chosen | `opportunity_id`, `method` (`copy_link` \| `email` \| `sms` \| `whatsapp`) |
-| `opportunity_applied` | The Apply CTA is clicked on the public feed | `opportunity_id`, `production_name`, `market`, `source`, `pay_min`, `method` (`email` \| `url`), `apply_host` |
+| `opportunity_saved` | The Save button is tapped (add) | `opportunity_id`, `signed_in` |
+| `opportunity_unsaved` | Save is toggled off | `opportunity_id`, `signed_in` |
+| `opportunity_applied` | Gig marked applied — outbound Apply CTA (`method: "email"`/`"url"`, `apply_host`) or the Mark‑applied button (`method: "manual"`) | `opportunity_id`, `method`, `signed_in`, plus `production_name`/`market`/`source`/`pay_min` on the CTA path |
+| `opportunity_unapplied` | Mark‑applied is toggled off | `opportunity_id`, `method: "manual"`, `signed_in` |
+
+`signed_in: false` means a logged‑out visitor tapped Save/Apply and was routed to
+sign‑up — a real intent signal worth keeping in the funnel. `opportunity_saved`
+writes to `saved_opportunities`; `opportunity_applied` writes to
+`applied_opportunities` (both shared with the app).
 
 ## App events (`gigvault`) — existing
 
@@ -49,7 +57,14 @@ see which feeds and cities convert.
 
 ## Optional next events (add when the UI exists)
 
-- `opportunity_saved` — if/when the web or app lets a user save a casting call to
-  track later (in the app today, saving a gig to track = `gig_created`).
 - `search_performed` — `{ query, results_count }` on the opportunities search.
 - `gigfit_viewed` — `{ opportunity_id, verdict }` when a match score is shown.
+
+## For the app (Draftbit)
+
+The app writes to the shared `saved_opportunities` / `applied_opportunities`
+tables. Wherever it lets a user **save** or **mark applied**, fire the same event
+names as the web so the funnel is one dataset:
+
+- `opportunity_saved` / `opportunity_unsaved` — `{ platform, opportunity_id }`
+- `opportunity_applied` / `opportunity_unapplied` — `{ platform, opportunity_id, method }`
