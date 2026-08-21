@@ -214,6 +214,19 @@ export function seoMarketSlugs(): string[] {
   return Object.keys(SEO_MARKETS);
 }
 
+/** All curated market specs — the "Popular markets" tier on the locations hub.
+ *  Whether each one is CLICKABLE/shown is decided by live inventory at render
+ *  time; indexability (SEO) is a separate concern handled by indexableMarketSlugs. */
+export function curatedMarkets(): MarketSpec[] {
+  return Object.values(SEO_MARKETS);
+}
+
+/** Curated markets that sit within a given state (e.g. GA -> Atlanta). Drives the
+ *  "Popular <state> markets" cross-link on a state page. */
+export function marketsInState(code: string): MarketSpec[] {
+  return Object.values(SEO_MARKETS).filter((m) => m.stateCode === code);
+}
+
 /** Slugs of markets marked ready to INDEX (real content + recurring inventory).
  *  Only these belong in the sitemap and get index/follow; the rest render but
  *  stay noindex, so we build capability without shipping thin doorway pages. */

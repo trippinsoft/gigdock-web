@@ -4,7 +4,8 @@ import type { Opportunity } from "@/lib/types";
 import PublicShell from "@/components/PublicShell";
 import TrackEvent from "@/components/TrackEvent";
 import AppCta from "@/components/AppCta";
-import { ROLE_TYPES, specFaqs, belongsToMarket, type MarketSpec } from "@/lib/marketContent";
+import { ROLE_TYPES, specFaqs, belongsToMarket, marketsInState, type MarketSpec } from "@/lib/marketContent";
+import { stateName, stateSlug } from "@/lib/markets";
 
 const BASE = "https://www.gigdock.co";
 
@@ -166,13 +167,33 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
   const counts = honestCounts(opps);
   const updated = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
+  // Breadcrumb trail: Opportunities › By location › [State ›] Name. A market page
+  // inserts its state level so the hierarchy Locations → Georgia → Atlanta is
+  // explicit for users and search engines.
+  const trail: { name: string; href: string }[] = [
+    { name: "Opportunities", href: "/opportunities" },
+    { name: "By location", href: "/opportunities/locations" },
+  ];
+  if (spec.kind === "market" && spec.stateCode) {
+    trail.push({ name: stateName(spec.stateCode), href: `/opportunities/${stateSlug(spec.stateCode)}` });
+  }
+  trail.push({ name, href: `/opportunities/${slug}` });
+
+  // On a state page, surface the curated markets within it that have inventory
+  // (e.g. Georgia → Atlanta) so Atlanta is discoverable from the state as well.
+  const stateMarkets =
+    spec.kind === "state" && spec.stateCode
+      ? marketsInState(spec.stateCode)
+          .map((m) => ({ m, count: opps.filter((o) => belongsToMarket(m, o)).length }))
+          .filter((x) => x.count > 0)
+          .sort((a, b) => b.count - a.count || a.m.name.localeCompare(b.m.name))
+      : [];
+
   const breadcrumbLd = {
     "@context": "https://schema.org", "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "GigDock", item: BASE },
-      { "@type": "ListItem", position: 2, name: "Opportunities by Location", item: `${BASE}/opportunities/locations` },
-      { "@type": "ListItem", position: 3, name: `${name} Casting Calls`, item: `${BASE}/opportunities/${slug}` },
-    ],
+    itemListElement: trail.map((c, i) => ({
+      "@type": "ListItem", position: i + 1, name: c.name, item: `${BASE}${c.href}`,
+    })),
   };
   const itemListLd = {
     "@context": "https://schema.org", "@type": "ItemList", name: `Casting calls in ${name}`,
@@ -201,9 +222,16 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
 
       <div className="max-w-3xl mx-auto pb-8">
         <nav className="text-sm text-zinc-500 dark:text-zinc-400 mb-3" aria-label="Breadcrumb">
-          <Link href="/opportunities/locations" className="hover:text-zinc-800 dark:hover:text-zinc-200">Locations</Link>
-          <span className="mx-1.5">›</span>
-          <span className="text-zinc-700 dark:text-zinc-300">{name}</span>
+          {trail.map((c, i) => (
+            <span key={c.href}>
+              {i > 0 && <span className="mx-1.5">›</span>}
+              {i < trail.length - 1 ? (
+                <Link href={c.href} className="hover:text-zinc-800 dark:hover:text-zinc-200">{c.name}</Link>
+              ) : (
+                <span className="text-zinc-700 dark:text-zinc-300">{c.name}</span>
+              )}
+            </span>
+          ))}
         </nav>
 
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance">
@@ -233,6 +261,24 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
           </Link>{" "}
           — rates, bumps, and when the check actually comes.
         </p>
+
+        {stateMarkets.length > 0 && (
+          <div className="mt-6">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Popular {name} markets</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+              {stateMarkets.map(({ m, count }) => (
+                <Link
+                  key={m.slug}
+                  href={`/opportunities/${m.slug}`}
+                  className="flex items-center justify-between rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-3.5 hover:border-blue-300 dark:hover:border-blue-800 hover:shadow-sm transition-all"
+                >
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">{m.name} metro</span>
+                  <span className="shrink-0 ml-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">{count} {count === 1 ? "opportunity" : "opportunities"}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         <Section title={`Open casting calls in ${name}`}>
           {opps.length > 0 ? (
