@@ -35,10 +35,39 @@ const FAQ: { q: string; a: string }[] = [
 
 /* ---------- building blocks ---------- */
 
-function PhoneShot({ src, alt, priority = false }: { src: string; alt: string; priority?: boolean }) {
+function PhoneShot({
+  src, darkSrc, alt, priority = false, className = "max-w-[248px]", style,
+}: {
+  src: string; darkSrc?: string; alt: string; priority?: boolean; className?: string; style?: React.CSSProperties;
+}) {
   return (
-    <div className="mx-auto w-full max-w-[248px] rounded-[2rem] border-[6px] border-zinc-900 dark:border-zinc-700 bg-zinc-900 dark:bg-zinc-700 shadow-2xl overflow-hidden">
-      <Image src={src} alt={alt} width={1206} height={2622} priority={priority} sizes="248px" className="w-full h-auto rounded-[1.5rem]" />
+    <div style={style} className={`mx-auto w-full ${className} rounded-[2rem] border-[6px] border-zinc-900 dark:border-zinc-700 bg-zinc-900 dark:bg-zinc-700 shadow-2xl overflow-hidden`}>
+      <Image src={src} alt={alt} width={1206} height={2622} priority={priority} sizes="248px"
+        className={`w-full h-auto rounded-[1.5rem] ${darkSrc ? "dark:hidden" : ""}`} />
+      {darkSrc && (
+        <Image src={darkSrc} alt={alt} width={1206} height={2622} priority={priority} sizes="248px"
+          className="hidden dark:block w-full h-auto rounded-[1.5rem]" />
+      )}
+    </div>
+  );
+}
+
+// Two phones side by side (e.g. Today + Calendar, feed + detail).
+function TwoPhones({ a, b }: { a: React.ReactNode; b: React.ReactNode }) {
+  return <div className="flex items-start justify-center gap-3 sm:gap-4">{a}{b}</div>;
+}
+
+// Hero montage: three overlapping phones — Opportunities → Gig Detail → Payments.
+// Side phones hide on small screens so the page never scrolls sideways.
+function HeroPhones() {
+  return (
+    <div className="relative flex items-end justify-center overflow-hidden py-4">
+      <PhoneShot src="/app/opportunities-feed.png" alt="The GigDock opportunities feed with GigFit matching"
+        className="hidden max-w-[128px] -mr-10 -rotate-6 translate-y-5 opacity-95 sm:block" />
+      <PhoneShot src="/app/gig-detail.png" alt="A gig's detail in GigDock — earnings, hours, day rate and bumps"
+        priority className="relative z-10 max-w-[168px]" />
+      <PhoneShot src="/guides/gigdock-app-payments-summary.png" alt="The GigDock payments summary — received versus outstanding"
+        className="hidden max-w-[128px] -ml-10 rotate-6 translate-y-5 opacity-95 sm:block" />
     </div>
   );
 }
@@ -130,7 +159,7 @@ export default function Page() {
             </div>
             {!APP_LIVE && <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Free beta access · iPhone &amp; Android</p>}
           </div>
-          <PhoneShot src={HERO_SHOT} alt="The GigDock app showing a gig with its rate, hours and earnings" priority />
+          <HeroPhones />
         </section>
 
         {/* ---------- PROBLEM ---------- */}
@@ -175,7 +204,11 @@ export default function Page() {
 
         {/* ---------- FEATURE SECTIONS ---------- */}
         <section className="space-y-16 border-t border-zinc-200 dark:border-zinc-800 py-12">
-          <Feature eyebrow="Find opportunities" title="Spend less time hunting for the next gig." cta={browseLink}>
+          <Feature eyebrow="Find opportunities" title="Spend less time hunting for the next gig." cta={browseLink}
+            shot={<TwoPhones
+              a={<PhoneShot src="/app/opportunities-feed.png" alt="The GigDock opportunities feed — search, filters and GigFit matching across 55 opportunities" className="max-w-[150px]" />}
+              b={<PhoneShot src="/app/opportunity-detail.png" alt="A GigDock opportunity detail with a GigFit strong-match badge and Save, Share and Applied actions" className="mt-6 max-w-[150px]" />}
+            />}>
             <p>Film &amp; TV opportunities are scattered across casting sites, company pages and social feeds. GigDock
               brings opportunities from multiple sources into one searchable feed so you can spend less time checking
               site after site and more time finding work that fits.</p>
@@ -185,7 +218,8 @@ export default function Page() {
               profile, making it easier to focus on the opportunities that may fit you best.</p>
           </Feature>
 
-          <Feature eyebrow="Manage your gigs" title="When it becomes work, keep the details with it.">
+          <Feature eyebrow="Manage your gigs" title="When it becomes work, keep the details with it." reverse
+            shot={<PhoneShot src="/app/gig-detail.png" alt="A gig's detail in GigDock showing gross earned, hours worked, day rate, bumps and the associated project, with Info, Payments and Documents tabs" />}>
             <p>A booking can generate a surprising amount of information. GigDock gives each gig its own home.</p>
             <p>Keep the production or project, casting company, payroll company, work dates, rate and guaranteed hours
               together. Add the hours you actually worked, bumps or additional pay, notes and other details as the gig
@@ -194,7 +228,11 @@ export default function Page() {
               which screenshot had the rate. The information stays with the gig.</p>
           </Feature>
 
-          <Feature eyebrow="Stay on top of it" title="Know what's next.">
+          <Feature eyebrow="Stay on top of it" title="Know what's next."
+            shot={<TwoPhones
+              a={<PhoneShot src="/app/today.png" alt="The GigDock Today screen showing today's gig, gigs awaiting payment, an earnings insight and new opportunities" className="max-w-[150px]" />}
+              b={<PhoneShot src="/app/calendar.png" alt="The GigDock calendar for the month with color-coded booked, worked and paid gigs" className="mt-6 max-w-[150px]" />}
+            />}>
             <p>Gig work moves quickly — what matters today may be completely different tomorrow. GigDock gives your work
               dates a home so you can see what&rsquo;s coming up and keep your schedule connected to the gigs themselves.</p>
             <p>Use <strong>Today</strong> for what&rsquo;s relevant now and <strong>Calendar</strong> to see your work
@@ -219,13 +257,15 @@ export default function Page() {
               <em>&ldquo;Did I ever get paid for that gig?&rdquo;</em> doesn&rsquo;t have to depend on memory.</p>
           </Feature>
 
-          <Feature eyebrow="Keep the paperwork" title="Keep important documents close to the gig.">
+          <Feature eyebrow="Keep the paperwork" title="Keep important documents close to the gig." reverse
+            shot={<PhoneShot src="/app/documents.png" alt="The GigDock documents view with pay stubs, vouchers, receipts and contracts kept with your gigs" />}>
             <p>Gig work creates paperwork too. Keep relevant documents with your work so the information you may need
               later isn&rsquo;t buried in your camera roll, downloads folder or inbox.</p>
             <p>The goal isn&rsquo;t simply to store files. It&rsquo;s to keep the information around a gig connected.</p>
           </Feature>
 
-          <Feature eyebrow="See the bigger picture" title="Your gigs tell a story.">
+          <Feature eyebrow="See the bigger picture" title="Your gigs tell a story."
+            shot={<PhoneShot src="/app/insights.png" alt="The GigDock Insights screen — gross earned, net recorded, weekly earnings, days and gigs worked, average per day, and received versus outstanding payments for the month" />}>
             <p>Once your work and payments are organized, GigDock can help you see more than a list of individual gigs.
               See your earnings, work activity and payment status for the current period so you can understand how your
               gig work is adding up.</p>
