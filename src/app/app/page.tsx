@@ -28,7 +28,7 @@ const FAQ: { q: string; a: string }[] = [
   { q: "What does GigDock do?", a: "GigDock helps you manage the lifecycle of TV & film gig work. Find opportunities, keep your gigs and schedule organized, record important work details, and track earnings and payments in one place." },
   { q: "Who is GigDock for?", a: "GigDock is designed for people who work gigs in TV & film. The current experience is especially useful for people managing short-term opportunities, bookings, work dates and payments, and we're continuing to expand the kinds of gig work GigDock can support." },
   { q: "Can I use GigDock on the web?", a: "GigDock.co lets you browse current film & TV opportunities on the web. The GigDock mobile app is where you manage the broader gig experience — your gigs, schedule, earnings, payments and other work information." },
-  { q: "How much does GigDock cost?", a: "GigDock is free during the beta. If anything about pricing changes in the future, we'll communicate it clearly before it affects you." },
+  { q: "How much does GigDock cost?", a: "The core features of GigDock — finding opportunities, tracking your gigs and payments, and basic insights — will always be free. Over time we'll add additional services for a nominal fee. And it's completely free to use during the beta." },
   { q: "Which phones does GigDock support?", a: "GigDock is available in beta for both iPhone and Android. Select your phone when requesting beta access so we can send you the correct invitation." },
   { q: "What does “beta” mean?", a: "GigDock is nearing public launch, but we're still testing and refining the experience with real users. Beta members get early access and can help us improve the product before it reaches the app stores publicly." },
 ];
