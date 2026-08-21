@@ -158,7 +158,7 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
         event="opportunity_list_viewed"
         props={{
           market: slug,
-          results_count: counts.opportunities,
+          results_count: opps.length,
           roles: counts.roles,
           sources: counts.sources,
           surface: "market_page",
@@ -166,7 +166,7 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
       />
 
       <div className="pb-8">
-       <div className="max-w-3xl mx-auto">
+       <div className="max-w-5xl mx-auto">
         <nav className="text-sm text-zinc-500 dark:text-zinc-400 mb-3" aria-label="Breadcrumb">
           {trail.map((c, i) => (
             <span key={c.href}>
@@ -181,17 +181,14 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
         </nav>
 
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance">
-          {name} Casting Calls &amp; Background Acting Opportunities
+          {name}{" "}Casting Calls &amp; Background Acting Opportunities
         </h1>
-        <p className="mt-4 text-zinc-600 dark:text-zinc-400 leading-relaxed">{content.intro}</p>
+        <p className="mt-4 max-w-3xl text-zinc-600 dark:text-zinc-400 leading-relaxed">{content.intro}</p>
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
           {opps.length > 0 && (
             <span>
-              <span className="font-semibold text-zinc-800 dark:text-zinc-200">{counts.opportunities}</span>{" "}
-              {counts.opportunities === 1 ? "opportunity" : "opportunities"} open
-              {counts.roles !== counts.opportunities && (
-                <> · <span className="font-semibold text-zinc-800 dark:text-zinc-200">{counts.roles}</span> roles</>
-              )}
+              <span className="font-semibold text-zinc-800 dark:text-zinc-200">{opps.length}</span>{" "}
+              {opps.length === 1 ? "opportunity" : "opportunities"} open
               {counts.sources > 0 && (
                 <> · from <span className="font-semibold text-zinc-800 dark:text-zinc-200">{counts.sources}</span> {counts.sources === 1 ? "source" : "sources"}</>
               )}
@@ -241,7 +238,7 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
          )}
        </div>
 
-       <div className="max-w-3xl mx-auto">
+       <div className="max-w-5xl mx-auto">
         <div className="mt-8 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 p-6 text-center">
           <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">See which {name} calls fit you</h3>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1 max-w-md mx-auto">GigFit compares casting requirements with your profile so you can spot the ones worth your time.</p>
