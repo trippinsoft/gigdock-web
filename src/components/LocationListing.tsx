@@ -4,43 +4,15 @@ import type { Opportunity } from "@/lib/types";
 import PublicShell from "@/components/PublicShell";
 import TrackEvent from "@/components/TrackEvent";
 import AppCta from "@/components/AppCta";
+import OpportunityListItem from "@/components/OpportunityListItem";
 import { ROLE_TYPES, specFaqs, belongsToMarket, marketsInState, type MarketSpec } from "@/lib/marketContent";
 import { stateName, stateSlug } from "@/lib/markets";
 
 const BASE = "https://www.gigdock.co";
 
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-function shortDate(input: string | null): string | null {
-  if (!input) return null;
-  const [y, m, d] = input.split("T")[0].split("-").map(Number);
-  if (!y || !m || !d) return null;
-  return `${MONTHS[m - 1]} ${d}`;
-}
-function freshness(o: Opportunity): string | null {
-  if (!o.posted_at) return null;
-  const hrs = (Date.now() - new Date(o.posted_at).getTime()) / 3.6e6;
-  if (hrs <= 6) return "New";
-  if (hrs <= 24) return "Today";
-  return null;
-}
-function cap(s: string): string { return s.charAt(0).toUpperCase() + s.slice(1); }
 function cityOf(loc: string | null): string | null {
   const c = (loc ?? "").split(",")[0].trim();
   return c || null;
-}
-
-function specChips(specs: Opportunity["casting_specs"]): string[] {
-  const s = (specs ?? {}) as Record<string, unknown>;
-  const out: string[] = [];
-  const g = s.gender;
-  if (Array.isArray(g) && g.length) out.push(g.map((x) => cap(String(x))).join(", "));
-  const amin = s.age_min as number | undefined, amax = s.age_max as number | undefined;
-  if (amin != null && amax != null) out.push(`Ages ${amin}–${amax}`);
-  else if (amin != null) out.push(`Ages ${amin}+`);
-  const u = s.union_status as string | undefined;
-  if (u === "sag-aftra") out.push("Union");
-  else if (u === "non-union") out.push("Non-Union");
-  return out.slice(0, 3);
 }
 
 // Honest counts: distinct productions (grouping a project's roles) vs. individual
@@ -113,34 +85,6 @@ async function getPulse(spec: MarketSpec): Promise<Pulse> {
   };
 }
 
-function OppCard({ o }: { o: Opportunity }) {
-  const meta = [o.source, o.location, shortDate(o.work_date)].filter(Boolean).join(" · ");
-  const fresh = freshness(o);
-  const chips = specChips(o.casting_specs);
-  return (
-    <Link href={`/opportunities/${o.id}`} className="flex items-start gap-3 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm transition-all">
-      <span className="shrink-0 w-14 h-14 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-        {o.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={o.image_url} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="text-zinc-400"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 8h18M8 5v3M16 5v3" /></svg>
-        )}
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start gap-2">
-          <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 leading-snug line-clamp-2 flex-1">{o.title}</h3>
-          {fresh && <span className="shrink-0 text-[11px] px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">{fresh}</span>}
-        </div>
-        {meta && <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">{meta}</div>}
-        <div className="flex items-center gap-2 flex-wrap mt-1.5">
-          {o.pay_rate && <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{o.pay_rate}</span>}
-          {chips.map((c) => <span key={c} className="text-[11px] px-2 py-0.5 rounded-full border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400">{c}</span>)}
-        </div>
-      </div>
-    </Link>
-  );
-}
 
 function StatTile({ value, label }: { value: string | number; label: string }) {
   return (
@@ -165,6 +109,7 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
   const faqs = specFaqs(spec);
   const [opps, pulse] = await Promise.all([getListings(spec), getPulse(spec)]);
   const counts = honestCounts(opps);
+  const now = Date.now(); // stable render-time clock so the cards' relative times hydrate cleanly
   const updated = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
   // Breadcrumb trail: Opportunities › By location › [State ›] Name. A market page
@@ -282,7 +227,7 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
 
         <Section title={`Open casting calls in ${name}`}>
           {opps.length > 0 ? (
-            <div className="space-y-2">{opps.map((o) => <OppCard key={o.id} o={o} />)}</div>
+            <div className="space-y-3">{opps.map((o) => <OpportunityListItem key={o.id} opp={o} href={`/opportunities/${o.id}`} now={now} />)}</div>
           ) : (
             <p className="text-zinc-600 dark:text-zinc-400">No open casting calls in {name} at the moment — new ones post daily. Create a free account and GigDock will surface {name} opportunities the moment they land.</p>
           )}

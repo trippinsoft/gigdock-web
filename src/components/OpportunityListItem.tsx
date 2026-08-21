@@ -21,9 +21,9 @@ function shortDate(input: string | null): string | null {
   return y === currentYear ? base : `${base}, ${y}`;
 }
 
-function relativeTime(iso: string | null): string | null {
+function relativeTime(iso: string | null, nowMs: number): string | null {
   if (!iso) return null;
-  const secs = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  const secs = Math.max(0, Math.floor((nowMs - new Date(iso).getTime()) / 1000));
   if (secs < 60) return "just now";
   const mins = Math.floor(secs / 60);
   if (mins < 60) return `${mins}m ago`;
@@ -36,17 +36,17 @@ function relativeTime(iso: string | null): string | null {
   return `${Math.floor(days / 365)}y ago`;
 }
 
-function freshnessBadge(opp: Opportunity): { label: string; color: string } | null {
+function freshnessBadge(opp: Opportunity, nowMs: number): { label: string; color: string } | null {
   // Only genuine urgency (a same-day deadline) earns color; freshness is neutral.
   if (opp.apply_by) {
     const deadline = new Date(opp.apply_by + "T23:59:59").getTime();
-    const hrs = (deadline - Date.now()) / (1000 * 60 * 60);
+    const hrs = (deadline - nowMs) / (1000 * 60 * 60);
     if (hrs > 0 && hrs <= 24) {
       return { label: "Deadline today", color: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300" };
     }
   }
   if (opp.posted_at) {
-    const hrs = (Date.now() - new Date(opp.posted_at).getTime()) / (1000 * 60 * 60);
+    const hrs = (nowMs - new Date(opp.posted_at).getTime()) / (1000 * 60 * 60);
     if (hrs <= 6) return { label: "New", color: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400" };
     if (hrs <= 24) return { label: "Today", color: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400" };
   }
@@ -55,16 +55,25 @@ function freshnessBadge(opp: Opportunity): { label: string; color: string } | nu
 
 export default function OpportunityListItem({
   opp,
-  selected,
+  selected = false,
   onSelect,
+  href,
+  now,
   fit,
   saved,
   onToggleSave,
   dense,
 }: {
   opp: Opportunity;
-  selected: boolean;
-  onSelect: () => void;
+  selected?: boolean;
+  /** Feed/app mode: click opens the detail sheet (rendered as a <button>). */
+  onSelect?: () => void;
+  /** Landing-page mode: render a real crawlable <a href> to the gig page. When
+   *  BOTH href and onSelect are given, the link is intercepted to open the sheet
+   *  (progressive enhancement: crawlable for bots, in-app for people). */
+  href?: string;
+  /** Stable timestamp so SSR and hydration compute the same relative times. */
+  now?: number;
   fit?: GigFitResult | null;
   /** When provided, the corner shows a working save bookmark. */
   saved?: boolean;
@@ -72,20 +81,19 @@ export default function OpportunityListItem({
   /** Admin uses a compact type scale for faster review. */
   dense?: boolean;
 }) {
-  const fresh = freshnessBadge(opp);
-  const posted = relativeTime(opp.posted_at);
+  const nowMs = now ?? Date.now();
+  const fresh = freshnessBadge(opp, nowMs);
+  const posted = relativeTime(opp.posted_at, nowMs);
   const shoot = shortDate(opp.work_date);
 
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={`w-full text-left rounded-lg border transition-colors ${dense ? "p-3" : "p-4"} ${
-        selected
-          ? "bg-blue-50 dark:bg-blue-950/40 border-blue-500 dark:border-blue-600"
-          : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
-      }`}
-    >
+  const className = `block w-full text-left rounded-lg border transition-colors ${dense ? "p-3" : "p-4"} ${
+    selected
+      ? "bg-blue-50 dark:bg-blue-950/40 border-blue-500 dark:border-blue-600"
+      : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
+  }`;
+
+  const inner = (
+    <>
       {/* Row 1: Title (always first, always full-width for scan consistency) */}
       <div className="flex items-start justify-between gap-2">
         <h4 className={`font-semibold ${dense ? "text-sm" : "text-base"} text-zinc-900 dark:text-zinc-100 line-clamp-2 flex-1 min-w-0`}>
@@ -100,6 +108,7 @@ export default function OpportunityListItem({
             aria-label={saved ? "Remove from saved" : "Save"}
             aria-pressed={saved}
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               onToggleSave();
             }}
@@ -185,6 +194,26 @@ export default function OpportunityListItem({
           </span>
         )}
       </div>
+    </>
+  );
+
+  // Landing-page mode → real crawlable link (intercepted to a sheet only when an
+  // onSelect handler is also supplied). Feed/app mode → button.
+  if (href) {
+    return (
+      <a
+        href={href}
+        className={className}
+        onClick={onSelect ? (e) => { e.preventDefault(); onSelect(); } : undefined}
+        aria-current={selected ? "true" : undefined}
+      >
+        {inner}
+      </a>
+    );
+  }
+  return (
+    <button type="button" onClick={onSelect} className={className}>
+      {inner}
     </button>
   );
 }
