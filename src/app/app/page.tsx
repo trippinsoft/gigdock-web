@@ -62,9 +62,9 @@ function TwoPhones({ a, b }: { a: React.ReactNode; b: React.ReactNode }) {
 function HeroPhones() {
   return (
     <div className="relative flex items-end justify-center overflow-hidden py-4">
-      <PhoneShot src="/app/opportunities-feed.png" alt="The GigDock opportunities feed with GigFit matching"
+      <PhoneShot src="/app/opportunities-feed.png" darkSrc="/app/opportunities-feed-dark.png" alt="The GigDock opportunities feed with GigFit matching"
         className="hidden max-w-[128px] -mr-10 -rotate-6 translate-y-5 opacity-95 sm:block" />
-      <PhoneShot src="/app/gig-detail.png" alt="A gig's detail in GigDock — earnings, hours, day rate and bumps"
+      <PhoneShot src="/app/gig-detail.png" darkSrc="/app/gig-detail-dark.png" alt="A gig's detail in GigDock — earnings, hours, day rate and bumps"
         priority className="relative z-10 max-w-[168px]" />
       <PhoneShot src="/guides/gigdock-app-payments-summary.png" alt="The GigDock payments summary — received versus outstanding"
         className="hidden max-w-[128px] -ml-10 rotate-6 translate-y-5 opacity-95 sm:block" />
@@ -206,8 +206,8 @@ export default function Page() {
         <section className="space-y-16 border-t border-zinc-200 dark:border-zinc-800 py-12">
           <Feature eyebrow="Find opportunities" title="Spend less time hunting for the next gig." cta={browseLink}
             shot={<TwoPhones
-              a={<PhoneShot src="/app/opportunities-feed.png" alt="The GigDock opportunities feed — search, filters and GigFit matching across 55 opportunities" className="max-w-[150px]" />}
-              b={<PhoneShot src="/app/opportunity-detail.png" alt="A GigDock opportunity detail with a GigFit strong-match badge and Save, Share and Applied actions" className="mt-6 max-w-[150px]" />}
+              a={<PhoneShot src="/app/opportunities-feed.png" darkSrc="/app/opportunities-feed-dark.png" alt="The GigDock opportunities feed — search, filters and GigFit matching across 55 opportunities" className="max-w-[150px]" />}
+              b={<PhoneShot src="/app/opportunity-detail.png" darkSrc="/app/opportunity-detail-dark.png" alt="A GigDock opportunity detail with a GigFit strong-match badge and Save, Share and Applied actions" className="mt-6 max-w-[150px]" />}
             />}>
             <p>Film &amp; TV opportunities are scattered across casting sites, company pages and social feeds. GigDock
               brings opportunities from multiple sources into one searchable feed so you can spend less time checking
@@ -219,7 +219,7 @@ export default function Page() {
           </Feature>
 
           <Feature eyebrow="Manage your gigs" title="When it becomes work, keep the details with it." reverse
-            shot={<PhoneShot src="/app/gig-detail.png" alt="A gig's detail in GigDock showing gross earned, hours worked, day rate, bumps and the associated project, with Info, Payments and Documents tabs" />}>
+            shot={<PhoneShot src="/app/gig-detail.png" darkSrc="/app/gig-detail-dark.png" alt="A gig's detail in GigDock showing gross earned, hours worked, day rate, bumps and the associated project, with Info, Payments and Documents tabs" />}>
             <p>A booking can generate a surprising amount of information. GigDock gives each gig its own home.</p>
             <p>Keep the production or project, casting company, payroll company, work dates, rate and guaranteed hours
               together. Add the hours you actually worked, bumps or additional pay, notes and other details as the gig
@@ -230,7 +230,7 @@ export default function Page() {
 
           <Feature eyebrow="Stay on top of it" title="Know what's next."
             shot={<TwoPhones
-              a={<PhoneShot src="/app/today.png" alt="The GigDock Today screen showing today's gig, gigs awaiting payment, an earnings insight and new opportunities" className="max-w-[150px]" />}
+              a={<PhoneShot src="/app/today.png" darkSrc="/app/today-dark.png" alt="The GigDock Today screen showing today's gig, gigs awaiting payment, an earnings insight and new opportunities" className="max-w-[150px]" />}
               b={<PhoneShot src="/app/calendar.png" alt="The GigDock calendar for the month with color-coded booked, worked and paid gigs" className="mt-6 max-w-[150px]" />}
             />}>
             <p>Gig work moves quickly — what matters today may be completely different tomorrow. GigDock gives your work
@@ -258,14 +258,14 @@ export default function Page() {
           </Feature>
 
           <Feature eyebrow="Keep the paperwork" title="Keep important documents close to the gig." reverse
-            shot={<PhoneShot src="/app/documents.png" alt="The GigDock documents view with pay stubs, vouchers, receipts and contracts kept with your gigs" />}>
+            shot={<PhoneShot src="/app/documents.png" darkSrc="/app/documents-dark.png" alt="The GigDock documents view with pay stubs, vouchers, receipts and contracts kept with your gigs" />}>
             <p>Gig work creates paperwork too. Keep relevant documents with your work so the information you may need
               later isn&rsquo;t buried in your camera roll, downloads folder or inbox.</p>
             <p>The goal isn&rsquo;t simply to store files. It&rsquo;s to keep the information around a gig connected.</p>
           </Feature>
 
           <Feature eyebrow="See the bigger picture" title="Your gigs tell a story."
-            shot={<PhoneShot src="/app/insights.png" alt="The GigDock Insights screen — gross earned, net recorded, weekly earnings, days and gigs worked, average per day, and received versus outstanding payments for the month" />}>
+            shot={<PhoneShot src="/app/insights.png" darkSrc="/app/insights-dark.png" alt="The GigDock Insights screen — gross earned, net recorded, weekly earnings, days and gigs worked, average per day, and received versus outstanding payments for the month" />}>
             <p>Once your work and payments are organized, GigDock can help you see more than a list of individual gigs.
               See your earnings, work activity and payment status for the current period so you can understand how your
               gig work is adding up.</p>
