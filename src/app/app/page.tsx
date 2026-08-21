@@ -66,7 +66,7 @@ function HeroPhones() {
         className="hidden max-w-[128px] -mr-10 -rotate-6 translate-y-5 opacity-95 sm:block" />
       <PhoneShot src="/app/gig-detail.png" darkSrc="/app/gig-detail-dark.png" alt="A gig's detail in GigDock — earnings, hours, day rate and bumps"
         priority className="relative z-10 max-w-[168px]" />
-      <PhoneShot src="/guides/gigdock-app-payments-summary.png" alt="The GigDock payments summary — received versus outstanding"
+      <PhoneShot src="/guides/gigdock-app-payments-summary.png" darkSrc="/app/payments-summary-dark.png" alt="The GigDock payments summary — received versus outstanding"
         className="hidden max-w-[128px] -ml-10 rotate-6 translate-y-5 opacity-95 sm:block" />
     </div>
   );
@@ -231,7 +231,7 @@ export default function Page() {
           <Feature eyebrow="Stay on top of it" title="Know what's next."
             shot={<TwoPhones
               a={<PhoneShot src="/app/today.png" darkSrc="/app/today-dark.png" alt="The GigDock Today screen showing today's gig, gigs awaiting payment, an earnings insight and new opportunities" className="max-w-[150px]" />}
-              b={<PhoneShot src="/app/calendar.png" alt="The GigDock calendar for the month with color-coded booked, worked and paid gigs" className="mt-6 max-w-[150px]" />}
+              b={<PhoneShot src="/app/calendar.png" darkSrc="/app/calendar-dark.png" alt="The GigDock calendar for the month with color-coded booked, worked and paid gigs" className="mt-6 max-w-[150px]" />}
             />}>
             <p>Gig work moves quickly — what matters today may be completely different tomorrow. GigDock gives your work
               dates a home so you can see what&rsquo;s coming up and keep your schedule connected to the gigs themselves.</p>
@@ -240,7 +240,7 @@ export default function Page() {
           </Feature>
 
           <Feature eyebrow="Know what you've earned" title="Your rate is only the beginning." reverse
-            shot={<PhoneShot src="/guides/gigdock-app-gig-detail-earnings.png" alt="The GigDock app's gig detail showing the payment structure and earnings for a gig" />}>
+            shot={<PhoneShot src="/guides/gigdock-app-gig-detail-earnings.png" darkSrc="/app/gig-detail-earnings-dark.png" alt="The GigDock app's gig detail showing the payment structure and earnings for a gig" />}>
             <p>Keep the money side of the gig connected to the work that produced it. Record the payment structure, hours
               and applicable bumps or additional pay so your earnings stay tied to the gig instead of living in a separate
               spreadsheet or note.</p>
@@ -249,7 +249,7 @@ export default function Page() {
           </Feature>
 
           <Feature eyebrow="Track your pay" title="Know what you've received — and what's still outstanding."
-            shot={<PhoneShot src="/guides/gigdock-app-payments-summary.png" alt="The GigDock payments summary showing received versus outstanding pay" />}>
+            shot={<PhoneShot src="/guides/gigdock-app-payments-summary.png" darkSrc="/app/payments-summary-dark.png" alt="The GigDock payments summary showing received versus outstanding pay" />}>
             <p>A payment arriving doesn&rsquo;t mean you should have to remember exactly which gig it belongs to or what
               you expected weeks earlier. Record your payment when it arrives and keep both gross and net amounts when
               available.</p>
