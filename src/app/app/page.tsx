@@ -8,9 +8,9 @@ import { APP_LIVE, BETA_ANCHOR } from "@/lib/appPromo";
 
 const BASE = "https://www.gigdock.co";
 const PATH = "/app";
-const TITLE = "The GigDock App — Track Your Film & TV Gigs and Pay";
+const TITLE = "The GigDock App — Find & Track Your Film & TV Gigs";
 const DESCRIPTION =
-  "GigDock is the app for background actors and crew to track every gig — dates, rate, hours and bumps — and record what you were actually paid, gross and net, in one place. Join the beta.";
+  "GigDock is the app for film & TV gig workers: search casting calls, save and apply to the ones you want, then track every gig — dates, rate, hours and bumps — through to what you were actually paid, gross and net. Join the beta.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -113,19 +113,20 @@ export default function Page() {
 
         {/* ---------- FEATURES ---------- */}
         <section className="space-y-16 border-t border-zinc-200 dark:border-zinc-800 py-12">
-          <Feature eyebrow="Track" title="Log every gig in seconds"
-            shot={<PhoneShot src="/guides/gigdock-app-gig-detail-earnings.png" alt="A gig in GigDock with production, casting company, date, rate and guaranteed hours" />}>
-            <p>Record what matters for every booking: the production or project, the casting company, the payroll
-              company, the dates you work, and your rate with guaranteed hours (like <strong>$150/10</strong>).</p>
-            <p>Set up the casting companies, payroll companies and projects you work with once, then pick them in a tap
-              on your next booking.</p>
+          <Feature eyebrow="Discover" title="Find your next opportunity">
+            <p>Search film &amp; TV casting calls right in the app — pulled from across the web into one feed. Tap the
+              bookmark to <strong>save</strong> the ones you like, and mark the ones you&rsquo;ve <strong>applied</strong>{" "}
+              to so you always know where you stand.</p>
+            <p>Ready to work it? Move an opportunity into <strong>My Gigs</strong> in a tap, and everything you saved
+              carries straight over.</p>
           </Feature>
 
-          <Feature eyebrow="Hours &amp; bumps" title="Capture what actually happened on set" reverse>
-            <p>Add the hours you actually worked and any bumps or adjustments — wardrobe, a personal vehicle, wet work,
-              and the rest — right after you wrap, while it&rsquo;s still fresh.</p>
-            <p>It&rsquo;s the difference between <em>&ldquo;I think that&rsquo;s right&rdquo;</em> and{" "}
-              <em>&ldquo;here&rsquo;s exactly what I recorded.&rdquo;</em></p>
+          <Feature eyebrow="Organize" title="Everything about a gig, in one place" reverse
+            shot={<PhoneShot src="/guides/gigdock-app-gig-detail-earnings.png" alt="A gig in GigDock with production, casting company, date, rate, guaranteed hours and earnings" />}>
+            <p>Each gig keeps what matters: the production or project, the casting company, the payroll company, the dates
+              you work, and your rate with guaranteed hours (like <strong>$150/10</strong>) — plus the hours you actually
+              worked and any bumps: wardrobe, a personal vehicle, wet work and the rest.</p>
+            <p>Set up the companies and projects you work with once, then pick them in a tap on the next booking.</p>
           </Feature>
 
           <Feature eyebrow="Get paid right" title="Record your pay — gross and net"
@@ -137,19 +138,19 @@ export default function Page() {
           </Feature>
 
           <Feature eyebrow="See it all" title="Your earnings and your schedule, at a glance" reverse>
-            <p>See what a gig earned once you&rsquo;ve recorded its pay, and view your gigs on a calendar so a busy stretch
-              of work — and everything still owed from it — stays organized in one place.</p>
+            <p>A financial dashboard shows what you&rsquo;ve earned and what&rsquo;s still outstanding over a period you
+              choose, and a calendar lays your gigs out by date — so a busy stretch of work, and everything owed from it,
+              stays organized in one place.</p>
           </Feature>
         </section>
 
-        {/* ---------- COMPANION TO THE SITE ---------- */}
+        {/* ---------- WEB FRONT DOOR ---------- */}
         <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-8">
-          <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Find the work here. Track it in the app.</h2>
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Prefer to browse on the web first?</h2>
           <p className="mt-2 max-w-2xl text-zinc-600 dark:text-zinc-300 leading-relaxed">
-            GigDock.co pulls film &amp; TV casting calls from across the web into one feed you can search — and{" "}
+            The same casting calls are here on GigDock.co, and{" "}
             <Link href="/gigfit" className="font-medium text-blue-600 hover:underline dark:text-blue-400">GigFit</Link>{" "}
-            helps you see which ones fit. The app is where the gigs you book turn into a record of what you worked and what
-            you were paid.
+            helps you see which ones fit — then the app is where you save, apply, and turn a booking into a tracked gig.
           </p>
           <div className="mt-4">
             <Link href="/opportunities" className="text-sm font-semibold text-blue-600 hover:underline dark:text-blue-400">
@@ -167,8 +168,8 @@ export default function Page() {
           </p>
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             {[
-              { n: "1", t: "Opportunity", d: "Find film & TV casting calls from across the web in one searchable feed on GigDock.co, matched to you with GigFit." },
-              { n: "2", t: "Gig", d: "Book it, then keep the details — production, casting company, dates, rate, guaranteed hours, actual hours and bumps — in the app." },
+              { n: "1", t: "Opportunity", d: "Search film & TV casting calls right in the app, save the ones you like, and apply." },
+              { n: "2", t: "Gig", d: "Move a booking into My Gigs and keep the details — production, casting company, dates, rate, guaranteed hours, hours and bumps." },
               { n: "3", t: "Pay", d: "Record what you were actually paid, gross and net, mark it paid, and see anything you're still owed." },
             ].map((s) => (
               <div key={s.n} className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
@@ -225,7 +226,7 @@ export default function Page() {
           <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Questions</h2>
           <div className="mt-4 divide-y divide-zinc-200 dark:divide-zinc-800">
             {[
-              { q: "What does the GigDock app do?", a: "It keeps a record of your background acting and crew gigs — the production, casting company, dates, rate and guaranteed hours, the hours you actually worked, any bumps, and what you were ultimately paid (gross and net). It also shows your gigs on a calendar and what a gig earned once you record its pay." },
+              { q: "What does the GigDock app do?", a: "Two things, in one place. It helps you find film & TV casting calls — search them in the app, save the ones you like, apply, and move a booking into My Gigs. And it tracks each gig from there: the production, casting company, dates, rate and guaranteed hours, the hours you actually worked, any bumps, and what you were ultimately paid (gross and net), with a calendar and an earnings dashboard to see it all." },
               { q: "How much does it cost?", a: "It's free to use during the beta. We'll always tell you clearly before anything about pricing changes." },
               { q: "Which phones does it support?", a: "iPhone (iOS) and Android. Tell us which you use when you sign up for the beta so we send the right invite — a TestFlight link for iOS or a Google Play invite for Android." },
               { q: "When does it launch?", a: "Soon — we're in beta now and finishing up ahead of a public launch. Joining the beta is the fastest way to get in early and help shape it." },
