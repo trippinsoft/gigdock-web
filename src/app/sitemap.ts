@@ -26,7 +26,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const oppUrls: MetadataRoute.Sitemap = opps.map((o) => ({
     url: `${BASE}/opportunities/${o.id}`,
     lastModified: o.updated_at ?? undefined,
-    changeFrequency: "daily",
+    changeFrequency: "hourly",
     priority: 0.7,
   }));
 
@@ -36,7 +36,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   );
   const marketUrls: MetadataRoute.Sitemap = states.map((code) => ({
     url: `${BASE}/opportunities/${stateSlug(code)}`,
-    changeFrequency: "daily",
+    changeFrequency: "hourly",
     priority: 0.8,
   }));
 
@@ -44,16 +44,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Only INDEXABLE markets (real content + inventory); stubs render but stay out.
   const regionUrls: MetadataRoute.Sitemap = indexableMarketSlugs().map((slug) => ({
     url: `${BASE}/opportunities/${slug}`,
-    changeFrequency: "daily",
+    changeFrequency: "hourly",
     priority: 0.9,
   }));
 
   return [
-    { url: BASE, changeFrequency: "daily", priority: 1 },
-    { url: `${BASE}/opportunities`, changeFrequency: "daily", priority: 0.9 },
+    { url: BASE, changeFrequency: "hourly", priority: 1 },
+    { url: `${BASE}/opportunities`, changeFrequency: "hourly", priority: 0.9 },
     { url: `${BASE}/app`, changeFrequency: "weekly", priority: 0.9 },
     { url: `${BASE}/gigfit`, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${BASE}/opportunities/locations`, changeFrequency: "daily", priority: 0.8 },
+    { url: `${BASE}/opportunities/locations`, changeFrequency: "hourly", priority: 0.8 },
     // Evergreen guides hub + each guide (from the registry).
     { url: `${BASE}/guides`, changeFrequency: "weekly", priority: 0.7 },
     ...guideSlugs().map((slug) => ({

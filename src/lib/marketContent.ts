@@ -98,7 +98,7 @@ const ATLANTA_CITIES = [
 const ATLANTA_CONTENT: MarketContent = {
   tagline: "Background Acting Jobs, Extras & Film/TV Casting",
   intro:
-    "Atlanta is one of the busiest film and television production markets in the world — background actors, extras, stand-ins, and photo doubles are booked across the metro every week. GigDock gathers current Atlanta casting calls from casting companies and sources into one searchable feed, updated daily.",
+    "Atlanta is one of the busiest film and television production markets in the world — background actors, extras, stand-ins, and photo doubles are booked across the metro every week. GigDock gathers current Atlanta casting calls from casting companies and sources into one searchable feed, updated throughout the day.",
   about: [
     "Thanks to Georgia's 30% film & television tax credit, Atlanta became known as the \"Hollywood of the South\" (or \"Y'allywood\"). Major studios anchor the market — Trilith Studios in Fayetteville, Tyler Perry Studios and Assembly Studios in Atlanta, Blackhall/Shadowbox, and EUE/Screen Gems — and Marvel features, Netflix and Disney+ series, and countless independent productions shoot here year-round.",
     "That volume means a steady stream of paid background and extras work for people of every look and age. Productions cluster across the metro and its film towns — Atlanta, Fayetteville, Senoia, Covington (\"the Hollywood of the South\"), Peachtree City, Griffin, and Newnan. You don't need to live inside Atlanta's city limits; most calls list a report location and a self-travel radius.",
@@ -176,7 +176,7 @@ const STATE_CONTENT: Record<string, MarketContent> = {
   GA: {
     tagline: "Film & TV Casting Calls Statewide",
     intro:
-      "Find film & TV casting calls across Georgia — from the Atlanta production market to Savannah, Macon, Augusta, and Columbus. GigDock gathers Georgia casting calls from casting companies and sources into one searchable feed, updated daily.",
+      "Find film & TV casting calls across Georgia — from the Atlanta production market to Savannah, Macon, Augusta, and Columbus. GigDock gathers Georgia casting calls from casting companies and sources into one searchable feed, updated throughout the day.",
     about: [
       "Georgia is a top-tier film production state thanks to its 30% tax credit, with the bulk of work centered on metro Atlanta and its film towns, plus a growing hub in Savannah and productions in Columbus and Macon.",
     ],
@@ -191,7 +191,7 @@ const STATE_CONTENT: Record<string, MarketContent> = {
 function genericMarket(name: string, state: string): MarketContent {
   return {
     tagline: "Background Acting Jobs, Extras & Film/TV Casting",
-    intro: `Find current film & TV casting calls in the ${name} area — background actors, extras, stand-ins, photo doubles, and featured roles across ${state}. GigDock gathers ${name} opportunities from casting companies and sources into one searchable feed, updated daily.`,
+    intro: `Find current film & TV casting calls in the ${name} area — background actors, extras, stand-ins, photo doubles, and featured roles across ${state}. GigDock gathers ${name} opportunities from casting companies and sources into one searchable feed, updated throughout the day.`,
     payNote: "a set rate for a guaranteed number of hours (often $100–$200 for non-union work)",
   };
 }
@@ -199,7 +199,7 @@ function genericMarket(name: string, state: string): MarketContent {
 function genericState(name: string): MarketContent {
   return {
     tagline: "Film & TV Casting Calls & Background Jobs",
-    intro: `Find current film & TV casting calls in ${name} — background actors, extras, stand-ins, photo doubles, and featured roles. GigDock gathers ${name} opportunities from casting companies and sources into one searchable feed, updated daily.`,
+    intro: `Find current film & TV casting calls in ${name} — background actors, extras, stand-ins, photo doubles, and featured roles. GigDock gathers ${name} opportunities from casting companies and sources into one searchable feed, updated throughout the day.`,
     payNote: "a set rate for a guaranteed number of hours (often $100–$150 for non-union work)",
   };
 }

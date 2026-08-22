@@ -70,7 +70,7 @@ export default async function LocationsHub() {
         </h1>
         <p className="text-zinc-600 dark:text-zinc-400 mt-2 leading-relaxed">
           GigDock aggregates casting calls from across the web. Here&rsquo;s where work is posting right now —
-          {total > 0 ? ` ${total.toLocaleString()} open ${total === 1 ? "opportunity" : "opportunities"} across ${states.length} ${states.length === 1 ? "state" : "states"}.` : " new opportunities post daily."}{" "}
+          {total > 0 ? ` ${total.toLocaleString()} open ${total === 1 ? "opportunity" : "opportunities"} across ${states.length} ${states.length === 1 ? "state" : "states"}.` : " new opportunities post throughout the day."}{" "}
           Pick a market or a state.
         </p>
 

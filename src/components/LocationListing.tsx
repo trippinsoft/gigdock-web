@@ -234,7 +234,7 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
              <OpportunitiesFeed initialOpps={opps} embedded scopeLabel={name} now={now} />
            </div>
          ) : (
-           <p className="mt-4 text-zinc-600 dark:text-zinc-400">No open casting calls in {name} at the moment — new ones post daily. Create a free account and GigDock will surface {name} opportunities the moment they land.</p>
+           <p className="mt-4 text-zinc-600 dark:text-zinc-400">No open casting calls in {name} at the moment — new ones post throughout the day. Create a free account and GigDock will surface {name} opportunities the moment they land.</p>
          )}
        </div>
 

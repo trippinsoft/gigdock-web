@@ -749,7 +749,7 @@ export default function OpportunitiesFeed({
                     : scope === "applied"
                     ? "Nothing marked applied yet. Apply to a gig or mark it applied to track it here."
                     : embedded && scopeLabel
-                    ? `No open casting calls in ${scopeLabel} match your filters right now — new ones post daily.`
+                    ? `No open casting calls in ${scopeLabel} match your filters right now — new ones post throughout the day.`
                     : "No opportunities match your filters."}
                 </div>
               ) : (
