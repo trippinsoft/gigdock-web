@@ -58,6 +58,16 @@ function jobPostingLd(o: Opportunity) {
   const validThrough = o.apply_by || o.work_date;
   if (validThrough) ld.validThrough = `${validThrough}T23:59:59`;
 
+  // Pay strengthens Google-for-Jobs eligibility. Casting rates are day rates
+  // (e.g. "$150/12" = $150 for a 12-hour day), so report pay_min as a DAY rate.
+  if (o.pay_min != null) {
+    ld.baseSalary = {
+      "@type": "MonetaryAmount",
+      currency: "USD",
+      value: { "@type": "QuantitativeValue", value: o.pay_min, unitText: "DAY" },
+    };
+  }
+
   const region = o.match_state ?? undefined;
   const country = region && CA_STATES.has(region) ? "CA" : "US";
 
@@ -116,6 +126,7 @@ export async function generateMetadata({
   return {
     title,
     description,
+    alternates: { canonical: `/opportunities/${slug}` },
     openGraph: {
       title,
       description,
