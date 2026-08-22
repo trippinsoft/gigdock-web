@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { track } from "@/lib/analytics";
 import type { Opportunity } from "@/lib/types";
-import type { GigFitResult } from "@/lib/gigfit";
+import { fitTierColor, type GigFitResult } from "@/lib/gigfit";
 
 // Join an array of tags into a readable string; return null if empty.
 function joinTags(v: unknown): string | null {
@@ -351,7 +351,7 @@ export default function OpportunityCard({
                 {opp.title || "(No title)"}
               </h3>
               {fit && (
-                <Badge color={fit.color}>
+                <Badge color={fitTierColor(fit.tier)}>
                   {fit.tier === "strong" ? "★ " : ""}{fit.label}
                 </Badge>
               )}

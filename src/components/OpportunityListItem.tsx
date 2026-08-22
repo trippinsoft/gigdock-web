@@ -1,13 +1,14 @@
 "use client";
 
 import type { Opportunity } from "@/lib/types";
-import type { GigFitResult } from "@/lib/gigfit";
+import { fitTierColor, type GigFitResult } from "@/lib/gigfit";
 
 const FIT_CLASS: Record<string, string> = {
   green: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
   blue: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
   zinc: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
   amber: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+  red: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
 };
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -179,7 +180,7 @@ export default function OpportunityListItem({
           </span>
         )}
         {fit && (
-          <span className={`${dense ? "text-xs" : "text-[13px]"} px-2 py-0.5 rounded font-medium ${FIT_CLASS[fit.color]}`}>
+          <span className={`${dense ? "text-xs" : "text-[13px]"} px-2 py-0.5 rounded font-medium ${FIT_CLASS[fitTierColor(fit.tier)]}`}>
             {fit.tier === "strong" ? "★ " : ""}{fit.label}
           </span>
         )}

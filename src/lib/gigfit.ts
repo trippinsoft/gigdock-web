@@ -19,6 +19,21 @@ export type GigFitResult = {
 /** One row returned by the gigfit() RPC. */
 export type GigFitRow = GigFitResult & { opportunity_id: string };
 
+/** Badge color for a match tier — kept in sync with the mobile app so the same
+ *  tier looks the same on web and in-app (strong=green, good=blue, open=neutral,
+ *  poor=amber, ineligible=red). Derived from the TIER (not the RPC's color) so
+ *  the two surfaces can't drift. */
+export function fitTierColor(tier: GigFitTier): "green" | "blue" | "zinc" | "amber" | "red" {
+  switch (tier) {
+    case "strong": return "green";
+    case "good": return "blue";
+    case "poor": return "amber";
+    case "ineligible": return "red";
+    case "open":
+    default: return "zinc";
+  }
+}
+
 export type PerformerProfile = {
   id: string;
   label: string;
