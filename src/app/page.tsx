@@ -7,6 +7,7 @@ import PublicShell from "@/components/PublicShell";
 import { GigFitArt, SaveShareArt } from "@/components/HowItWorksArt";
 import AppCta from "@/components/AppCta";
 import { stateName, stateSlug } from "@/lib/markets";
+import { curatedMarkets } from "@/lib/marketContent";
 
 export const metadata: Metadata = {
   title: "GigDock — Film & TV Opportunities Matched to You",
@@ -282,6 +283,19 @@ export default async function Home() {
               <Link href="/opportunities/locations" className="text-sm font-medium text-blue-600 dark:text-blue-400">All locations →</Link>
             </div>
             <div className="flex flex-wrap gap-2">
+              {/* Featured metro markets first (direct link into the curated market
+                  pages, e.g. Atlanta), then states. */}
+              {curatedMarkets()
+                .filter((m) => m.indexable && m.stateCode && markets.includes(m.stateCode))
+                .map((m) => (
+                  <Link
+                    key={m.slug}
+                    href={`/opportunities/${m.slug}`}
+                    className="px-4 py-2 rounded-full bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"
+                  >
+                    {m.name}, {m.stateCode}
+                  </Link>
+                ))}
               {markets.map((code) => (
                 <Link
                   key={code}

@@ -111,6 +111,10 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
   const counts = honestCounts(opps);
   const now = Date.now(); // stable render-time clock so the cards' relative times hydrate cleanly
   const updated = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  // Honest freshness: how many of the CURRENT active opportunities were posted in
+  // the last 7 days. Computed from the live set so it matches the list exactly.
+  const weekAgoIso = new Date(now - 7 * 864e5).toISOString();
+  const newThisWeek = opps.filter((o) => o.posted_at && o.posted_at >= weekAgoIso).length;
 
   // Breadcrumb trail: Opportunities › By location › [State ›] Name. A market page
   // inserts its state level so the hierarchy Locations → Georgia → Atlanta is
@@ -183,19 +187,32 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance">
           {name}{" "}Casting Calls &amp; Background Acting Opportunities
         </h1>
-        <p className="mt-4 text-zinc-600 dark:text-zinc-400 leading-relaxed">{content.intro}</p>
-        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
-          {opps.length > 0 && (
-            <span>
-              <span className="font-semibold text-zinc-800 dark:text-zinc-200">{opps.length}</span>{" "}
-              {opps.length === 1 ? "opportunity" : "opportunities"} open
-              {counts.sources > 0 && (
-                <> · from <span className="font-semibold text-zinc-800 dark:text-zinc-200">{counts.sources}</span> {counts.sources === 1 ? "source" : "sources"}</>
+        {/* Freshness bar — the differentiator. Real numbers from the live set;
+            never a faked date. Sits high so it's the first thing after the H1. */}
+        <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-base text-zinc-600 dark:text-zinc-300">
+          {opps.length > 0 ? (
+            <>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-green-500" aria-hidden="true" />
+                <span className="font-bold text-zinc-900 dark:text-zinc-100">{opps.length}</span> active {opps.length === 1 ? "opportunity" : "opportunities"}
+              </span>
+              {newThisWeek > 0 && (
+                <><span className="text-zinc-300 dark:text-zinc-600">·</span>
+                <span><span className="font-bold text-zinc-900 dark:text-zinc-100">{newThisWeek}</span> added this week</span></>
               )}
-            </span>
+              {counts.sources > 0 && (
+                <><span className="text-zinc-300 dark:text-zinc-600">·</span>
+                <span>from <span className="font-bold text-zinc-900 dark:text-zinc-100">{counts.sources}</span> {counts.sources === 1 ? "source" : "sources"}</span></>
+              )}
+              <span className="text-zinc-300 dark:text-zinc-600">·</span>
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">Updated {updated}</span>
+            </>
+          ) : (
+            <span className="text-sm text-zinc-500 dark:text-zinc-400">Updated {updated}</span>
           )}
-          <span>Updated {updated}</span>
         </div>
+
+        <p className="mt-4 text-zinc-600 dark:text-zinc-400 leading-relaxed">{content.intro}</p>
 
         <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
           New to background work?{" "}

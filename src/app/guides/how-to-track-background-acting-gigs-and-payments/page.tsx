@@ -93,6 +93,9 @@ function Guide() {
       <P>The easiest way to protect yourself is to keep one reliable record of every gig you work — what you were booked for, what happened on set, and what you were eventually paid.</P>
       <P>You can build your own spreadsheet or tracking system to do this manually. Or you can use GigDock, which was built specifically to keep your background gigs and payments organized in one place.</P>
       <P>Not sure how rates, guaranteed hours and bumps work? Read <PaidLink /> first. This guide builds on those basics.</P>
+      <P>Looking for your next booking? Browse{" "}
+        <Link href="/opportunities/atlanta-ga" className="font-medium text-blue-600 hover:underline dark:text-blue-400">Atlanta casting calls</Link>
+        {" "}— then track the ones you book here.</P>
 
       <H2>Why tracking your gigs matters</H2>
       <P>Background work involves more moving pieces than many new actors expect.</P>

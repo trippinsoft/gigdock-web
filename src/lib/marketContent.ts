@@ -118,6 +118,14 @@ const ATLANTA_CONTENT: MarketContent = {
       q: "Do I have to live in Atlanta to do background work here?",
       a: "No. The Atlanta market spans the whole metro and nearby film towns — Fayetteville, Senoia, Covington, Peachtree City, Griffin, Newnan and more. Each casting call lists its report location and, often, how far you'd need to self-travel.",
     },
+    {
+      q: "How do I get background acting work in Atlanta?",
+      a: "Most Atlanta background roles are cast through open calls that anyone can respond to — no agent or experience required to start. Watch the current listings above, filter to what fits you, and follow each call's apply instructions (usually an email or a submission link). Setting up a profile lets GigFit flag which calls match your look, so you spend time on the ones worth applying to.",
+    },
+    {
+      q: "How much do background actors and extras get paid in Atlanta?",
+      a: "Atlanta background and extras work is typically quoted as a rate for a set number of guaranteed hours — commonly $100–$210 for a 12-hour day for non-union work, with SAG-AFTRA productions paying more. Many calls add \"bumps\" for wardrobe, a personal vehicle, or special skills. Each listing above shows its stated rate.",
+    },
   ],
 };
 
