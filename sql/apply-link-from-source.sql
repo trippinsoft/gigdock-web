@@ -10,10 +10,15 @@ alter table public.sources add column if not exists apply_url text;
 comment on column public.sources.apply_url is
   'Fallback apply link (the source''s current "link in bio" / Linktree URL) used when a post has no apply link of its own.';
 
--- 2) Set the bio link for your Instagram source(s). REPLACE the URL with the
---    real link-in-bio destination (their Linktree, application page, etc.).
+-- 2) Set the apply link for your Instagram source(s). Use the ACTUAL apply
+--    destination the bio points to (their application form / casting site /
+--    submission page) — NOT the Instagram profile and NOT a Linktree landing
+--    page. Open their bio, follow the link, and paste the final URL here so the
+--    Apply button takes people straight to where they actually apply.
+--    (Only works if the source uses ONE stable apply link for its calls; if a
+--    source uses a different link per call, that can't be filled from the post.)
 update public.sources
-set apply_url = 'https://REPLACE-WITH-THE-BIO-LINK'
+set apply_url = 'https://REPLACE-WITH-THE-REAL-APPLY-LINK'
 where name = 'United Casting';
 
 -- 3) Trigger: on insert/update, if an opportunity has no apply link, fill it
@@ -37,14 +42,18 @@ create trigger opp_fill_apply_link
   before insert or update on public.opportunities
   for each row execute function public.fill_apply_link_from_source();
 
--- 4) Backfill: point existing active gigs (with no apply link) at the bio link.
+-- 4) Backfill: point existing gigs (with no apply link) at the source's link —
+--    INCLUDING held drafts, which is where "link in bio" posts pile up waiting
+--    for review. (Earlier this only touched 'active', so the held United Casting
+--    drafts were skipped.)
 update public.opportunities o
 set link = s.apply_url
 from public.sources s
 where o.source = s.name
   and s.apply_url is not null and btrim(s.apply_url) <> ''
   and (o.link is null or btrim(o.link) = '')
-  and o.status = 'active' and o.deleted_at is null;
+  and o.status in ('active', 'draft')
+  and o.deleted_at is null;
 
 -- If the bio link ever changes: update sources.apply_url, then re-run step 4
 -- with your old URL added to the WHERE (…and o.link = '<old-url>') to refresh
