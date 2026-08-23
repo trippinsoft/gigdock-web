@@ -56,10 +56,10 @@ function OL({ items }: { items: string[] }) {
 const A = ({ href, children }: { href: string; children: React.ReactNode }) => (
   <Link href={href} className="font-medium text-blue-600 hover:underline dark:text-blue-400">{children}</Link>
 );
-function Figure({ src, alt }: { src: string; alt: string }) {
+function Figure({ src, alt, w = 1448, h = 1086 }: { src: string; alt: string; w?: number; h?: number }) {
   return (
     <figure className="mt-6">
-      <Image src={src} alt={alt} width={1448} height={1086} sizes="(max-width: 672px) 100vw, 672px"
+      <Image src={src} alt={alt} width={w} height={h} sizes="(max-width: 672px) 100vw, 672px"
         className="w-full h-auto rounded-xl border border-zinc-200 dark:border-zinc-800" />
     </figure>
   );
@@ -106,7 +106,8 @@ function Guide({ pulse }: { pulse: { callsTracked: number; castingSources: numbe
       <P className="text-sm text-zinc-500 dark:text-zinc-400"><em>Related guide coming soon: Stand-In vs. Photo Double vs. Background Actor.</em></P>
 
       <H2>How to start getting background acting work in Atlanta</H2>
-      <Figure src="/guides/atlanta-7-steps-infographic.png" alt="7 steps to start background acting in Atlanta: get current photos, prepare your sizes and details, register with reputable casting companies, watch current Atlanta casting calls, apply only when you fit the call, follow the submission instructions exactly, and track your gigs and pay." />
+      <Figure src="/guides/atlanta-7-steps-infographic.png" w={1536} h={1024}
+        alt="7 steps to background work in Atlanta: get your photos and basic information ready, register with reputable Atlanta casting companies, watch for current Atlanta casting opportunities, apply only when you fit the casting call, follow the submission instructions exactly, respond quickly but know when you're actually booked, and understand the rate before you accept the work." />
 
       <H3>Step 1: Get your photos and basic information ready</H3>
       <P>You usually do not need expensive professional headshots to begin pursuing general background work. What casting teams typically need first is an accurate picture of what you look like right now. Have at least:</P>
