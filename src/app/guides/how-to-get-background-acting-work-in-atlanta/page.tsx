@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import PublicShell from "@/components/PublicShell";
 import AppCta from "@/components/AppCta";
 import { getSeoMarket } from "@/lib/marketContent";
@@ -17,8 +18,11 @@ export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: PATH },
-  openGraph: { title: `${TITLE} · GigDock`, description: DESCRIPTION, type: "article", siteName: "GigDock", url: `${BASE}${PATH}` },
-  twitter: { card: "summary", title: TITLE, description: DESCRIPTION },
+  openGraph: {
+    title: `${TITLE} · GigDock`, description: DESCRIPTION, type: "article", siteName: "GigDock", url: `${BASE}${PATH}`,
+    images: [{ url: "/guides/atlanta-hero.png", width: 1448, height: 1086, alt: "How to Get Background Acting Work in Atlanta — a GigDock beginner's guide" }],
+  },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, images: ["/guides/atlanta-hero.png"] },
 };
 
 const ATL = "/opportunities/atlanta-ga";
@@ -52,6 +56,14 @@ function OL({ items }: { items: string[] }) {
 const A = ({ href, children }: { href: string; children: React.ReactNode }) => (
   <Link href={href} className="font-medium text-blue-600 hover:underline dark:text-blue-400">{children}</Link>
 );
+function Figure({ src, alt }: { src: string; alt: string }) {
+  return (
+    <figure className="mt-6">
+      <Image src={src} alt={alt} width={1448} height={1086} sizes="(max-width: 672px) 100vw, 672px"
+        className="w-full h-auto rounded-xl border border-zinc-200 dark:border-zinc-800" />
+    </figure>
+  );
+}
 
 function Guide({ pulse }: { pulse: { callsTracked: number; castingSources: number; topCities: string[] } }) {
   return (
@@ -62,7 +74,10 @@ function Guide({ pulse }: { pulse: { callsTracked: number; castingSources: numbe
         <span className="text-zinc-700 dark:text-zinc-300">Background acting work in Atlanta</span>
       </nav>
 
-      <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
+      <Image src="/guides/atlanta-hero.png" alt="How to Get Background Acting Work in Atlanta — a background actor on a film set at dusk with the Atlanta skyline, from GigDock."
+        width={1448} height={1086} priority sizes="(max-width: 672px) 100vw, 672px" className="w-full h-auto rounded-2xl" />
+
+      <h1 className="mt-6 text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
         How to Get Background Acting Work in Atlanta: A Beginner&rsquo;s Guide
       </h1>
 
@@ -91,6 +106,7 @@ function Guide({ pulse }: { pulse: { callsTracked: number; castingSources: numbe
       <P className="text-sm text-zinc-500 dark:text-zinc-400"><em>Related guide coming soon: Stand-In vs. Photo Double vs. Background Actor.</em></P>
 
       <H2>How to start getting background acting work in Atlanta</H2>
+      <Figure src="/guides/atlanta-7-steps-infographic.png" alt="7 steps to start background acting in Atlanta: get current photos, prepare your sizes and details, register with reputable casting companies, watch current Atlanta casting calls, apply only when you fit the call, follow the submission instructions exactly, and track your gigs and pay." />
 
       <H3>Step 1: Get your photos and basic information ready</H3>
       <P>You usually do not need expensive professional headshots to begin pursuing general background work. What casting teams typically need first is an accurate picture of what you look like right now. Have at least:</P>
@@ -127,6 +143,7 @@ function Guide({ pulse }: { pulse: { callsTracked: number; castingSources: numbe
         "Instagram and other social accounts", "casting platforms", "production-related websites",
         "entertainment job sites",
       ]} />
+      <Figure src="/guides/atlanta-where-calls-appear-infographic.png" alt="Where Atlanta casting calls appear — casting company websites, email lists, Facebook groups and pages, Instagram and social, casting platforms, and entertainment job sites are hard to track manually; GigDock brings opportunities from multiple sources into one feed." />
       <P>A person trying to find as much work as possible can end up checking the same collection of sources over and over. That fragmentation is one of the reasons GigDock exists — it brings film and television opportunities from multiple sources together into one feed, making it easier to see what is currently casting without having to remember every place where an opportunity might appear.</P>
 
       {pulse.callsTracked > 0 && (
@@ -189,6 +206,7 @@ function Guide({ pulse }: { pulse: { callsTracked: number; castingSources: numbe
       <P><A href={ATL}>Browse current Atlanta opportunities →</A></P>
 
       <H2>Once you book the job, start tracking the gig</H2>
+      <Figure src="/guides/gigdock-opportunity-to-pay-infographic.png" alt="From opportunity to pay with GigDock: find opportunities, save or apply, track the gig (dates, hours, rates, bumps), and record the payment — keeping your gig life organized." />
       <P>The casting call is only the beginning. Once you actually work, you may need to remember the production, casting company, payroll company, work date, advertised rate, guaranteed hours, call and wrap times, hours worked, bumps, and the gross and net payment — plus whether the gig has been paid.</P>
       <P>The problem is that payment may arrive well after the workday. By then, reconstructing everything from old emails, texts and screenshots can be difficult. GigDock gives people working gigs in TV &amp; film one place to keep this organized: record your gigs, rates, hours and bumps, then record gross and net payment when it arrives, and see which gigs you haven&rsquo;t yet marked paid.</P>
       <P><A href="/guides/how-to-track-background-acting-gigs-and-payments">Learn how to track your background acting gigs and pay →</A></P>
