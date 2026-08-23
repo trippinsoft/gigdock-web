@@ -206,8 +206,17 @@ export default function Page() {
     "@type": "FAQPage",
     mainEntity: FAQ.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
   };
+  const breadcrumbLd = {
+    "@context": "https://schema.org", "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "GigDock", item: BASE },
+      { "@type": "ListItem", position: 2, name: "Guides", item: `${BASE}/guides` },
+      { "@type": "ListItem", position: 3, name: "How to Track Your Background Acting Gigs & Payments", item: `${BASE}${PATH}` },
+    ],
+  };
   return (
     <PublicShell>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
       <Guide />
