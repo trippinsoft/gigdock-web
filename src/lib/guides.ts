@@ -11,6 +11,12 @@ export type Guide = {
 
 export const GUIDES: Guide[] = [
   {
+    slug: "how-to-get-background-acting-work-in-atlanta",
+    title: "How to Get Background Acting Work in Atlanta",
+    blurb:
+      "Start getting paid background and extras work in Atlanta with no experience — how to prepare, where casting calls appear, how to submit, and what pay looks like.",
+  },
+  {
     slug: "how-background-actors-get-paid",
     title: "How Do Background Actors Get Paid?",
     blurb:
