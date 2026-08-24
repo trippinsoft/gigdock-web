@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import GigsToolbar from "@/components/GigsToolbar";
+import NewGigButton from "@/components/NewGigButton";
 import { getGigs, getNeedsAttention } from "@/lib/backoffice";
 import type { FilteredGig, GigFilter, GigSort } from "@/lib/backoffice-types";
 import { money, dateRange } from "@/lib/format";
@@ -37,11 +38,14 @@ export default async function GigsPage({
 
   return (
     <div className="max-w-5xl mx-auto">
-      <div className="flex items-baseline justify-between mb-5">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Gigs</h1>
-        <span className="text-sm text-zinc-500 dark:text-zinc-400">
-          {gigs.length} {gigs.length === 1 ? "gig" : "gigs"}
-        </span>
+      <div className="flex items-center justify-between mb-5 gap-4">
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Gigs</h1>
+          <span className="text-sm text-zinc-500 dark:text-zinc-400">
+            {gigs.length} {gigs.length === 1 ? "gig" : "gigs"}
+          </span>
+        </div>
+        <NewGigButton />
       </div>
 
       <div className="mb-5">

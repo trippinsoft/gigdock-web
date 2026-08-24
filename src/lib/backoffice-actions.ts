@@ -1,0 +1,306 @@
+"use server";
+
+// Server actions for the web back-office write path. Each runs under the
+// caller's Supabase session (RLS scopes writes to the owner), and mirrors the
+// mobile app's exact write contract against the shared tables. The database
+// stays the source of truth for earnings — we store raw inputs (and, for
+// cross-client parity with the mobile app, the same derived gross_pay/base_pay
+// the app stores) but never rely on those stored values for display.
+
+import { revalidatePath } from "next/cache";
+import { createSupabaseServer } from "@/lib/supabase-server";
+import { dayGrossEarned, type PayType } from "@/lib/pay";
+
+type ActionResult<T = undefined> =
+  | { ok: true; data?: T }
+  | { ok: false; error: string };
+
+async function client() {
+  const supabase = await createSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  return { supabase, user };
+}
+
+/* ── Gig-level ───────────────────────────────────────────────────────────── */
+
+/** Create a blank draft gig (active=false), returning its id. Mirrors the
+ * mobile app's "add new gig" which creates a draft then opens the editor. */
+export async function createDraftGig(): Promise<ActionResult<{ id: string }>> {
+  try {
+    const { supabase, user } = await client();
+    const { data, error } = await supabase
+      .from("gigs")
+      .insert({
+        user_id: user.id,
+        title: "",
+        short_code: null,
+        rate: null,
+        location: null,
+        notes: null,
+        active: false,
+        status_overall: "booked",
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
+    return { ok: true, data: { id: data.id as string } };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+export interface GigFields {
+  title: string;
+  location: string | null;
+  notes: string | null;
+  status_overall: string; // availability_checked | booked | worked | paid
+  pay_type: PayType | null;
+  pay_minimum_amount: number | null;
+  pay_minimum_hours: number | null;
+  pay_hourly_rate: number | null;
+  pay_flat_rate: number | null;
+  ot_multiplier: number | null;
+  bump_rate: number | null;
+  is_unpaid: boolean;
+  gig_company_id: string | null;
+  payroll_company_id: string | null;
+  project_id: string | null;
+}
+
+/** Save gig-level fields and finalize (active=true) once it has a title. */
+export async function saveGig(
+  id: string,
+  fields: GigFields
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await client();
+    const title = fields.title.trim();
+    if (!title) return { ok: false, error: "A title is required." };
+    const { error } = await supabase
+      .from("gigs")
+      .update({
+        title,
+        location: fields.location,
+        notes: fields.notes,
+        status_overall: fields.status_overall,
+        pay_type: fields.pay_type,
+        pay_minimum_amount: fields.pay_minimum_amount,
+        pay_minimum_hours: fields.pay_minimum_hours,
+        pay_hourly_rate: fields.pay_hourly_rate,
+        pay_flat_rate: fields.pay_flat_rate,
+        ot_multiplier: fields.ot_multiplier,
+        bump_rate: fields.bump_rate,
+        pay_currency: "USD",
+        is_unpaid: fields.is_unpaid,
+        gig_company_id: fields.gig_company_id,
+        payroll_company_id: fields.payroll_company_id,
+        project_id: fields.project_id,
+        active: true,
+      })
+      .eq("id", id);
+    if (error) throw error;
+    revalidatePath("/gigs");
+    revalidatePath(`/gigs/${id}`);
+    revalidatePath(`/gigs/${id}/edit`);
+    revalidatePath("/today");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+/** Soft-delete a real (titled) gig via the RPC (keeps documents as personal). */
+export async function deleteGig(id: string): Promise<ActionResult> {
+  try {
+    const { supabase } = await client();
+    const { error } = await supabase.rpc("soft_delete_gig", { p_gig_id: id });
+    if (error) throw error;
+    revalidatePath("/gigs");
+    revalidatePath("/today");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+/** Hard-delete an untitled empty draft via the RPC (used when discarding). */
+export async function discardDraftGig(id: string): Promise<ActionResult> {
+  try {
+    const { supabase } = await client();
+    const { error } = await supabase.rpc("delete_draft_gig", { p_gig_id: id });
+    if (error) throw error;
+    revalidatePath("/gigs");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+/* ── Gig days ────────────────────────────────────────────────────────────── */
+
+export interface GigDateFields {
+  id?: string; // present = update
+  gig_id: string;
+  date: string; // YYYY-MM-DD
+  status_for_day: string; // availability_checked | booked | worked | paid
+  hours_total: number;
+  hours_lunch: number;
+  overtime_hours: number;
+  bumps: number;
+  base_pay_applies: boolean;
+  notes: string | null;
+}
+
+/** Insert or update a worked/scheduled day. Stores raw inputs plus, for parity
+ * with the mobile app, the derived base_pay/gross_pay computed from the gig's
+ * pay model with the same formula the database uses. */
+export async function saveGigDate(f: GigDateFields): Promise<ActionResult> {
+  try {
+    const { supabase, user } = await client();
+
+    // Pull the gig's pay model so stored gross/base match the mobile app.
+    const { data: gig, error: gigErr } = await supabase
+      .from("gigs")
+      .select("pay_type, pay_minimum_amount, pay_minimum_hours, pay_hourly_rate, ot_starts_after_hours, ot_multiplier")
+      .eq("id", f.gig_id)
+      .single();
+    if (gigErr) throw gigErr;
+
+    const base = dayGrossEarned({
+      payType: (gig.pay_type as PayType | null) ?? null,
+      hoursTotal: f.hours_total,
+      payMinimumAmount: Number(gig.pay_minimum_amount ?? 0),
+      payMinimumHours: Number(gig.pay_minimum_hours ?? 0),
+      payHourlyRate: Number(gig.pay_hourly_rate ?? 0),
+      otStartsAfterHours: Number(gig.ot_starts_after_hours ?? 0),
+      otMultiplier: Number(gig.ot_multiplier ?? 1),
+      bumps: 0,
+    });
+    const applies = f.base_pay_applies;
+    const basePay = applies ? base : 0;
+    const grossPay = basePay + (f.bumps || 0);
+
+    const row = {
+      gig_id: f.gig_id,
+      date: f.date,
+      status_for_day: f.status_for_day,
+      hours_total: f.hours_total,
+      hours_lunch: f.hours_lunch,
+      overtime_hours: f.overtime_hours,
+      bumps: f.bumps,
+      base_pay: basePay,
+      gross_pay: grossPay,
+      base_pay_applies: applies,
+      notes: f.notes,
+    };
+
+    if (f.id) {
+      const { error } = await supabase.from("gig_dates").update(row).eq("id", f.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from("gig_dates")
+        .insert({ ...row, user_id: user.id });
+      if (error) throw error;
+    }
+    revalidatePath(`/gigs/${f.gig_id}`);
+    revalidatePath(`/gigs/${f.gig_id}/edit`);
+    revalidatePath("/gigs");
+    revalidatePath("/calendar");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+/** Soft-delete a day (its bumps cascade via trigger). */
+export async function deleteGigDate(
+  id: string,
+  gigId: string
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await client();
+    const { error } = await supabase
+      .from("gig_dates")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) throw error;
+    revalidatePath(`/gigs/${gigId}`);
+    revalidatePath(`/gigs/${gigId}/edit`);
+    revalidatePath("/calendar");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+/* ── Payments ────────────────────────────────────────────────────────────── */
+
+export interface PaymentFields {
+  id?: string;
+  gig_id: string;
+  pay_date: string;
+  gross_pay: number | null;
+  net_pay: number | null;
+  hours_paid: number | null;
+  payment_method: string | null;
+  notes: string | null;
+}
+
+export async function savePayment(f: PaymentFields): Promise<ActionResult> {
+  try {
+    const { supabase, user } = await client();
+    const row = {
+      gig_id: f.gig_id,
+      pay_date: f.pay_date,
+      gross_pay: f.gross_pay,
+      net_pay: f.net_pay,
+      hours_paid: f.hours_paid,
+      payment_method: f.payment_method,
+      notes: f.notes,
+    };
+    if (f.id) {
+      const { error } = await supabase.from("gig_payments").update(row).eq("id", f.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from("gig_payments")
+        .insert({ ...row, user_id: user.id });
+      if (error) throw error;
+    }
+    revalidatePath(`/gigs/${f.gig_id}`);
+    revalidatePath(`/gigs/${f.gig_id}/edit`);
+    revalidatePath("/payments");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+export async function deletePayment(
+  id: string,
+  gigId: string
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await client();
+    const { error } = await supabase
+      .from("gig_payments")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) throw error;
+    revalidatePath(`/gigs/${gigId}`);
+    revalidatePath(`/gigs/${gigId}/edit`);
+    revalidatePath("/payments");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+function msg(e: unknown): string {
+  if (e && typeof e === "object" && "message" in e) return String((e as { message: unknown }).message);
+  return "Something went wrong.";
+}

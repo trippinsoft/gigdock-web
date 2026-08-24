@@ -62,13 +62,25 @@ export default async function GigDetailPage({
       </Link>
 
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{gig.title}</h1>
-        {subtitle && <p className="text-zinc-500 dark:text-zinc-400 mt-1">{subtitle}</p>}
-        <p className="text-sm text-zinc-400 dark:text-zinc-500 mt-1">
-          {dateRange(gig.start_date, gig.end_date)}
-          {gig.location && <> · {gig.location}</>}
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{gig.title}</h1>
+          {subtitle && <p className="text-zinc-500 dark:text-zinc-400 mt-1">{subtitle}</p>}
+          <p className="text-sm text-zinc-400 dark:text-zinc-500 mt-1">
+            {dateRange(gig.start_date, gig.end_date)}
+            {gig.location && <> · {gig.location}</>}
+          </p>
+        </div>
+        <Link
+          href={`/gigs/${gig.id}/edit`}
+          className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 20h9" />
+            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+          </svg>
+          Edit
+        </Link>
       </div>
 
       {/* Money summary */}
@@ -121,9 +133,6 @@ export default async function GigDetailPage({
         </Section>
       )}
 
-      <p className="mt-8 text-xs text-zinc-400 dark:text-zinc-500">
-        Adding and editing gigs from the web is coming soon. For now, use the GigDock app to make changes.
-      </p>
     </div>
   );
 }

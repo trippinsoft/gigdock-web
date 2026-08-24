@@ -172,6 +172,43 @@ export async function getAllPayments(): Promise<PaymentWithGig[]> {
   return (data ?? []) as unknown as PaymentWithGig[];
 }
 
+/** Raw gig_dates rows for editing (all input fields, active only). */
+export async function getGigDatesRaw(gigId: string) {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase
+    .from("gig_dates")
+    .select(
+      "id, gig_id, date, status_for_day, hours_total, hours_lunch, overtime_hours, bumps, base_pay_applies, notes"
+    )
+    .eq("gig_id", gigId)
+    .is("deleted_at", null)
+    .order("date", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** The user's companies (for the gig/payroll company pickers). */
+export async function getCompanies() {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase
+    .from("companies")
+    .select("id, name, kind")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as { id: string; name: string; kind: string }[];
+}
+
+/** The user's projects (for the project picker). */
+export async function getProjects() {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase
+    .from("projects")
+    .select("id, title")
+    .order("title", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as { id: string; title: string }[];
+}
+
 /** Insights roll-up for a window (load_insights_overview). bucket: 'month'|'year'. */
 export async function getInsights(
   start: string,
