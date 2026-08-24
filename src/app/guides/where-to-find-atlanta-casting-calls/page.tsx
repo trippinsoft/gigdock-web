@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import PublicShell from "@/components/PublicShell";
 import AppCta from "@/components/AppCta";
 import { getSeoMarket } from "@/lib/marketContent";
@@ -23,8 +24,9 @@ export const metadata: Metadata = {
     type: "article",
     siteName: "GigDock",
     url: `${BASE}${PATH}`,
+    images: [{ url: "/guides/where-atlanta-hero.png", width: 1734, height: 907, alt: "Where Atlanta Casting Calls Actually Appear — a GigDock guide" }],
   },
-  twitter: { card: "summary", title: TITLE, description: DESCRIPTION },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, images: ["/guides/where-atlanta-hero.png"] },
 };
 
 const ATL = "/opportunities/atlanta-ga";
@@ -78,6 +80,14 @@ function OL({ items }: { items: string[] }) {
 const A = ({ href, children }: { href: string; children: React.ReactNode }) => (
   <Link href={href} className="font-medium text-blue-600 hover:underline dark:text-blue-400">{children}</Link>
 );
+function Figure({ src, alt, w = 1000, h = 1200 }: { src: string; alt: string; w?: number; h?: number }) {
+  return (
+    <figure className="mt-6">
+      <Image src={src} alt={alt} width={w} height={h} sizes="(max-width: 672px) 100vw, 672px"
+        className="w-full h-auto rounded-xl border border-zinc-200 dark:border-zinc-800" />
+    </figure>
+  );
+}
 
 function Guide({ pulse }: { pulse: { callsTracked: number; castingSources: number; topCities: string[] } }) {
   return (
@@ -88,7 +98,10 @@ function Guide({ pulse }: { pulse: { callsTracked: number; castingSources: numbe
         <span className="text-zinc-700 dark:text-zinc-300">Where to find Atlanta casting calls</span>
       </nav>
 
-      <h1 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
+      <Image src="/guides/where-atlanta-hero.png" alt="Where Atlanta Casting Calls Actually Appear — a film crew and lighting truck on an Atlanta street at sunset with the downtown skyline, from GigDock."
+        width={1734} height={907} priority sizes="(max-width: 672px) 100vw, 672px" className="w-full h-auto rounded-2xl" />
+
+      <h1 className="mt-6 text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
         Where Atlanta Casting Calls Actually Appear
       </h1>
 
@@ -111,6 +124,8 @@ function Guide({ pulse }: { pulse: { callsTracked: number; castingSources: numbe
         "Aggregators such as GigDock that bring opportunities from multiple sources together",
       ]} />
       <P>The important point is that different casting companies use different combinations of these channels. There is no universal Atlanta casting board used by every production.</P>
+      <Figure src="/guides/atlanta-sources-scattered-infographic.png" w={1000} h={1200}
+        alt="Why Atlanta casting calls are scattered: different companies use different channels — casting company websites, Facebook pages and groups, Instagram and social, email lists, casting platforms, and industry and community sites — so opportunities end up scattered and easy to miss. Monitor multiple legitimate sources, or bring many together in one feed." />
 
       <H2>1. Casting company websites and submission portals</H2>
       <P>The most important sources are usually the casting companies themselves. Atlanta productions frequently hire specialized background casting companies to find:</P>
@@ -198,6 +213,8 @@ function Guide({ pulse }: { pulse: { callsTracked: number; castingSources: numbe
       <P>These sources can be genuinely useful because they expose you to opportunities you might otherwise miss. But there is an important distinction:</P>
       <P><strong>Original source</strong> — the casting company or authorized party that is actually handling the role.</P>
       <P><strong>Repost or aggregation source</strong> — a site, group or service that helps you discover the opportunity.</P>
+      <Figure src="/guides/atlanta-original-source-vs-repost-infographic.png" w={1000} h={1120}
+        alt="Find it anywhere, apply at the original source: 1) Discover the opportunity on a website, social account, email or community page; 2) Verify by identifying the casting company and checking its official website or verified channels; 3) Follow the submission instructions from the actual casting source." />
       <P>When possible, follow the original casting company&rsquo;s submission instructions. A repost can help you discover the role, but the company doing the casting is ultimately the source that determines how to apply.</P>
 
       <H2>7. Casting companies may contact you directly</H2>
@@ -307,6 +324,8 @@ function Guide({ pulse }: { pulse: { callsTracked: number; castingSources: numbe
 
       <H2>How to tell whether a casting call is legitimate</H2>
       <P>The fact that casting calls appear across so many websites and social platforms creates an opportunity for scammers too. SAG-AFTRA warned performers in 2026 about scammers impersonating legitimate casting professionals and productions in order to obtain money or personal information. The FTC has issued similar warnings about fake casting outreach.</P>
+      <Figure src="/guides/atlanta-scam-check-infographic.png" w={1000} h={1180}
+        alt="Before you submit, do a quick scam check: identify the company doing the casting, verify the source on its official website or verified channel, read the instructions to be sure the submission process matches the source, and never pay for the job — upfront fees or deposits are a major red flag. Other red flags: being asked to pay to secure a spot, send money for production costs, or cash a check and forward money." />
       <P>Watch for major red flags such as someone asking you to:</P>
       <UL items={[
         "pay money to secure the job",
