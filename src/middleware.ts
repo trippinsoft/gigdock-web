@@ -29,6 +29,18 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Authenticated back-office surfaces — require a signed-in user, and bounce
+  // guests to login with a return path so they land back where they were.
+  const APP_PREFIXES = ["/gigs", "/today", "/calendar", "/payments", "/insights", "/documents"];
+  if (APP_PREFIXES.some((p) => request.nextUrl.pathname.startsWith(p))) {
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("next", request.nextUrl.pathname + request.nextUrl.search);
+      return NextResponse.redirect(url);
+    }
+  }
+
   if (request.nextUrl.pathname.startsWith("/admin")) {
     if (!user) {
       const url = request.nextUrl.clone();
@@ -68,5 +80,14 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/login"],
+  matcher: [
+    "/admin/:path*",
+    "/login",
+    "/gigs/:path*",
+    "/today/:path*",
+    "/calendar/:path*",
+    "/payments/:path*",
+    "/insights/:path*",
+    "/documents/:path*",
+  ],
 };
