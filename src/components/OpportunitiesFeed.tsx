@@ -381,6 +381,19 @@ export default function OpportunitiesFeed({
     setTimeout(() => setSheetMounted(false), 300);
   }, []);
 
+  // Selecting a card: on desktop the detail shows in the right pane, so just set
+  // the selection. The mobile bottom-sheet locks page scroll while open, so it
+  // must ONLY open on mobile — opening it on desktop would freeze scrolling on
+  // the flow-layout (embedded) location pages, where the list scrolls with the
+  // page body rather than in its own container.
+  const selectOpportunity = useCallback((id: string) => {
+    if (typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches) {
+      setSelectedId(id);
+    } else {
+      openSheet(id);
+    }
+  }, [openSheet]);
+
   // Shared link on mobile: once the gig is in the list, open its detail sheet
   // (desktop already shows it in the right pane via the selection effect above).
   const didOpenInitial = useRef(false);
@@ -755,7 +768,7 @@ export default function OpportunitiesFeed({
               ) : (
                 <div className="space-y-3">
                   {shown.map((opp) => (
-                    <OpportunityListItem key={opp.id} opp={opp} selected={opp.id === selectedId} href={`/opportunities/${opp.id}`} now={now} onSelect={() => { track("opportunity_viewed", { opportunity_id: opp.id, production_name: opp.production_name, market: opp.match_state, source: opp.source, pay_min: opp.pay_min, surface: embedded ? "location" : "feed" }); openSheet(opp.id); }} fit={fitById.get(opp.id) ?? null} saved={savedIds.has(opp.id)} onToggleSave={() => toggleSave(opp.id)} />
+                    <OpportunityListItem key={opp.id} opp={opp} selected={opp.id === selectedId} href={`/opportunities/${opp.id}`} now={now} onSelect={() => { track("opportunity_viewed", { opportunity_id: opp.id, production_name: opp.production_name, market: opp.match_state, source: opp.source, pay_min: opp.pay_min, surface: embedded ? "location" : "feed" }); selectOpportunity(opp.id); }} fit={fitById.get(opp.id) ?? null} saved={savedIds.has(opp.id)} onToggleSave={() => toggleSave(opp.id)} />
                   ))}
                   {moreCount > 0 && (
                     <Link href="/opportunities" className="block text-center py-3 text-sm font-semibold text-blue-600 hover:underline dark:text-blue-400">
