@@ -2,8 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { saveGig, deleteGig, discardDraftGig, type GigFields } from "@/lib/backoffice-actions";
+import {
+  saveGig,
+  deleteGig,
+  discardDraftGig,
+  createCompany,
+  createProject,
+  type GigFields,
+} from "@/lib/backoffice-actions";
 import { GIG_MODES, PAY_TYPES } from "@/lib/gigVocab";
+import EntitySelect from "@/components/EntitySelect";
 import type { PayType } from "@/lib/pay";
 
 type Company = { id: string; name: string; kind: string };
@@ -24,6 +32,13 @@ export default function GigEditor({
 }) {
   const router = useRouter();
   const isDraft = !initial.active;
+
+  // Companies/projects held in local state so a quick-created one appears in the
+  // dropdown and can be selected immediately (no full reload).
+  const [companyList, setCompanyList] = useState<Company[]>(companies);
+  const [projectList, setProjectList] = useState<Project[]>(projects);
+  const prodCompanies = companyList.filter((c) => c.kind === "gig");
+  const payrollCompanies = companyList.filter((c) => c.kind === "payroll");
 
   const [f, setF] = useState<GigEditorInitial>(initial);
   const [saving, setSaving] = useState(false);
@@ -120,23 +135,47 @@ export default function GigEditor({
         </Field>
 
         <Field label="Production company">
-          <CompanySelect value={f.gig_company_id} onChange={(v) => set("gig_company_id", v)} companies={companies} />
+          <EntitySelect
+            value={f.gig_company_id}
+            onChange={(v) => set("gig_company_id", v)}
+            options={prodCompanies.map((c) => ({ id: c.id, name: c.name }))}
+            newLabel="New company"
+            onCreate={async (name) => {
+              const res = await createCompany(name, "gig");
+              if (!res.ok || !res.data) return null;
+              setCompanyList((prev) => [...prev, res.data!]);
+              return res.data;
+            }}
+          />
         </Field>
         <Field label="Payroll company">
-          <CompanySelect value={f.payroll_company_id} onChange={(v) => set("payroll_company_id", v)} companies={companies} />
+          <EntitySelect
+            value={f.payroll_company_id}
+            onChange={(v) => set("payroll_company_id", v)}
+            options={payrollCompanies.map((c) => ({ id: c.id, name: c.name }))}
+            newLabel="New payroll company"
+            onCreate={async (name) => {
+              const res = await createCompany(name, "payroll");
+              if (!res.ok || !res.data) return null;
+              setCompanyList((prev) => [...prev, res.data!]);
+              return res.data;
+            }}
+          />
         </Field>
 
         <Field label="Project" className="sm:col-span-2">
-          <select
-            value={f.project_id ?? ""}
-            onChange={(e) => set("project_id", e.target.value || null)}
-            className={inputCls}
-          >
-            <option value="">None</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>{p.title}</option>
-            ))}
-          </select>
+          <EntitySelect
+            value={f.project_id}
+            onChange={(v) => set("project_id", v)}
+            options={projectList.map((p) => ({ id: p.id, name: p.title }))}
+            newLabel="New project"
+            onCreate={async (title) => {
+              const res = await createProject(title);
+              if (!res.ok || !res.data) return null;
+              setProjectList((prev) => [...prev, res.data!]);
+              return { id: res.data.id };
+            }}
+          />
         </Field>
       </div>
 
@@ -250,25 +289,6 @@ function cleanPayFields(f: GigEditorInitial): GigFields {
     out.bump_rate = null;
   }
   return out;
-}
-
-function CompanySelect({
-  value,
-  onChange,
-  companies,
-}: {
-  value: string | null;
-  onChange: (v: string | null) => void;
-  companies: Company[];
-}) {
-  return (
-    <select value={value ?? ""} onChange={(e) => onChange(e.target.value || null)} className={inputCls}>
-      <option value="">None</option>
-      {companies.map((c) => (
-        <option key={c.id} value={c.id}>{c.name}</option>
-      ))}
-    </select>
-  );
 }
 
 function Field({

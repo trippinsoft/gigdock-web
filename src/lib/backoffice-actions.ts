@@ -139,6 +139,50 @@ export async function discardDraftGig(id: string): Promise<ActionResult> {
   }
 }
 
+/* ── Companies & projects (quick create) ─────────────────────────────────── */
+
+/** Create a company. kind: 'gig' (production/hiring) or 'payroll'. Returns it
+ * so the caller can select it immediately. Mirrors the app's addCompany. */
+export async function createCompany(
+  name: string,
+  kind: "gig" | "payroll"
+): Promise<ActionResult<{ id: string; name: string; kind: string }>> {
+  try {
+    const { supabase, user } = await client();
+    const trimmed = name.trim();
+    if (!trimmed) return { ok: false, error: "Enter a name." };
+    const { data, error } = await supabase
+      .from("companies")
+      .insert({ user_id: user.id, name: trimmed, kind })
+      .select("id, name, kind")
+      .single();
+    if (error) throw error;
+    return { ok: true, data: data as { id: string; name: string; kind: string } };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+/** Create a project (title only; other fields are optional and app-editable). */
+export async function createProject(
+  title: string
+): Promise<ActionResult<{ id: string; title: string }>> {
+  try {
+    const { supabase, user } = await client();
+    const trimmed = title.trim();
+    if (!trimmed) return { ok: false, error: "Enter a title." };
+    const { data, error } = await supabase
+      .from("projects")
+      .insert({ user_id: user.id, title: trimmed })
+      .select("id, title")
+      .single();
+    if (error) throw error;
+    return { ok: true, data: data as { id: string; title: string } };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
 /* ── Gig days ────────────────────────────────────────────────────────────── */
 
 export interface GigDateFields {
