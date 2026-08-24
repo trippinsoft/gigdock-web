@@ -290,6 +290,93 @@ export async function getSignedDocUrls(
   return out;
 }
 
+/** Total gross payments received within [start, end) (by pay_date). Distinct
+ * from "earned in range" — this is money that actually arrived. */
+export async function getReceivedInRange(
+  start: string,
+  end: string
+): Promise<number> {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase
+    .from("gig_payments")
+    .select("gross_pay")
+    .is("deleted_at", null)
+    .gte("pay_date", start)
+    .lt("pay_date", end);
+  if (error) throw error;
+  return (data ?? []).reduce((s, r) => s + Number(r.gross_pay ?? 0), 0);
+}
+
+/** Work summary for a window (load_work_summary): counts and averages. */
+export async function getWorkSummary(
+  start?: string,
+  end?: string
+): Promise<{
+  gig_count: number;
+  days_worked: number;
+  project_count: number;
+  avg_per_day: number | null;
+  avg_per_gig: number | null;
+} | null> {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase.rpc("load_work_summary", {
+    p_start_date: start ?? null,
+    p_end_date: end ?? null,
+  });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return (row as {
+    gig_count: number;
+    days_worked: number;
+    project_count: number;
+    avg_per_day: number | null;
+    avg_per_gig: number | null;
+  }) ?? null;
+}
+
+/** Documents belonging to one gig, with short-lived signed URLs. */
+export async function getGigDocuments(
+  gigId: string
+): Promise<(DocumentRow & { url?: string })[]> {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase
+    .from("documents")
+    .select(
+      "id, user_id, gig_id, project_id, payment_id, document_type, display_name, storage_path, original_file_name, mime_type, file_size, document_date, notes, created_at"
+    )
+    .eq("gig_id", gigId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  const docs = (data ?? []) as DocumentRow[];
+  const urls = await getSignedDocUrls(docs.map((d) => d.storage_path));
+  return docs.map((d) => ({ ...d, url: urls[d.storage_path] }));
+}
+
+/** A few recent active opportunities for the Today dashboard strip. */
+export async function getRecentOpportunities(limit = 3) {
+  const supabase = await createSupabaseServer();
+  const today = new Date().toISOString().slice(0, 10);
+  const { data, error } = await supabase
+    .from("opportunities")
+    .select("id, title, location, pay_rate, match_state, posted_at, work_date")
+    .eq("status", "active")
+    .is("deleted_at", null)
+    .or(`expires_at.is.null,expires_at.gte.${today}`)
+    .order("posted_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as {
+    id: string;
+    title: string;
+    location: string | null;
+    pay_rate: string | null;
+    match_state: string | null;
+    posted_at: string;
+    work_date: string | null;
+  }[];
+}
+
 /** Does the signed-in user currently hold an active entitlement to a product?
  * Backed by has_active_entitlement(p_product) which derives the user internally. */
 export async function hasActiveEntitlement(
