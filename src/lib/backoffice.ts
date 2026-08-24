@@ -13,6 +13,7 @@
 // createSupabaseServer, which already makes it unusable from client components.)
 import { createSupabaseServer } from "@/lib/supabase-server";
 import type {
+  EarningsSummary,
   FilteredGig,
   GigBump,
   GigDateWithEarnings,
@@ -22,6 +23,7 @@ import type {
   GigSort,
   GigWithNames,
   NeedsAttention,
+  PaymentWithGig,
 } from "@/lib/backoffice-types";
 
 /** Currently signed-in user, or null. */
@@ -122,6 +124,48 @@ export async function getNeedsAttention(): Promise<NeedsAttention | null> {
   if (error) throw error;
   const row = Array.isArray(data) ? data[0] : data;
   return (row as NeedsAttention) ?? null;
+}
+
+/** Total gross earned across the given date window (load_month_earned_summary). */
+export async function getEarnedInRange(
+  start: string,
+  end: string
+): Promise<number> {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase.rpc("load_month_earned_summary", {
+    p_start_date: start,
+    p_end_date: end,
+  });
+  if (error) throw error;
+  return Number(data ?? 0);
+}
+
+/** Earnings roll-up across all gigs (optionally windowed). load_earnings_summary. */
+export async function getEarningsSummary(
+  start?: string,
+  end?: string
+): Promise<EarningsSummary | null> {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase.rpc("load_earnings_summary", {
+    p_start_date: start ?? null,
+    p_end_date: end ?? null,
+  });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return (row as EarningsSummary) ?? null;
+}
+
+/** All payments across gigs, newest first, with the gig title embedded. */
+export async function getAllPayments(): Promise<PaymentWithGig[]> {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase
+    .from("gig_payments")
+    .select("*, gig:gigs(title)")
+    .is("deleted_at", null)
+    .order("pay_date", { ascending: false })
+    .limit(500);
+  if (error) throw error;
+  return (data ?? []) as unknown as PaymentWithGig[];
 }
 
 /** Does the signed-in user currently hold an active entitlement to a product?

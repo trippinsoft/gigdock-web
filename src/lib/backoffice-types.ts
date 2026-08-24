@@ -164,6 +164,20 @@ export interface GigEarningsSummary {
   received_percent: number | null;
 }
 
+/** Row from `load_earnings_summary` (all gigs, optionally windowed). */
+export interface EarningsSummary {
+  gross_earned: number | null;
+  total_paid: number | null;
+  remaining: number | null;
+  received_percent: number | null;
+  gig_count: number;
+}
+
+/** A gig_payments row with the parent gig's title embedded. */
+export interface PaymentWithGig extends GigPayment {
+  gig: { title: string } | null;
+}
+
 /** Return shape of `load_needs_attention` (single row). */
 export interface NeedsAttention {
   payments_due_count: number;

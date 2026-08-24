@@ -21,11 +21,11 @@ type NavItem = {
 
 // Persistent workspace nav (brief §9). Order = display order.
 const NAV: NavItem[] = [
-  { href: "/today", label: "Today", ready: false, icon: iconHome() },
+  { href: "/today", label: "Today", ready: true, icon: iconHome() },
   { href: "/opportunities", label: "Opportunities", ready: true, icon: iconSearch() },
   { href: "/gigs", label: "Gigs", ready: true, icon: iconBriefcase() },
   { href: "/calendar", label: "Calendar", ready: false, icon: iconCalendar() },
-  { href: "/payments", label: "Payments", ready: false, icon: iconDollar() },
+  { href: "/payments", label: "Payments", ready: true, icon: iconDollar() },
   { href: "/insights", label: "Insights", ready: false, icon: iconChart() },
   { href: "/documents", label: "Documents", ready: false, icon: iconDoc() },
 ];
@@ -93,7 +93,7 @@ export default function AppShell({
       {/* Mobile top bar */}
       <header className="lg:hidden sticky top-0 z-30 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center justify-between h-14 px-4">
-          <Link href="/gigs" className="flex items-center gap-2" onClick={() => setMenuOpen(false)}>
+          <Link href="/today" className="flex items-center gap-2" onClick={() => setMenuOpen(false)}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/gigdock-logo.png" alt="GigDock" className="h-7 w-7" />
             <span className="font-bold text-lg tracking-tight text-zinc-900 dark:text-zinc-100">GigDock</span>
