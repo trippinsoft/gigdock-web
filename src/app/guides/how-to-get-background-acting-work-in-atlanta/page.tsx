@@ -146,6 +146,7 @@ function Guide({ pulse }: { pulse: { callsTracked: number; castingSources: numbe
       ]} />
       <Figure src="/guides/atlanta-where-calls-appear-infographic.png" alt="Where Atlanta casting calls appear — casting company websites, email lists, Facebook groups and pages, Instagram and social, casting platforms, and entertainment job sites are hard to track manually; GigDock brings opportunities from multiple sources into one feed." />
       <P>A person trying to find as much work as possible can end up checking the same collection of sources over and over. That fragmentation is one of the reasons GigDock exists — it brings film and television opportunities from multiple sources together into one feed, making it easier to see what is currently casting without having to remember every place where an opportunity might appear.</P>
+      <P>Want the full breakdown of where these opportunities show up? <A href="/guides/where-to-find-atlanta-casting-calls">Read Where to Find Atlanta Casting Calls →</A></P>
 
       {pulse.callsTracked > 0 && (
         <div className="mt-6 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 p-6">

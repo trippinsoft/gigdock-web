@@ -17,6 +17,12 @@ export const GUIDES: Guide[] = [
       "Start getting paid background and extras work in Atlanta with no experience — how to prepare, where casting calls appear, how to submit, and what pay looks like.",
   },
   {
+    slug: "where-to-find-atlanta-casting-calls",
+    title: "Where to Find Atlanta Casting Calls",
+    blurb:
+      "Where Atlanta casting calls actually appear — the casting companies, websites, Facebook pages, social accounts, email lists and platforms to watch, and how to verify what you find.",
+  },
+  {
     slug: "how-background-actors-get-paid",
     title: "How Do Background Actors Get Paid?",
     blurb:
