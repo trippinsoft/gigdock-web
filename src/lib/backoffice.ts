@@ -13,6 +13,9 @@
 // createSupabaseServer, which already makes it unusable from client components.)
 import { createSupabaseServer } from "@/lib/supabase-server";
 import type {
+  CalendarDate,
+  DateFlag,
+  DocumentRow,
   EarningsSummary,
   FilteredGig,
   GigBump,
@@ -22,6 +25,7 @@ import type {
   GigPayment,
   GigSort,
   GigWithNames,
+  InsightsOverview,
   NeedsAttention,
   PaymentWithGig,
 } from "@/lib/backoffice-types";
@@ -166,6 +170,87 @@ export async function getAllPayments(): Promise<PaymentWithGig[]> {
     .limit(500);
   if (error) throw error;
   return (data ?? []) as unknown as PaymentWithGig[];
+}
+
+/** Insights roll-up for a window (load_insights_overview). bucket: 'month'|'year'. */
+export async function getInsights(
+  start: string,
+  end: string,
+  bucket: "month" | "year" = "month"
+): Promise<InsightsOverview | null> {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase.rpc("load_insights_overview", {
+    p_start_date: start,
+    p_end_date: end,
+    p_bucket: bucket,
+  });
+  if (error) throw error;
+  return (data as InsightsOverview) ?? null;
+}
+
+/** Worked/planned gig days within [start, end) for the calendar, gig title embedded. */
+export async function getCalendarDates(
+  start: string,
+  end: string
+): Promise<CalendarDate[]> {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase
+    .from("gig_dates")
+    .select("id, gig_id, date, status_for_day, hours_total, gig:gigs(title)")
+    .is("deleted_at", null)
+    .gte("date", start)
+    .lt("date", end)
+    .order("date", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as unknown as CalendarDate[];
+}
+
+/** Personal date flags within [start, end). */
+export async function getDateFlags(
+  start: string,
+  end: string
+): Promise<DateFlag[]> {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase
+    .from("date_flags")
+    .select("user_id, date, flag")
+    .gte("date", start)
+    .lt("date", end);
+  if (error) throw error;
+  return (data ?? []) as DateFlag[];
+}
+
+/** All of the user's documents, newest first. */
+export async function getDocuments(): Promise<DocumentRow[]> {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase
+    .from("documents")
+    .select(
+      "id, user_id, gig_id, project_id, payment_id, document_type, display_name, storage_path, original_file_name, mime_type, file_size, document_date, notes, created_at"
+    )
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (error) throw error;
+  return (data ?? []) as DocumentRow[];
+}
+
+/** Short-lived signed URLs for document storage paths (bucket: documents).
+ * Returns a map of storage_path -> signed URL (missing on failure). */
+export async function getSignedDocUrls(
+  paths: string[]
+): Promise<Record<string, string>> {
+  if (paths.length === 0) return {};
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase.storage
+    .from("documents")
+    .createSignedUrls(paths, 60 * 10); // 10 minutes
+  if (error) throw error;
+  const out: Record<string, string> = {};
+  for (const item of data ?? []) {
+    if (item.signedUrl && item.path) out[item.path] = item.signedUrl;
+  }
+  return out;
 }
 
 /** Does the signed-in user currently hold an active entitlement to a product?

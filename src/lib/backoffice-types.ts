@@ -189,6 +189,80 @@ export interface NeedsAttention {
   missing_dates_gig_ids: string[] | null;
 }
 
+/** Output of `load_insights_overview` (jsonb). */
+export interface InsightsOverview {
+  gross_earned: number;
+  net_recorded: number;
+  gigs_worked: number;
+  days_worked: number;
+  average_per_work_day: number;
+  paid_gigs: number;
+  net_complete_gigs: number;
+  net_complete: boolean;
+  outstanding: number;
+  outstanding_gigs: number;
+  received: number;
+  payment_count: number;
+  payment_gigs: number;
+  trend: { date: string; gross: number }[];
+  payment_trend: { date: string; received: number }[];
+  gigs: {
+    gig_id: string;
+    title: string;
+    first_worked_date: string;
+    last_worked_date: string;
+    days_worked: number;
+    gross: number;
+    received: number;
+    outstanding: number;
+  }[];
+  companies: { id: string | null; name: string; gross: number; gig_count: number; days_worked: number }[];
+  projects: { id: string | null; name: string; gross: number; gig_count: number; days_worked: number }[];
+  outstanding_items: {
+    gig_id: string;
+    title: string;
+    worked_date: string;
+    earned: number;
+    received: number;
+    outstanding: number;
+  }[];
+}
+
+/** A gig_dates row trimmed for the calendar, with the gig title embedded. */
+export interface CalendarDate {
+  id: string;
+  gig_id: string | null;
+  date: string;
+  status_for_day: string | null;
+  hours_total: number | null;
+  gig: { title: string } | null;
+}
+
+/** A row of `date_flags` (personal per-day flag: hold, unavailable, ...). */
+export interface DateFlag {
+  user_id: string;
+  date: string;
+  flag: string;
+}
+
+/** A row of the `documents` table. */
+export interface DocumentRow {
+  id: string;
+  user_id: string;
+  gig_id: string | null;
+  project_id: string | null;
+  payment_id: string | null;
+  document_type: string;
+  display_name: string;
+  storage_path: string;
+  original_file_name: string;
+  mime_type: string;
+  file_size: number;
+  document_date: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
 /** Gig list filter buckets (map to load_filtered_gigs p_filter_type). */
 export type GigFilter = "payments_due" | "missing_payment" | "missing_dates";
 export type GigSort = "recent" | "oldest";

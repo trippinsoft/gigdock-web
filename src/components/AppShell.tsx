@@ -24,10 +24,10 @@ const NAV: NavItem[] = [
   { href: "/today", label: "Today", ready: true, icon: iconHome() },
   { href: "/opportunities", label: "Opportunities", ready: true, icon: iconSearch() },
   { href: "/gigs", label: "Gigs", ready: true, icon: iconBriefcase() },
-  { href: "/calendar", label: "Calendar", ready: false, icon: iconCalendar() },
+  { href: "/calendar", label: "Calendar", ready: true, icon: iconCalendar() },
   { href: "/payments", label: "Payments", ready: true, icon: iconDollar() },
-  { href: "/insights", label: "Insights", ready: false, icon: iconChart() },
-  { href: "/documents", label: "Documents", ready: false, icon: iconDoc() },
+  { href: "/insights", label: "Insights", ready: true, icon: iconChart() },
+  { href: "/documents", label: "Documents", ready: true, icon: iconDoc() },
 ];
 
 export default function AppShell({
