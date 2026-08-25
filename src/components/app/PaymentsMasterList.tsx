@@ -5,13 +5,15 @@
 // payment detail (/payments/<gigId>) on the right. Filtering is instant,
 // in-memory over the server-seeded gig set.
 
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FilteredGig } from "@/lib/backoffice-types";
 import { paymentStatusOf } from "@/lib/gigBuckets";
 import { StatusPill } from "@/components/app/ui";
+import MasterRow from "@/components/app/MasterRow";
 import { money, dateRange } from "@/lib/format";
+
+type GigRowData = FilteredGig & { company_name?: string | null };
 
 type View = "outstanding" | "received" | "all";
 const VIEWS: { key: View; label: string }[] = [
@@ -36,7 +38,7 @@ function inView(g: FilteredGig, view: View): boolean {
   return earned > 0 || paid > 0;
 }
 
-export default function PaymentsMasterList({ gigs }: { gigs: FilteredGig[] }) {
+export default function PaymentsMasterList({ gigs }: { gigs: GigRowData[] }) {
   const pathname = usePathname();
   const router = useRouter();
   const params = useSearchParams();
@@ -95,33 +97,26 @@ export default function PaymentsMasterList({ gigs }: { gigs: FilteredGig[] }) {
         {visible.length === 0 ? (
           <p className="px-4 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">Nothing {view === "all" ? "yet" : view}.</p>
         ) : (
-          <ul>
+          <div className="p-3 flex flex-col gap-2.5">
             {visible.map((g) => {
               const active = pathname === `/payments/${g.id}`;
               const amt = amountFor(g, view);
+              const valueCls = view === "received" ? "text-green-600 dark:text-green-400" : view === "outstanding" ? "text-amber-600 dark:text-amber-400" : "text-zinc-900 dark:text-zinc-100";
               return (
-                <li key={g.id}>
-                  <Link
-                    href={`/payments/${g.id}`}
-                    className={`block border-l-2 px-4 py-3 border-b border-zinc-100 dark:border-zinc-800/70 ${
-                      active ? "border-l-blue-600 bg-blue-50/70 dark:bg-blue-950/30" : "border-l-transparent hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="truncate font-semibold text-sm text-zinc-900 dark:text-zinc-100">{g.title || "Untitled gig"}</div>
-                        <div className="truncate text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">{dateRange(g.start_date, g.end_date)}</div>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <div className={`text-sm font-semibold ${view === "received" ? "text-green-600 dark:text-green-400" : view === "outstanding" ? "text-amber-600 dark:text-amber-400" : "text-zinc-900 dark:text-zinc-100"}`}>{money(amt)}</div>
-                      </div>
-                    </div>
-                    <div className="mt-1.5"><StatusPill status={paymentStatusOf(g)} small /></div>
-                  </Link>
-                </li>
+                <MasterRow
+                  key={g.id}
+                  href={`/payments/${g.id}`}
+                  selected={active}
+                  ariaCurrent={active}
+                  title={g.title || "Untitled gig"}
+                  subtitle={g.company_name || "Private"}
+                  meta={dateRange(g.start_date, g.end_date)}
+                  value={<span className={valueCls}>{money(amt)}</span>}
+                  badge={<StatusPill status={paymentStatusOf(g)} small />}
+                />
               );
             })}
-          </ul>
+          </div>
         )}
       </div>
     </div>

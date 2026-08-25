@@ -1,4 +1,4 @@
-import { getGigs } from "@/lib/backoffice";
+import { getGigs, getCompanies } from "@/lib/backoffice";
 import MasterDetailLayout from "@/components/app/MasterDetailLayout";
 import GigMasterList from "@/components/app/GigMasterList";
 
@@ -11,9 +11,11 @@ export default async function GigsLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const gigs = await getGigs({ sort: "recent" });
+  const [gigs, companies] = await Promise.all([getGigs({ sort: "recent" }), getCompanies()]);
+  const nameById = new Map(companies.map((c) => [c.id, c.name]));
+  const enriched = gigs.map((g) => ({ ...g, company_name: g.gig_company_id ? nameById.get(g.gig_company_id) ?? null : null }));
   return (
-    <MasterDetailLayout basePath="/gigs" master={<GigMasterList gigs={gigs} />}>
+    <MasterDetailLayout basePath="/gigs" master={<GigMasterList gigs={enriched} />}>
       {children}
     </MasterDetailLayout>
   );
