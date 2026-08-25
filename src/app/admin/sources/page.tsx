@@ -21,6 +21,7 @@ export default function SourcesPage() {
     detail?: string;
   } | null>(null);
   const [testing, setTesting] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const supabase = createSupabaseBrowser();
 
@@ -83,6 +84,38 @@ export default function SourcesPage() {
       .eq("id", id);
     setEditingId(null);
     load();
+  }
+
+  async function deleteSource(source: Source) {
+    if (
+      !confirm(
+        `Delete "${source.name}"? This removes the source itself. Any opportunities already ingested from it are kept.\n\nIf you just want to stop polling it, use Pause instead.`
+      )
+    )
+      return;
+    setDeletingId(source.id);
+    // .select() lets us tell a real delete from an RLS-blocked no-op (0 rows).
+    const { data, error } = await supabase
+      .from("sources")
+      .delete()
+      .eq("id", source.id)
+      .select();
+    setDeletingId(null);
+    if (error) {
+      // Most likely a foreign-key violation: the source still has ingested
+      // posts referencing it (raw_ingestions.source_id).
+      alert(
+        `Couldn't delete "${source.name}": ${error.message}\n\nThis usually means the source has ingested posts. Pause it instead, or run the optional foreign-key migration so sources with history can be removed.`
+      );
+      return;
+    }
+    if (!data || data.length === 0) {
+      alert(
+        "Delete wasn't permitted. The database is missing a delete policy for sources — run the sources_curator_delete policy SQL, then try again."
+      );
+      return;
+    }
+    setSources((prev) => prev.filter((s) => s.id !== source.id));
   }
 
   async function testFeed(source: Source) {
@@ -352,6 +385,14 @@ export default function SourcesPage() {
                       }`}
                     >
                       {source.active ? "Pause" : "Resume"}
+                    </button>
+                    <button
+                      onClick={() => deleteSource(source)}
+                      disabled={deletingId === source.id}
+                      className="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-50"
+                      title="Permanently delete this source"
+                    >
+                      {deletingId === source.id ? "Deleting…" : "Delete"}
                     </button>
                   </div>
                 </div>
