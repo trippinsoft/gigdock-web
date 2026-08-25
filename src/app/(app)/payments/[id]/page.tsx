@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getGig, getGigEarnings, getGigPayments } from "@/lib/backoffice";
+import { getGig, getGigEarnings, getGigPayments, getGigDates } from "@/lib/backoffice";
 import type { GigPayment } from "@/lib/backoffice-types";
 import { paymentStatusOf } from "@/lib/gigBuckets";
 import { StatusPill } from "@/components/app/ui";
@@ -21,13 +21,23 @@ export default async function PaymentDetailPage({
   const gig = await getGig(id);
   if (!gig) notFound();
 
-  const [earnings, payments] = await Promise.all([getGigEarnings(id), getGigPayments(id)]);
+  const [earnings, payments, dates] = await Promise.all([
+    getGigEarnings(id),
+    getGigPayments(id),
+    getGigDates(id),
+  ]);
   const earned = earnings?.gross_earned ?? 0;
   const paid = earnings?.total_paid ?? 0;
   const remaining = earnings?.remaining ?? Math.max(earned - paid, 0);
   const pct = earnings?.received_percent != null ? Math.round(earnings.received_percent) : earned > 0 ? Math.min(Math.round((paid / earned) * 100), 100) : 0;
   const status = paymentStatusOf({ user_marked_paid: gig.user_marked_paid, earned_total: earned, total_paid: paid });
-  const meta = [gig.gig_company_name, dateRange(gig.start_date, gig.end_date)].filter((x) => x && x !== "—").join(" · ");
+
+  const workedDates = dates.map((d) => d.date.slice(0, 10)).sort();
+  const lastWorked = workedDates[workedDates.length - 1];
+  const daysOutstanding = remaining > 0 && lastWorked
+    ? Math.max(0, Math.floor((Date.now() - new Date(lastWorked + "T00:00:00").getTime()) / 864e5))
+    : null;
+  const workRange = workedDates.length ? dateRange(workedDates[0], lastWorked) : dateRange(gig.start_date, gig.end_date);
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-5 max-w-3xl">
@@ -36,18 +46,19 @@ export default async function PaymentDetailPage({
         Payments
       </Link>
 
-      {/* Gig context header */}
+      {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{gig.title || "Untitled gig"}</h1>
             <StatusPill status={status} />
           </div>
-          {meta && <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">{meta}</p>}
+          {gig.gig_company_name && <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">{gig.gig_company_name}</p>}
         </div>
-        <Link href={`/gigs/${id}`} className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3.5 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800">
-          Open full gig →
-        </Link>
+        <div className="shrink-0 flex items-center gap-2">
+          <Link href={`/gigs/${id}/edit`} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 px-3.5 py-2 text-sm font-semibold text-white">Add payment</Link>
+          <Link href={`/gigs/${id}`} className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3.5 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800">Open full gig →</Link>
+        </div>
       </div>
 
       {/* Money summary */}
@@ -61,9 +72,20 @@ export default async function PaymentDetailPage({
           <div className="h-2 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
             <div className={`h-full rounded-full ${pct >= 100 ? "bg-green-500" : "bg-blue-500"}`} style={{ width: `${pct}%` }} />
           </div>
-          <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">{pct}% received</p>
+          <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+            {pct}% received{daysOutstanding != null && <> · <span className="text-amber-600 dark:text-amber-400 font-medium">{daysOutstanding} {daysOutstanding === 1 ? "day" : "days"} outstanding</span></>}
+          </p>
         </div>
       )}
+
+      {/* Why you're owed it — context */}
+      <h2 className="mt-6 mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Details</h2>
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
+        <Row label="Production company" value={gig.gig_company_name} />
+        <Row label="Payroll company" value={gig.payroll_company_name} />
+        <Row label="Location" value={gig.location} />
+        <Row label="Work dates" value={workedDates.length ? `${workRange} · ${workedDates.length} ${workedDates.length === 1 ? "day" : "days"}` : workRange} />
+      </div>
 
       {/* Payment history */}
       <h2 className="mt-6 mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Payment history</h2>
@@ -86,6 +108,16 @@ function Money({ label, value, tone = "default" }: { label: string; value: strin
     <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
       <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{label}</div>
       <div className={`mt-1 text-xl font-bold ${cls}`}>{value}</div>
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string | null | undefined }) {
+  if (!value || value === "—") return null;
+  return (
+    <div className="flex items-start justify-between gap-4 px-4 py-2.5">
+      <span className="text-sm text-zinc-500 dark:text-zinc-400">{label}</span>
+      <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200 text-right">{value}</span>
     </div>
   );
 }

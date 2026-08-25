@@ -13,6 +13,7 @@ import {
 } from "@/lib/backoffice";
 import type { FilteredGig } from "@/lib/backoffice-types";
 import { Panel } from "@/components/app/ui";
+import MasterRow from "@/components/app/MasterRow";
 import { money, shortDate, shortDateNoYear } from "@/lib/format";
 
 export const metadata: Metadata = {
@@ -185,21 +186,15 @@ export default async function TodayPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {opps.map((o) => (
-            <Link key={o.id} href={`/opportunities/${o.id}`} className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden hover:border-zinc-300 dark:hover:border-zinc-700">
-              <div className="h-28 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                {o.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={o.image_url} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="text-zinc-300 dark:text-zinc-600"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="m3 15 5-4 4 3 3-2 6 5" /><circle cx="8.5" cy="9" r="1.5" /></svg>
-                )}
-              </div>
-              <div className="p-3">
-                <div className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 line-clamp-2">{o.title}</div>
-                <div className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">{[o.location, o.work_date ? shortDateNoYear(o.work_date) : null].filter(Boolean).join(" · ")}</div>
-                {o.pay_rate && <div className="mt-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300">{o.pay_rate}</div>}
-              </div>
-            </Link>
+            <MasterRow
+              key={o.id}
+              href={`/opportunities/${o.id}`}
+              showThumb={!!o.image_url}
+              image={o.image_url}
+              title={o.title}
+              meta={[o.location, o.work_date ? shortDateNoYear(o.work_date) : null].filter(Boolean).join(" · ") || undefined}
+              value={o.pay_rate || undefined}
+            />
           ))}
         </div>
       )}

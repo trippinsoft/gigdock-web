@@ -17,20 +17,13 @@ import type {
 } from "@/lib/backoffice-types";
 import { paymentStatusOf } from "@/lib/gigBuckets";
 import { StatusPill } from "@/components/app/ui";
-import SectionAnchorNav from "@/components/app/SectionAnchorNav";
+import GigTabs, { type GigTab } from "@/components/app/GigTabs";
 import { money, shortDate, dateRange } from "@/lib/format";
 
 export const metadata: Metadata = {
   title: "Gig",
   robots: { index: false, follow: false },
 };
-
-const SECTIONS = [
-  { id: "overview", label: "Overview" },
-  { id: "work-days", label: "Work Days" },
-  { id: "payments", label: "Payments" },
-  { id: "documents", label: "Documents" },
-];
 
 export default async function GigWorkspacePage({
   params,
@@ -70,6 +63,13 @@ export default async function GigWorkspacePage({
   const company = gig.gig_company_name;
   const headerMeta = [dateRange(gig.start_date, gig.end_date), gig.location].filter((x) => x && x !== "—").join(" · ");
 
+  const tabs: GigTab[] = [
+    { id: "overview", label: "Overview", content: <OverviewPanel gig={gig} /> },
+    { id: "work-days", label: "Work Days", count: dates.length, content: <WorkDaysPanel id={id} dates={dates} bumpsByDate={bumpsByDate} /> },
+    { id: "payments", label: "Payments", count: payments.length, content: <PaymentsPanel id={id} payments={payments} earned={earned} paid={paid} remaining={remaining} /> },
+    { id: "documents", label: "Documents", count: docs.length, content: <DocumentsPanel docs={docs} /> },
+  ];
+
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-5">
       <Link href="/gigs" className="lg:hidden inline-flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400 mb-3">
@@ -77,15 +77,23 @@ export default async function GigWorkspacePage({
         All gigs
       </Link>
 
-      {/* Header */}
+      {/* Persistent header + financial summary (stays as tabs switch) */}
       <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{gig.title || "Untitled gig"}</h1>
-            <StatusPill status={status} />
+        <div className="min-w-0 flex items-start gap-3">
+          {gig.image_url && (
+            <span className="shrink-0 h-14 w-14 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={gig.image_url} alt="" className="h-full w-full object-cover" />
+            </span>
+          )}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{gig.title || "Untitled gig"}</h1>
+              <StatusPill status={status} />
+            </div>
+            {company && <p className="mt-0.5 text-zinc-600 dark:text-zinc-300">{company}</p>}
+            {headerMeta && <p className="mt-0.5 text-sm text-zinc-400 dark:text-zinc-500">{headerMeta}</p>}
           </div>
-          {company && <p className="mt-0.5 text-zinc-600 dark:text-zinc-300">{company}</p>}
-          {headerMeta && <p className="mt-0.5 text-sm text-zinc-400 dark:text-zinc-500">{headerMeta}</p>}
         </div>
         <Link
           href={`/gigs/${id}/edit`}
@@ -96,7 +104,6 @@ export default async function GigWorkspacePage({
         </Link>
       </div>
 
-      {/* Financial summary */}
       <div className="mt-4 grid grid-cols-3 gap-3">
         <Money label="Earned" value={money(earned)} />
         <Money label="Received" value={money(paid)} tone="green" />
@@ -111,89 +118,78 @@ export default async function GigWorkspacePage({
         </div>
       )}
 
-      {/* Sticky section nav */}
+      {/* Tabs swap only the panel below */}
       <div className="mt-5">
-        <SectionAnchorNav sections={SECTIONS} />
+        <GigTabs tabs={tabs} />
       </div>
-
-      {/* Overview */}
-      <section id="overview" className="scroll-mt-24 pt-6">
-        <SectionTitle>Overview</SectionTitle>
-        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
-          <Row label="Production company" value={gig.gig_company_name} />
-          <Row label="Payroll company" value={gig.payroll_company_name} />
-          <Row label="Project" value={gig.project_title} />
-          <Row label="Location" value={gig.location} />
-          <Row label="Status" value={statusLabel(gig.status_overall)} />
-          <Row label="Pay structure" value={describePay(gig)} />
-          {gig.is_unpaid && <Row label="" value="Marked unpaid (excluded from earnings)" />}
-        </div>
-        {gig.notes && (
-          <div className="mt-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
-            <div className="text-xs font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500 mb-1">Notes</div>
-            <p className="text-sm text-zinc-700 dark:text-zinc-200 whitespace-pre-wrap leading-relaxed">{gig.notes}</p>
-          </div>
-        )}
-      </section>
-
-      {/* Work Days */}
-      <section id="work-days" className="scroll-mt-24 pt-8">
-        <SectionTitle count={dates.length}>Work Days</SectionTitle>
-        {dates.length === 0 ? (
-          <Empty>No work days recorded. <EditLink id={id}>Add days</EditLink></Empty>
-        ) : (
-          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
-            {dates.map((d) => (
-              <DayRow key={d.gig_date_id} d={d} bumps={bumpsByDate.get(d.gig_date_id) ?? []} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Payments */}
-      <section id="payments" className="scroll-mt-24 pt-8">
-        <SectionTitle count={payments.length}>Payments</SectionTitle>
-        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-          <div className="grid grid-cols-3 divide-x divide-zinc-100 dark:divide-zinc-800 border-b border-zinc-100 dark:border-zinc-800">
-            <Mini label="Expected" value={money(earned)} />
-            <Mini label="Received" value={money(paid)} />
-            <Mini label="Outstanding" value={money(remaining)} tone={remaining > 0 ? "amber" : "green"} />
-          </div>
-          {payments.length === 0 ? (
-            <div className="px-4 py-4 text-sm text-zinc-400 dark:text-zinc-500">No payments recorded. <EditLink id={id}>Add a payment</EditLink></div>
-          ) : (
-            <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-              {payments.map((p) => <PaymentRow key={p.id} p={p} />)}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Documents */}
-      <section id="documents" className="scroll-mt-24 pt-8 pb-10">
-        <SectionTitle count={docs.length}>Documents</SectionTitle>
-        {docs.length === 0 ? (
-          <Empty>No documents for this gig yet.</Empty>
-        ) : (
-          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
-            {docs.map((d) => <DocRow key={d.id} d={d} />)}
-          </div>
-        )}
-      </section>
     </div>
   );
 }
 
-/* ── section pieces ────────────────────────────────────────────────────────── */
+/* ── panels ────────────────────────────────────────────────────────────────── */
 
-function SectionTitle({ children, count }: { children: React.ReactNode; count?: number }) {
+function OverviewPanel({ gig }: { gig: GigWithNames }) {
   return (
-    <div className="flex items-baseline gap-2 mb-2">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{children}</h2>
-      {count != null && <span className="text-xs text-zinc-400 dark:text-zinc-500">{count}</span>}
+    <div>
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
+        <Row label="Production company" value={gig.gig_company_name} />
+        <Row label="Payroll company" value={gig.payroll_company_name} />
+        <Row label="Project" value={gig.project_title} />
+        <Row label="Location" value={gig.location} />
+        <Row label="Status" value={statusLabel(gig.status_overall)} />
+        <Row label="Pay structure" value={describePay(gig)} />
+        {gig.is_unpaid && <Row label="" value="Marked unpaid (excluded from earnings)" />}
+      </div>
+      {gig.notes && (
+        <div className="mt-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
+          <div className="text-xs font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500 mb-1">Notes</div>
+          <p className="text-sm text-zinc-700 dark:text-zinc-200 whitespace-pre-wrap leading-relaxed">{gig.notes}</p>
+        </div>
+      )}
     </div>
   );
 }
+
+function WorkDaysPanel({ id, dates, bumpsByDate }: { id: string; dates: GigDateWithEarnings[]; bumpsByDate: Map<string, { type: string; amount: number }[]> }) {
+  if (dates.length === 0) return <Empty>No work days recorded. <EditLink id={id}>Add days</EditLink></Empty>;
+  return (
+    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
+      {dates.map((d) => (
+        <DayRow key={d.gig_date_id} d={d} bumps={bumpsByDate.get(d.gig_date_id) ?? []} />
+      ))}
+    </div>
+  );
+}
+
+function PaymentsPanel({ id, payments, earned, paid, remaining }: { id: string; payments: GigPayment[]; earned: number; paid: number; remaining: number }) {
+  return (
+    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
+      <div className="grid grid-cols-3 divide-x divide-zinc-100 dark:divide-zinc-800 border-b border-zinc-100 dark:border-zinc-800">
+        <Mini label="Expected" value={money(earned)} />
+        <Mini label="Received" value={money(paid)} />
+        <Mini label="Outstanding" value={money(remaining)} tone={remaining > 0 ? "amber" : "green"} />
+      </div>
+      {payments.length === 0 ? (
+        <div className="px-4 py-4 text-sm text-zinc-400 dark:text-zinc-500">No payments recorded. <EditLink id={id}>Add a payment</EditLink></div>
+      ) : (
+        <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          {payments.map((p) => <PaymentRow key={p.id} p={p} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DocumentsPanel({ docs }: { docs: (DocumentRow & { url?: string })[] }) {
+  if (docs.length === 0) return <Empty>No documents for this gig yet.</Empty>;
+  return (
+    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
+      {docs.map((d) => <DocRow key={d.id} d={d} />)}
+    </div>
+  );
+}
+
+/* ── pieces ────────────────────────────────────────────────────────────────── */
 
 function Money({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "green" | "amber" }) {
   const cls = tone === "green" ? "text-green-600 dark:text-green-400" : tone === "amber" ? "text-amber-600 dark:text-amber-400" : "text-zinc-900 dark:text-zinc-100";
@@ -282,28 +278,22 @@ function DocRow({ d }: { d: DocumentRow & { url?: string } }) {
 function Empty({ children }: { children: React.ReactNode }) {
   return <p className="rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 px-4 py-6 text-sm text-zinc-400 dark:text-zinc-500">{children}</p>;
 }
-
 function EditLink({ id, children }: { id: string; children: React.ReactNode }) {
   return <Link href={`/gigs/${id}/edit`} className="font-medium text-blue-600 dark:text-blue-400 hover:underline">{children}</Link>;
 }
-
-/* ── helpers ───────────────────────────────────────────────────────────────── */
 
 function statusLabel(code: string | null | undefined): string | null {
   if (!code) return null;
   const map: Record<string, string> = { availability_checked: "Availability check", booked: "Booked", worked: "Worked", paid: "Paid" };
   return map[code] ?? code;
 }
-
 function typeLabel(t: string): string {
   return t.replace(/[_-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
-
 function describePay(g: GigWithNames): string | null {
-  const n = (v: number | null | undefined) => (v == null ? null : money(Number(v)));
   switch (g.pay_type) {
     case "guaranteedMin": {
-      const amt = n(g.pay_minimum_amount);
+      const amt = g.pay_minimum_amount != null ? money(Number(g.pay_minimum_amount)) : null;
       const hrs = g.pay_minimum_hours;
       if (amt && hrs) return `Guaranteed ${amt} / ${Number(hrs)} hrs${g.ot_multiplier ? ` · ${g.ot_multiplier}× OT` : ""}`;
       return "Guaranteed minimum";
