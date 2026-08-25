@@ -361,7 +361,7 @@ export async function getRecentOpportunities(limit = 3) {
   const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await supabase
     .from("opportunities")
-    .select("id, title, location, pay_rate, match_state, posted_at, work_date")
+    .select("id, title, location, pay_rate, match_state, posted_at, work_date, image_url")
     .eq("status", "active")
     .is("deleted_at", null)
     .or(`expires_at.is.null,expires_at.gte.${today}`)
@@ -376,6 +376,7 @@ export async function getRecentOpportunities(limit = 3) {
     match_state: string | null;
     posted_at: string;
     work_date: string | null;
+    image_url: string | null;
   }[];
 }
 
