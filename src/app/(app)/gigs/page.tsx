@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Gigs",
+  title: "My Gigs",
   robots: { index: false, follow: false },
 };
 
 // The detail column when nothing is selected. On mobile the master list fills
-// the screen and this is hidden; on desktop it's the empty-state prompt.
+// the screen and this is hidden; on desktop it's the empty-state prompt (the
+// master list also auto-selects the first gig on desktop, so this mainly shows
+// when there are no gigs).
 export default function GigsIndexPage() {
   return (
-    <div className="hidden lg:flex h-full items-center justify-center p-10 text-center">
+    <div className="hidden lg:flex min-h-[60vh] lg:h-full items-center justify-center p-10 text-center">
       <div>
         <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-400">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

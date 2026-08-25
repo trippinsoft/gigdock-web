@@ -7,7 +7,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createDraftGig } from "@/lib/backoffice-actions";
 import type { FilteredGig, GigFilter } from "@/lib/backoffice-types";
 import { inBucket, bucketCounts, paymentStatusOf } from "@/lib/gigBuckets";
@@ -33,6 +33,19 @@ export default function GigMasterList({ gigs }: { gigs: FilteredGig[] }) {
   const [creating, setCreating] = useState(false);
 
   const counts = useMemo(() => bucketCounts(gigs), [gigs]);
+
+  // On desktop, land on a gig instead of an empty detail pane (matches the
+  // "detail shown by default" workspace feel). Runs once, only at the base path.
+  const didAuto = useRef(false);
+  useEffect(() => {
+    if (didAuto.current) return;
+    didAuto.current = true;
+    if (pathname !== "/gigs") return;
+    if (typeof window === "undefined" || !window.matchMedia("(min-width:1024px)").matches) return;
+    const first = filter ? gigs.find((g) => inBucket(g, filter)) : gigs[0];
+    if (first) router.replace(`/gigs/${first.id}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const visible = useMemo(() => {
     let list = gigs;
@@ -69,7 +82,7 @@ export default function GigMasterList({ gigs }: { gigs: FilteredGig[] }) {
       <div className="sticky top-14 lg:top-0 z-10 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 pt-4 pb-3">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-baseline gap-2">
-            <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Gigs</h1>
+            <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">My Gigs</h1>
             <span className="text-xs text-zinc-400 dark:text-zinc-500">{gigs.length}</span>
           </div>
           <button

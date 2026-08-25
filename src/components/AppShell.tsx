@@ -23,7 +23,7 @@ type NavItem = {
 const NAV: NavItem[] = [
   { href: "/today", label: "Today", ready: true, icon: iconHome() },
   { href: "/opportunities", label: "Opportunities", ready: true, icon: iconSearch() },
-  { href: "/gigs", label: "Gigs", ready: true, icon: iconBriefcase() },
+  { href: "/gigs", label: "My Gigs", ready: true, icon: iconBriefcase() },
   { href: "/calendar", label: "Calendar", ready: true, icon: iconCalendar() },
   { href: "/payments", label: "Payments", ready: true, icon: iconDollar() },
   { href: "/insights", label: "Insights", ready: true, icon: iconChart() },

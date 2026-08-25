@@ -258,18 +258,18 @@ export async function getDateFlags(
 }
 
 /** All of the user's documents, newest first. */
-export async function getDocuments(): Promise<DocumentRow[]> {
+export async function getDocuments(): Promise<(DocumentRow & { gig: { title: string } | null })[]> {
   const supabase = await createSupabaseServer();
   const { data, error } = await supabase
     .from("documents")
     .select(
-      "id, user_id, gig_id, project_id, payment_id, document_type, display_name, storage_path, original_file_name, mime_type, file_size, document_date, notes, created_at"
+      "id, user_id, gig_id, project_id, payment_id, document_type, display_name, storage_path, original_file_name, mime_type, file_size, document_date, notes, created_at, gig:gigs(title)"
     )
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(500);
   if (error) throw error;
-  return (data ?? []) as DocumentRow[];
+  return (data ?? []) as unknown as (DocumentRow & { gig: { title: string } | null })[];
 }
 
 /** Short-lived signed URLs for document storage paths (bucket: documents).

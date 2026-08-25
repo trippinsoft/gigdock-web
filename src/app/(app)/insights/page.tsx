@@ -9,20 +9,25 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-type Range = "ytd" | "12mo";
+type Range = "month" | "ytd" | "12mo";
 
 function bounds(range: Range) {
   const now = new Date();
   const fmt = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  if (range === "month") {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return { start: fmt(start), end: fmt(end), label: now.toLocaleDateString("en-US", { month: "long" }), bucket: "month" as const };
+  }
   if (range === "12mo") {
     const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
     const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    return { start: fmt(start), end: fmt(end), label: "Last 12 months" };
+    return { start: fmt(start), end: fmt(end), label: "Last 12 months", bucket: "year" as const };
   }
   const start = new Date(now.getFullYear(), 0, 1);
   const end = new Date(now.getFullYear() + 1, 0, 1);
-  return { start: fmt(start), end: fmt(end), label: `${now.getFullYear()}` };
+  return { start: fmt(start), end: fmt(end), label: `${now.getFullYear()}`, bucket: "year" as const };
 }
 
 export default async function InsightsPage({
@@ -31,15 +36,16 @@ export default async function InsightsPage({
   searchParams: Promise<{ range?: string }>;
 }) {
   const sp = await searchParams;
-  const range: Range = sp.range === "12mo" ? "12mo" : "ytd";
-  const { start, end, label } = bounds(range);
-  const data = await getInsights(start, end, "year");
+  const range: Range = sp.range === "12mo" ? "12mo" : sp.range === "month" ? "month" : "ytd";
+  const { start, end, label, bucket } = bounds(range);
+  const data = await getInsights(start, end, bucket);
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-6xl">
       <div className="flex items-center justify-between mb-5 gap-4 flex-wrap">
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Insights</h1>
         <div className="flex items-center gap-1 rounded-lg border border-zinc-200 dark:border-zinc-800 p-0.5 bg-white dark:bg-zinc-900">
+          <RangeTab active={range === "month"} href="/insights?range=month">This month</RangeTab>
           <RangeTab active={range === "ytd"} href="/insights">This year</RangeTab>
           <RangeTab active={range === "12mo"} href="/insights?range=12mo">Last 12 months</RangeTab>
         </div>
@@ -64,23 +70,25 @@ export default async function InsightsPage({
 
           {/* Trend */}
           {data.trend.length > 0 && (
-            <Section title="Earnings by month">
+            <Section title={range === "month" ? "Earnings by week" : "Earnings by month"}>
               <TrendChart trend={data.trend} />
             </Section>
           )}
 
-          {/* Top companies */}
-          {data.companies.length > 0 && (
-            <Section title="By company">
-              <Ranked rows={data.companies} />
-            </Section>
-          )}
-
-          {/* Top projects */}
-          {data.projects.length > 0 && (
-            <Section title="By project">
-              <Ranked rows={data.projects} />
-            </Section>
+          {/* Company / project — side by side on desktop for density */}
+          {(data.companies.length > 0 || data.projects.length > 0) && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6">
+              {data.companies.length > 0 && (
+                <Section title="By company">
+                  <Ranked rows={data.companies} />
+                </Section>
+              )}
+              {data.projects.length > 0 && (
+                <Section title="By project">
+                  <Ranked rows={data.projects} />
+                </Section>
+              )}
+            </div>
           )}
 
           {/* Outstanding */}
