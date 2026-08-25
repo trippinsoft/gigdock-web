@@ -60,11 +60,13 @@ export async function getGigs(opts?: {
 /** One gig with resolved project/company names, from the gigs_with_names view. */
 export async function getGig(id: string): Promise<GigWithNames | null> {
   const supabase = await createSupabaseServer();
+  // NOTE: the gigs_with_names view does not expose deleted_at, so we can't filter
+  // it here (doing so errors). Soft-deleted gigs aren't linked from the
+  // active-only lists, so fetching by id without that filter is fine.
   const { data, error } = await supabase
     .from("gigs_with_names")
     .select("*")
     .eq("id", id)
-    .is("deleted_at", null)
     .maybeSingle();
   if (error) throw error;
   return (data as GigWithNames | null) ?? null;
