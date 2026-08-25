@@ -53,6 +53,7 @@ export default function OpportunitiesFeed({
   initialSelectedId,
   initialOpps,
   embedded = false,
+  bareChrome = false,
   scopeLabel,
   now,
 }: {
@@ -64,6 +65,10 @@ export default function OpportunitiesFeed({
   /** Presentation mode only: flow layout for embedding inside a content page
    *  (location pages). The cards, detail and actions are identical either way. */
   embedded?: boolean;
+  /** Render the full-viewport feed WITHOUT wrapping it in PublicShell — the
+   *  caller supplies the chrome (e.g. the authenticated AppShell for signed-in
+   *  users). Ignored when embedded. */
+  bareChrome?: boolean;
   /** e.g. "Atlanta" — used only for scoped empty-state / count copy. */
   scopeLabel?: string;
   /** Stable render-time clock (from the server on SSR-seeded pages) so the
@@ -641,7 +646,7 @@ export default function OpportunitiesFeed({
     : "hidden md:block flex-1 min-w-0 overflow-y-auto";
 
   const content = (
-    <div className={embedded ? "" : "flex flex-col h-[calc(100dvh-6.5rem)]"}>
+    <div className={embedded ? "" : `flex flex-col h-[calc(100dvh-6.5rem)]${bareChrome ? " lg:h-[calc(100dvh-3rem)]" : ""}`}>
         {/* Toolbar */}
         <div className="space-y-2 pb-3 border-b border-zinc-200 dark:border-zinc-800">
           {/* Row 1: search + sort (+ scope & GigFit inline on desktop) */}
@@ -842,5 +847,6 @@ export default function OpportunitiesFeed({
       </div>
   );
 
-  return embedded ? content : <PublicShell>{content}</PublicShell>;
+  if (embedded || bareChrome) return content;
+  return <PublicShell>{content}</PublicShell>;
 }

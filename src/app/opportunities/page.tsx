@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import OpportunitiesFeed from "@/components/OpportunitiesFeed";
+import AppShell from "@/components/AppShell";
+import { getSessionUser } from "@/lib/backoffice";
 
 export const metadata: Metadata = {
   title: "Browse Film & TV Casting Calls & Opportunities",
@@ -15,6 +17,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default function OpportunitiesPage() {
+// Opportunities is both a public/SEO surface and an in-app workspace. Signed-in
+// users get the authenticated AppShell (left nav) so it matches the rest of the
+// back-office; logged-out visitors and crawlers get the public shell (unchanged
+// content + metadata, so SEO is unaffected).
+export default async function OpportunitiesPage() {
+  const user = await getSessionUser();
+  if (user) {
+    return (
+      <AppShell userEmail={user.email}>
+        <OpportunitiesFeed bareChrome />
+      </AppShell>
+    );
+  }
   return <OpportunitiesFeed />;
 }
