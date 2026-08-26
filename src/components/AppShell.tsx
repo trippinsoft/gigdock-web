@@ -1,41 +1,47 @@
 "use client";
 
-// Authenticated back-office shell. Desktop-first: a persistent left rail on
-// large screens, a top bar + slide-down menu on mobile. Distinct from
-// PublicShell (marketing / opportunity discovery). Surfaces that aren't built
-// yet render as disabled "Soon" items so the nav shows the whole workspace.
+// Authenticated back-office shell. Desktop-first: a persistent grouped left rail
+// on large screens, a top bar + slide-down menu on mobile. Provides the Pro plan
+// to nested client components and shows the account control.
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
+import { ProProvider, ProBadge } from "@/components/app/pro";
 
-type NavItem = {
-  href: string;
-  label: string;
-  icon: React.ReactNode;
-  ready: boolean;
-  /** Match by exact path prefix for active state. */
-  match?: string;
-};
+type NavItem = { href: string; label: string; icon: React.ReactNode; match?: string };
+type NavGroup = { label: string | null; items: NavItem[] };
 
-// Persistent workspace nav (brief §9). Order = display order.
-const NAV: NavItem[] = [
-  { href: "/today", label: "Today", ready: true, icon: iconHome() },
-  { href: "/opportunities", label: "Opportunities", ready: true, icon: iconSearch() },
-  { href: "/gigs", label: "My Gigs", ready: true, icon: iconBriefcase() },
-  { href: "/calendar", label: "Calendar", ready: true, icon: iconCalendar() },
-  { href: "/payments", label: "Payments", ready: true, icon: iconDollar() },
-  { href: "/insights", label: "Insights", ready: true, icon: iconChart() },
-  { href: "/documents", label: "Documents", ready: true, icon: iconDoc() },
+// Grouped by user job (Part IV): Today · Find work · Manage work · Money.
+const GROUPS: NavGroup[] = [
+  { label: null, items: [{ href: "/today", label: "Today", icon: iconHome() }] },
+  { label: "Find work", items: [{ href: "/opportunities", label: "Opportunities", icon: iconSearch() }] },
+  {
+    label: "Manage work",
+    items: [
+      { href: "/gigs", label: "My Gigs", icon: iconBriefcase() },
+      { href: "/calendar", label: "Calendar", icon: iconCalendar() },
+      { href: "/documents", label: "Documents", icon: iconDoc() },
+    ],
+  },
+  {
+    label: "Money",
+    items: [
+      { href: "/payments", label: "Payments", icon: iconDollar() },
+      { href: "/insights", label: "Insights", icon: iconChart() },
+    ],
+  },
 ];
 
 export default function AppShell({
   children,
   userEmail,
+  plan = "free",
 }: {
   children: React.ReactNode;
   userEmail?: string | null;
+  plan?: "free" | "pro";
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -56,21 +62,6 @@ export default function AppShell({
 
   const navLink = (item: NavItem, onNavigate?: () => void) => {
     const active = isActive(item);
-    if (!item.ready) {
-      return (
-        <div
-          key={item.href}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-zinc-400 dark:text-zinc-600 cursor-default select-none"
-          aria-disabled
-        >
-          <span className="shrink-0 opacity-70">{item.icon}</span>
-          <span className="flex-1">{item.label}</span>
-          <span className="text-[10px] uppercase tracking-wide font-semibold text-zinc-300 dark:text-zinc-700 border border-zinc-200 dark:border-zinc-800 rounded px-1 py-0.5">
-            Soon
-          </span>
-        </div>
-      );
-    }
     return (
       <Link
         key={item.href}
@@ -88,6 +79,37 @@ export default function AppShell({
     );
   };
 
+  const nav = (onNavigate?: () => void) =>
+    GROUPS.map((g, i) => (
+      <div key={i} className={i > 0 ? "mt-4" : ""}>
+        {g.label && <div className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-600">{g.label}</div>}
+        <div className="flex flex-col gap-0.5">{g.items.map((it) => navLink(it, onNavigate))}</div>
+      </div>
+    ));
+
+  const account = (
+    <div>
+      <div className="flex items-center gap-2 px-3 py-2">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-200 dark:bg-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-200">
+          {(userEmail ?? "?").slice(0, 1).toUpperCase()}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-xs text-zinc-500 dark:text-zinc-400" title={userEmail ?? undefined}>{userEmail}</div>
+          {plan === "pro" ? (
+            <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">GigDock Pro <span className="text-green-600 dark:text-green-400">✓</span></div>
+          ) : (
+            <Link href="/pro?from=account" className="inline-flex items-center gap-1 text-xs font-medium text-violet-700 dark:text-violet-300 hover:underline">
+              GigDock Free · Explore Pro →
+            </Link>
+          )}
+        </div>
+      </div>
+      <button onClick={signOut} className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-800 dark:hover:text-zinc-100 transition-colors">
+        Sign out
+      </button>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Mobile top bar */}
@@ -97,6 +119,7 @@ export default function AppShell({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/gigdock-logo.png" alt="GigDock" className="h-7 w-7" />
             <span className="font-bold text-lg tracking-tight text-zinc-900 dark:text-zinc-100">GigDock</span>
+            {plan === "pro" && <ProBadge />}
           </Link>
           <button
             type="button"
@@ -106,37 +129,14 @@ export default function AppShell({
             className="inline-flex items-center justify-center h-9 w-9 -mr-1 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              {menuOpen ? (
-                <>
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                </>
-              ) : (
-                <>
-                  <line x1="3" y1="6" x2="21" y2="6" />
-                  <line x1="3" y1="12" x2="21" y2="12" />
-                  <line x1="3" y1="18" x2="21" y2="18" />
-                </>
-              )}
+              {menuOpen ? (<><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></>) : (<><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></>)}
             </svg>
           </button>
         </div>
         {menuOpen && (
           <div className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2">
-            <nav className="flex flex-col gap-0.5">
-              {NAV.map((item) => navLink(item, () => setMenuOpen(false)))}
-            </nav>
-            <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-              {userEmail && (
-                <p className="px-3 py-1 text-xs text-zinc-400 dark:text-zinc-500 truncate">{userEmail}</p>
-              )}
-              <button
-                onClick={signOut}
-                className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              >
-                Sign out
-              </button>
-            </div>
+            <nav>{nav(() => setMenuOpen(false))}</nav>
+            <div className="mt-3 pt-2 border-t border-zinc-100 dark:border-zinc-800">{account}</div>
           </div>
         )}
       </header>
@@ -149,26 +149,14 @@ export default function AppShell({
             <img src="/gigdock-logo.png" alt="GigDock" className="h-7 w-7" />
             <span className="font-bold text-xl tracking-tight text-zinc-900 dark:text-zinc-100">GigDock</span>
           </div>
-          <nav className="flex-1 overflow-y-auto p-3 flex flex-col gap-0.5">
-            {NAV.map((item) => navLink(item))}
-          </nav>
-          <div className="p-3 border-t border-zinc-200 dark:border-zinc-800">
-            {userEmail && (
-              <p className="px-3 pb-1 text-xs text-zinc-400 dark:text-zinc-500 truncate" title={userEmail}>
-                {userEmail}
-              </p>
-            )}
-            <button
-              onClick={signOut}
-              className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-800 dark:hover:text-zinc-100 transition-colors"
-            >
-              Sign out
-            </button>
-          </div>
+          <nav className="flex-1 overflow-y-auto p-3">{nav()}</nav>
+          <div className="p-3 border-t border-zinc-200 dark:border-zinc-800">{account}</div>
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-6">{children}</main>
+        <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-6">
+          <ProProvider plan={plan}>{children}</ProProvider>
+        </main>
       </div>
     </div>
   );

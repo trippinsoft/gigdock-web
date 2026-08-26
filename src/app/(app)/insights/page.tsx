@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getInsights } from "@/lib/backoffice";
 import { money } from "@/lib/format";
-import { EarnedReceivedChart, Donut, type DonutSeg } from "@/components/app/charts";
+import { EarnedReceivedChart, AgingBars, type DonutSeg } from "@/components/app/charts";
+import { PartialReveal } from "@/components/app/pro";
 
 export const metadata: Metadata = {
   title: "Insights",
@@ -69,6 +70,9 @@ export default async function InsightsPage({
     agingTotals.set(bkt.key, (agingTotals.get(bkt.key) ?? 0) + o.outstanding);
   }
   const agingSegs: DonutSeg[] = AGING.map((a) => ({ label: a.label, color: a.color, value: agingTotals.get(a.key) ?? 0 })).filter((s) => s.value > 0);
+  const agingTotal = agingSegs.reduce((s, x) => s + x.value, 0);
+  const over60 = agingTotals.get("60+") ?? 0;
+  const over60Pct = agingTotal > 0 ? Math.round((over60 / agingTotal) * 100) : 0;
 
   return (
     <div className="max-w-6xl">
@@ -106,10 +110,16 @@ export default async function InsightsPage({
                 )}
               </div>
             </Panel>
-            <Panel title="Outstanding by age" className="lg:col-span-2">
+            <Panel title="Where is my unpaid money?" className="lg:col-span-2">
               <div className="px-5 pb-5">
                 {agingSegs.length > 0 ? (
-                  <Donut segments={agingSegs} centerLabel="outstanding" />
+                  <>
+                    <div className="mb-3">
+                      <div className="text-xl font-bold text-amber-600 dark:text-amber-400">{money(agingTotal)}</div>
+                      <div className="text-xs text-zinc-400 dark:text-zinc-500">outstanding{over60Pct > 0 && <> · <span className="font-medium text-zinc-600 dark:text-zinc-300">{over60Pct}% for 60+ days</span></>}</div>
+                    </div>
+                    <AgingBars segments={agingSegs} />
+                  </>
                 ) : (
                   <p className="text-sm text-zinc-400 dark:text-zinc-500 py-8 text-center">Nothing outstanding — you&rsquo;re all paid up.</p>
                 )}
@@ -141,6 +151,13 @@ export default async function InsightsPage({
               </div>
             </Section>
           )}
+
+          {/* Pro showcase — complete history (single tasteful reveal) */}
+          <PartialReveal
+            context="insights_history"
+            lockedCta="Unlock your complete history — year-over-year trends, payment speed & reports"
+            free={<p className="text-sm text-zinc-500 dark:text-zinc-400">Showing {label}. GigDock keeps <strong className="font-medium text-zinc-700 dark:text-zinc-300">all</strong> of your history.</p>}
+          />
         </>
       )}
     </div>

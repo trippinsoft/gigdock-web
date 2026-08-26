@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
-import { getSessionUser } from "@/lib/backoffice";
+import { getSessionUser, getPlan } from "@/lib/backoffice";
 
 // The authenticated back-office is per-user and never cached or indexed.
 export const dynamic = "force-dynamic";
@@ -19,5 +19,6 @@ export default async function AppLayout({
   // Middleware already gates these routes; this is a defense-in-depth check and
   // also gives the shell the user's email.
   if (!user) redirect("/login");
-  return <AppShell userEmail={user.email}>{children}</AppShell>;
+  const plan = await getPlan();
+  return <AppShell userEmail={user.email} plan={plan}>{children}</AppShell>;
 }

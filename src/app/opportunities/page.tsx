@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import OpportunitiesFeed from "@/components/OpportunitiesFeed";
 import AppShell from "@/components/AppShell";
-import { getSessionUser } from "@/lib/backoffice";
+import { getSessionUser, getPlan } from "@/lib/backoffice";
 
 export const metadata: Metadata = {
   title: "Browse Film & TV Casting Calls & Opportunities",
@@ -24,8 +24,9 @@ export const metadata: Metadata = {
 export default async function OpportunitiesPage() {
   const user = await getSessionUser();
   if (user) {
+    const plan = await getPlan();
     return (
-      <AppShell userEmail={user.email}>
+      <AppShell userEmail={user.email} plan={plan}>
         <OpportunitiesFeed bareChrome />
       </AppShell>
     );

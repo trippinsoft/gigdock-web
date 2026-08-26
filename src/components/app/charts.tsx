@@ -60,6 +60,27 @@ function Legend({ color, label }: { color: string; label: string }) {
 
 export type DonutSeg = { label: string; value: number; color: string };
 
+/** Outstanding-by-age as horizontal bars (clearer than a donut for "where is my
+ * unpaid money?"). */
+export function AgingBars({ segments }: { segments: DonutSeg[] }) {
+  const max = Math.max(1, ...segments.map((s) => s.value));
+  return (
+    <div className="flex flex-col gap-2.5">
+      {segments.map((s) => (
+        <div key={s.label}>
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="text-zinc-600 dark:text-zinc-300">{s.label}</span>
+            <span className="font-medium text-zinc-800 dark:text-zinc-200">{money(s.value)}</span>
+          </div>
+          <div className="h-2.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+            <div className="h-full rounded-full" style={{ width: `${Math.max(2, Math.round((s.value / max) * 100))}%`, backgroundColor: s.color }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** Donut with a centered total and a legend. */
 export function Donut({ segments, centerLabel, centerValue }: { segments: DonutSeg[]; centerLabel?: string; centerValue?: string }) {
   const total = segments.reduce((s, x) => s + x.value, 0);

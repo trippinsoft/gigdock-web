@@ -12,6 +12,7 @@
 // (No `server-only` import — this module uses next/headers via
 // createSupabaseServer, which already makes it unusable from client components.)
 import { createSupabaseServer } from "@/lib/supabase-server";
+import { PRO_PRODUCT } from "@/lib/pricing";
 import type {
   CalendarDate,
   DateFlag,
@@ -391,4 +392,14 @@ export async function hasActiveEntitlement(
   });
   if (error) throw error;
   return !!data;
+}
+
+/** The signed-in user's plan. Features read this; billing changes it. Fails
+ * closed to "free" so a resolver error never accidentally grants Pro. */
+export async function getPlan(): Promise<"free" | "pro"> {
+  try {
+    return (await hasActiveEntitlement(PRO_PRODUCT)) ? "pro" : "free";
+  } catch {
+    return "free";
+  }
 }
