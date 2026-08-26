@@ -351,9 +351,8 @@ export default function OpportunityCard({
                 {opp.title || "(No title)"}
               </h3>
               {fit && (
-                // A non-match is normal, not an error — keep it muted, not red.
-                <Badge color={fit.tier === "ineligible" ? "zinc" : fitTierColor(fit.tier)}>
-                  {fit.tier === "strong" ? "★ " : ""}{fit.tier === "ineligible" ? "Not a match" : fit.label}
+                <Badge color={fitTierColor(fit.tier)}>
+                  {fit.tier === "strong" ? "★ " : ""}{fit.label}
                 </Badge>
               )}
               {fresh && freshnessBadge(fresh)}
@@ -370,7 +369,7 @@ export default function OpportunityCard({
             {fit && (fit.matched.length > 0 || fit.blockers.length > 0) && (
               <p className={`${dense ? "text-xs mt-0.5" : "text-sm mt-1"} text-zinc-500 dark:text-zinc-400`}>
                 {fit.tier === "ineligible"
-                  ? `Not a match — ${fit.blockers.join(" · ")}`
+                  ? `Not eligible — ${fit.blockers.join(" · ")}`
                   : fit.tier === "poor"
                   ? `Poor match — ${fit.blockers.join(" · ")}`
                   : fit.matched.length > 0
