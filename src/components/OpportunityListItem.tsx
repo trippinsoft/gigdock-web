@@ -180,8 +180,8 @@ export default function OpportunityListItem({
           </span>
         )}
         {fit && (
-          <span className={`${dense ? "text-xs" : "text-[13px]"} px-2 py-0.5 rounded font-medium ${FIT_CLASS[fitTierColor(fit.tier)]}`}>
-            {fit.tier === "strong" ? "★ " : ""}{fit.label}
+          <span className={`${dense ? "text-xs" : "text-[13px]"} px-2 py-0.5 rounded font-medium ${fit.tier === "ineligible" ? FIT_CLASS.zinc : FIT_CLASS[fitTierColor(fit.tier)]}`}>
+            {fit.tier === "strong" ? "★ " : ""}{fit.tier === "ineligible" ? "Not a match" : fit.label}
           </span>
         )}
         {fresh && (
