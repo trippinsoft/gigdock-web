@@ -98,8 +98,8 @@ export default function AppShell({
           {plan === "pro" ? (
             <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">GigDock Pro <span className="text-green-600 dark:text-green-400">✓</span></div>
           ) : (
-            <Link href="/pro?from=account" className="inline-flex items-center gap-1 text-xs font-medium text-violet-700 dark:text-violet-300 hover:underline">
-              GigDock Free · Explore Pro →
+            <Link href="/pro?from=account" className="text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:underline">
+              GigDock Pro
             </Link>
           )}
         </div>
