@@ -14,6 +14,7 @@ import {
 import type { FilteredGig } from "@/lib/backoffice-types";
 import { Panel } from "@/components/app/ui";
 import MasterRow from "@/components/app/MasterRow";
+import { PartialReveal } from "@/components/app/pro";
 import { money, shortDate, shortDateNoYear } from "@/lib/format";
 
 export const metadata: Metadata = {
@@ -28,21 +29,16 @@ export default async function TodayPage() {
   const mStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const mEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const pStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const pEnd = mStart;
   const todayStr = fmt(now);
   const tomorrowStr = fmt(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
 
-  const [
-    earnedM, earnedP, receivedM, receivedP, allSummary,
-    workM, workP, attention, gigs, companies, payments, opps,
-  ] = await Promise.all([
+  const [earnedM, earnedP, receivedM, allSummary, workM, workP, attention, gigs, companies, payments, opps] = await Promise.all([
     getEarnedInRange(fmt(mStart), fmt(mEnd)),
-    getEarnedInRange(fmt(pStart), fmt(pEnd)),
+    getEarnedInRange(fmt(pStart), fmt(mStart)),
     getReceivedInRange(fmt(mStart), fmt(mEnd)),
-    getReceivedInRange(fmt(pStart), fmt(pEnd)),
     getEarningsSummary(),
     getWorkSummary(fmt(mStart), fmt(mEnd)),
-    getWorkSummary(fmt(pStart), fmt(pEnd)),
+    getWorkSummary(fmt(pStart), fmt(mStart)),
     getNeedsAttention(),
     getGigs({ sort: "recent" }),
     getCompanies(),
@@ -52,13 +48,10 @@ export default async function TodayPage() {
 
   const companyById = new Map(companies.map((c) => [c.id, c.name]));
   const companyOf = (g: FilteredGig) => (g.gig_company_id ? companyById.get(g.gig_company_id) ?? null : null);
-
   const monthLabel = now.toLocaleDateString("en-US", { month: "long" });
-  const prevLabel = pStart.toLocaleDateString("en-US", { month: "short" });
   const dateLabel = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
   const outstanding = allSummary?.remaining ?? 0;
 
-  // Upcoming = each gig's soonest future work day.
   const withNext = gigs
     .map((g) => {
       const future = (g.gig_dates ?? []).map((d) => d.date.slice(0, 10)).filter((d) => d >= todayStr).sort();
@@ -76,6 +69,14 @@ export default async function TodayPage() {
   const missingDates = attention?.missing_dates_count ?? 0;
   const recentPayments = payments.slice(0, 5);
 
+  const workDays = workM?.days_worked ?? 0;
+  const avgPerDay = workDays > 0 ? earnedM / workDays : 0;
+  const hasMoney = earnedM > 0 || receivedM > 0 || outstanding > 0;
+  const hasAttention = paymentsDue > 0 || missingPay > 0 || missingDates > 0 || startsTomorrow > 0;
+
+  // One dynamic Today's Insight (actionable > significant), mixing Free & Pro.
+  const insight = pickInsight({ outstanding, paymentsDue, earnedM, workDays, monthLabel, earnedP, workPrevDays: workP?.days_worked ?? 0 });
+
   return (
     <div className="max-w-6xl">
       <div className="flex items-baseline justify-between gap-4 mb-5">
@@ -83,18 +84,10 @@ export default async function TodayPage() {
         <span className="text-sm text-zinc-400 dark:text-zinc-500">{dateLabel}</span>
       </div>
 
-      {/* Monthly pulse */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-        <Kpi label={`Earned ${monthLabel}`} value={money(earnedM)} delta={pctDelta(earnedM, earnedP)} deltaSuffix={`vs ${prevLabel}`} href="/insights" />
-        <Kpi label={`Received ${monthLabel}`} value={money(receivedM)} tone="green" delta={pctDelta(receivedM, receivedP)} deltaSuffix={`vs ${prevLabel}`} href="/insights" />
-        <Kpi label="Outstanding" value={money(outstanding)} tone={outstanding > 0 ? "amber" : "default"} note={paymentsDue > 0 ? `${paymentsDue} payment${paymentsDue === 1 ? "" : "s"} due` : "all settled"} href="/payments" />
-        <Kpi label={`Work days ${monthLabel}`} value={String(workM?.days_worked ?? 0)} note={withNext.length > 0 ? `${withNext.length} upcoming` : undefined} deltaRaw={deltaCount(workM?.days_worked ?? 0, workP?.days_worked ?? 0, prevLabel)} href="/calendar" />
-      </div>
-
-      {/* Next up + needs attention */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-        <Panel title="Next up">
-          {nextUp ? (
+      {/* 1 — Next up (full width, image-forward) */}
+      {nextUp && (
+        <div className="mb-4">
+          <Panel title={nextUp.next === todayStr ? "Today" : "Next up"}>
             <div className="px-5 pb-5 flex gap-4">
               <span className="shrink-0 h-20 w-20 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
                 {nextUp.g.image_url ? (
@@ -114,27 +107,53 @@ export default async function TodayPage() {
                 <Link href={`/gigs/${nextUp.g.id}`} className="mt-3 inline-flex items-center rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white">Open gig →</Link>
               </div>
             </div>
-          ) : (
-            <p className="px-5 pb-5 text-sm text-zinc-400 dark:text-zinc-500">No upcoming work days scheduled.</p>
-          )}
-        </Panel>
+          </Panel>
+        </div>
+      )}
 
-        <Panel title="Needs attention">
-          <div className="px-3 pb-3">
-            <AttnRow n={paymentsDue} label="Payments due" sub={paymentsDueAmt > 0 ? money(paymentsDueAmt) : undefined} href="/gigs?filter=payments_due" tone="amber" />
-            <AttnRow n={missingPay} label="Missing pay info" href="/gigs?filter=missing_payment" tone="blue" />
-            <AttnRow n={missingDates} label="Missing dates" href="/gigs?filter=missing_dates" tone="blue" />
-            <AttnRow n={startsTomorrow} label="Gig starts tomorrow" href="/calendar" tone="blue" />
-          </div>
-        </Panel>
-      </div>
+      {/* Middle modules — masonry so there are never empty slots */}
+      <div className="lg:columns-2 lg:gap-4 [&>*]:mb-4 [&>*]:break-inside-avoid">
+        {hasAttention && (
+          <Panel title="Needs attention">
+            <div className="px-3 pb-3">
+              {paymentsDue > 0 && <AttnRow n={paymentsDue} label="Payments due" sub={paymentsDueAmt > 0 ? money(paymentsDueAmt) : undefined} href="/gigs?filter=payments_due" tone="amber" />}
+              {missingPay > 0 && <AttnRow n={missingPay} label="Missing pay info" href="/gigs?filter=missing_payment" tone="blue" />}
+              {missingDates > 0 && <AttnRow n={missingDates} label="Missing dates" href="/gigs?filter=missing_dates" tone="blue" />}
+              {startsTomorrow > 0 && <AttnRow n={startsTomorrow} label="Gig starts tomorrow" href="/calendar" tone="blue" />}
+            </div>
+          </Panel>
+        )}
 
-      {/* Upcoming + recent */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <Panel title="Upcoming work" action={<Link href="/calendar" className="text-xs font-medium text-blue-600 dark:text-blue-400">View calendar →</Link>}>
-          {upcoming.length === 0 ? (
-            <p className="px-5 pb-5 text-sm text-zinc-400 dark:text-zinc-500">Nothing else scheduled.</p>
-          ) : (
+        {hasMoney && (
+          <Panel title="Your money" action={<Link href="/insights" className="text-xs font-medium text-blue-600 dark:text-blue-400">View insights →</Link>}>
+            <div className="px-5 pb-5">
+              <div className="text-3xl font-extrabold text-zinc-900 dark:text-zinc-100">{money(earnedM)}<span className="ml-1.5 text-xs font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">earned {monthLabel}</span></div>
+              <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+                <span><span className="font-semibold text-green-600 dark:text-green-400">{money(receivedM)}</span> <span className="text-zinc-500 dark:text-zinc-400">received</span></span>
+                <span><span className={`font-semibold ${outstanding > 0 ? "text-amber-600 dark:text-amber-400" : "text-zinc-700 dark:text-zinc-200"}`}>{money(outstanding)}</span> <span className="text-zinc-500 dark:text-zinc-400">outstanding</span></span>
+              </div>
+              {workDays > 0 && <div className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">{workDays} work {workDays === 1 ? "day" : "days"} · {money(avgPerDay)}/day</div>}
+            </div>
+          </Panel>
+        )}
+
+        {insight && (
+          <Panel title="Today's insight">
+            <div className="px-5 pb-5">
+              {insight.kind === "free" ? (
+                <>
+                  <p className="text-sm text-zinc-700 dark:text-zinc-200">{insight.text}</p>
+                  <Link href={insight.href} className="mt-2 inline-flex text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline">{insight.cta}</Link>
+                </>
+              ) : (
+                <PartialReveal context="today_pro_insight" lockedCta={insight.lockedCta} free={<p className="text-sm text-zinc-700 dark:text-zinc-200">{insight.text}</p>} />
+              )}
+            </div>
+          </Panel>
+        )}
+
+        {upcoming.length > 0 && (
+          <Panel title="Upcoming work" action={<Link href="/calendar" className="text-xs font-medium text-blue-600 dark:text-blue-400">View calendar →</Link>}>
             <div className="pb-2">
               {upcoming.map(({ g, next }) => (
                 <Link key={g.id} href={`/gigs/${g.id}`} className="flex items-center gap-3 px-5 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
@@ -154,13 +173,11 @@ export default async function TodayPage() {
                 </Link>
               ))}
             </div>
-          )}
-        </Panel>
+          </Panel>
+        )}
 
-        <Panel title="Recent activity">
-          {recentPayments.length === 0 ? (
-            <p className="px-5 pb-5 text-sm text-zinc-400 dark:text-zinc-500">No recent payments.</p>
-          ) : (
+        {recentPayments.length > 0 && (
+          <Panel title="Recent activity">
             <div className="pb-2">
               {recentPayments.map((p) => (
                 <div key={p.id} className="flex items-center justify-between gap-3 px-5 py-2">
@@ -172,89 +189,72 @@ export default async function TodayPage() {
                 </div>
               ))}
             </div>
-          )}
-        </Panel>
+          </Panel>
+        )}
       </div>
 
-      {/* Opportunities — image-forward */}
-      <div className="flex items-baseline justify-between mb-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Opportunities for you</h2>
-        <Link href="/opportunities" className="text-xs font-medium text-blue-600 dark:text-blue-400">View all →</Link>
-      </div>
-      {opps.length === 0 ? (
-        <p className="text-sm text-zinc-400 dark:text-zinc-500">No open opportunities right now.</p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {opps.map((o) => (
-            <MasterRow
-              key={o.id}
-              href={`/opportunities/${o.id}`}
-              showThumb={!!o.image_url}
-              image={o.image_url}
-              title={o.title}
-              meta={[o.location, o.work_date ? shortDateNoYear(o.work_date) : null].filter(Boolean).join(" · ") || undefined}
-              value={o.pay_rate || undefined}
-            />
-          ))}
+      {/* Opportunities — full width, image-forward */}
+      {opps.length > 0 && (
+        <div>
+          <div className="flex items-baseline justify-between mb-2">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Opportunities for you</h2>
+            <Link href="/opportunities" className="text-xs font-medium text-blue-600 dark:text-blue-400">View all →</Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {opps.map((o) => (
+              <MasterRow
+                key={o.id}
+                href={`/opportunities/${o.id}`}
+                showThumb={!!o.image_url}
+                image={o.image_url}
+                title={o.title}
+                meta={[o.location, o.work_date ? shortDateNoYear(o.work_date) : null].filter(Boolean).join(" · ") || undefined}
+                value={o.pay_rate || undefined}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function pctDelta(cur: number, prev: number): { pct: number; up: boolean } | null {
-  if (!prev) return null;
-  const pct = Math.round(((cur - prev) / prev) * 100);
-  if (pct === 0) return null;
-  return { pct: Math.abs(pct), up: pct > 0 };
-}
-function deltaCount(cur: number, prev: number, prevLabel: string): string | null {
-  const d = cur - prev;
-  if (d === 0) return null;
-  return `${d > 0 ? "+" : ""}${d} vs ${prevLabel}`;
-}
+type Insight =
+  | { kind: "free"; text: string; cta: string; href: string }
+  | { kind: "pro"; text: string; lockedCta: string }
+  | null;
 
-function Kpi({
-  label,
-  value,
-  tone = "default",
-  delta,
-  deltaSuffix,
-  deltaRaw,
-  note,
-  href,
-}: {
-  label: string;
-  value: string;
-  tone?: "default" | "green" | "amber";
-  delta?: { pct: number; up: boolean } | null;
-  deltaSuffix?: string;
-  deltaRaw?: string | null;
-  note?: string;
-  href?: string;
-}) {
-  const valueCls = tone === "green" ? "text-green-600 dark:text-green-400" : tone === "amber" ? "text-amber-600 dark:text-amber-400" : "text-zinc-900 dark:text-zinc-100";
-  const body = (
-    <>
-      <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{label}</div>
-      <div className={`mt-1 text-2xl font-bold ${valueCls}`}>{value}</div>
-      {delta ? (
-        <div className={`mt-0.5 text-xs font-medium ${delta.up ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-          {delta.up ? "↑" : "↓"} {delta.pct}% {deltaSuffix}
-        </div>
-      ) : deltaRaw ? (
-        <div className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">{deltaRaw}</div>
-      ) : note ? (
-        <div className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">{note}</div>
-      ) : null}
-    </>
-  );
-  const cls = "rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4";
-  return href ? <Link href={href} className={`${cls} block hover:border-zinc-300 dark:hover:border-zinc-700`}>{body}</Link> : <div className={cls}>{body}</div>;
+function pickInsight(a: {
+  outstanding: number;
+  paymentsDue: number;
+  earnedM: number;
+  workDays: number;
+  monthLabel: string;
+  earnedP: number;
+  workPrevDays: number;
+}): Insight {
+  // 1. Actionable free — outstanding money.
+  if (a.outstanding > 0 && a.paymentsDue > 0) {
+    return { kind: "free", text: `${money(a.outstanding)} is still outstanding from ${a.paymentsDue} ${a.paymentsDue === 1 ? "gig" : "gigs"}.`, cta: "View Payments →", href: "/payments" };
+  }
+  // 2. Significant Pro — earnings-per-day trend vs last month.
+  const avgNow = a.workDays > 0 ? a.earnedM / a.workDays : 0;
+  const avgPrev = a.workPrevDays > 0 ? a.earnedP / a.workPrevDays : 0;
+  if (avgNow > 0 && avgPrev > 0) {
+    const chg = Math.round(((avgNow - avgPrev) / avgPrev) * 100);
+    if (Math.abs(chg) >= 10) {
+      return { kind: "pro", text: `Your average earnings per work day are ${chg > 0 ? "up" : "down"} ${Math.abs(chg)}% vs last month.`, lockedCta: "See what's driving the change" };
+    }
+  }
+  // 3. Free summary.
+  if (a.earnedM > 0) {
+    return { kind: "free", text: `You've earned ${money(a.earnedM)} across ${a.workDays} work ${a.workDays === 1 ? "day" : "days"} this ${a.monthLabel}.`, cta: "View Insights →", href: "/insights" };
+  }
+  return null;
 }
 
 function AttnRow({ n, label, sub, href, tone }: { n: number; label: string; sub?: string; href: string; tone: "amber" | "blue" }) {
-  const numCls = n === 0 ? "text-zinc-300 dark:text-zinc-700" : tone === "amber" ? "text-amber-600 dark:text-amber-400" : "text-blue-600 dark:text-blue-400";
+  const numCls = tone === "amber" ? "text-amber-600 dark:text-amber-400" : "text-blue-600 dark:text-blue-400";
   return (
     <Link href={href} className="flex items-center justify-between gap-3 rounded-lg px-2 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
       <div className="flex items-center gap-3">
@@ -263,7 +263,7 @@ function AttnRow({ n, label, sub, href, tone }: { n: number; label: string; sub?
       </div>
       <div className="flex items-center gap-2">
         {sub && <span className="text-xs font-medium text-amber-600 dark:text-amber-400">{sub}</span>}
-        {n > 0 && <span className="text-zinc-300 dark:text-zinc-600">→</span>}
+        <span className="text-zinc-300 dark:text-zinc-600">→</span>
       </div>
     </Link>
   );
