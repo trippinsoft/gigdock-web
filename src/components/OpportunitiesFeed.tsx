@@ -18,6 +18,7 @@ import FilterChips, {
   type Filters,
 } from "@/components/FilterChips";
 import {
+  describeProfile,
   fieldsSet,
   type GigFitResult,
   type GigFitRow,
@@ -614,49 +615,39 @@ export default function OpportunitiesFeed({
     </select>
   );
 
-  // A single view selector combines GigFit matching (For You/All) with the
-  // personal Saved/Applied lists — one clean control instead of scope + eligible.
-  type View = "for-you" | "all" | "saved" | "applied";
-  const setView = (v: View) => {
-    if (v === "for-you") { setScope("all"); setFilters((f) => ({ ...f, eligibleOnly: true })); }
-    else if (v === "all") { setScope("all"); setFilters((f) => ({ ...f, eligibleOnly: false })); }
-    else setScope(v);
-  };
-  const activeView: View = scope === "saved" ? "saved" : scope === "applied" ? "applied" : filters.eligibleOnly ? "for-you" : "all";
-  const viewTab = (v: View, label: string) => (
+  // View tabs = personal lists only (All / Saved / Applied). GigFit is a SEPARATE
+  // concept (below) — it evaluates matches, it is not a browse filter.
+  const scopeTab = (v: "all" | "saved" | "applied", label: string) => (
     <button
       type="button"
-      onClick={() => setView(v)}
-      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeView === v ? "bg-blue-600 text-white" : "text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
+      onClick={() => setScope(v)}
+      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${scope === v ? "bg-blue-600 text-white" : "text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
     >
       {label}
     </button>
   );
   const viewTabs = embedded ? null : (
     <div className="flex items-center gap-1 rounded-lg border border-zinc-200 dark:border-zinc-800 p-0.5 bg-white dark:bg-zinc-900 shrink-0 overflow-x-auto">
-      {profileHasCriteria && viewTab("for-you", "For You")}
-      {viewTab("all", "All")}
-      {viewTab("saved", `Saved${savedIds.size ? ` ${savedIds.size}` : ""}`)}
-      {viewTab("applied", `Applied${appliedIds.size ? ` ${appliedIds.size}` : ""}`)}
+      {scopeTab("all", "All")}
+      {scopeTab("saved", `Saved${savedIds.size ? ` ${savedIds.size}` : ""}`)}
+      {scopeTab("applied", `Applied${appliedIds.size ? ` ${appliedIds.size}` : ""}`)}
     </div>
   );
 
-  // Lightweight GigFit indicator (or a set-up CTA). Multiple profiles keep a
-  // compact switcher.
-  const gigfitIndicator = embedded ? null : profiles.length > 0 ? (
-    profiles.length > 1 ? (
-      <select
-        value={gigfitProfileId ?? ""}
-        onChange={(e) => setGigfitProfileId(e.target.value || null)}
-        className="text-xs h-8 px-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 shrink-0"
-      >
-        {profiles.map((p) => <option key={p.id} value={p.id}>GigFit: {p.label}</option>)}
-      </select>
-    ) : gigfitOn ? (
-      <span className="inline-flex items-center gap-1 text-xs text-green-700 dark:text-green-400">✓ GigFit matching{selectedProfile?.label ? ` · ${selectedProfile.label}` : ""}</span>
-    ) : null
+  // Selectable GigFit profile — matching is recalculated against the chosen
+  // person. Not a passive indicator.
+  const gigfitControl = embedded ? null : profiles.length > 0 ? (
+    <select
+      value={gigfitProfileId ?? ""}
+      onChange={(e) => setGigfitProfileId(e.target.value || null)}
+      aria-label="GigFit profile"
+      className={`text-sm h-9 px-2.5 rounded-lg border shrink-0 transition-colors ${gigfitOn ? "border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100" : "border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"}`}
+    >
+      <option value="">GigFit: Off</option>
+      {profiles.map((p) => <option key={p.id} value={p.id}>GigFit: {p.label}</option>)}
+    </select>
   ) : (
-    <Link href={userId ? "/profile" : "/gigfit"} className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400">✨ Set up GigFit</Link>
+    <Link href={userId ? "/profile" : "/gigfit"} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-blue-300 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-sm font-medium shrink-0 hover:bg-blue-50 dark:hover:bg-blue-900/30">✨ GigFit</Link>
   );
 
   // Presentation-only layout switch. Embedded = flow layout (for a location page):
@@ -707,17 +698,23 @@ export default function OpportunitiesFeed({
             </select>
           </div>
 
-          {(viewTabs || gigfitIndicator) && (
+          {(viewTabs || gigfitControl) && (
             <div className="flex flex-wrap items-center justify-between gap-2">
               {viewTabs}
-              {gigfitIndicator}
+              {gigfitControl}
             </div>
           )}
 
-          {selectedProfile && fieldsSet(selectedProfile).length === 0 && (
-            <div className="text-sm text-zinc-600 dark:text-zinc-400">
-              <Link href="/profile" className="text-blue-600 dark:text-blue-400 underline underline-offset-2">Set up your profile</Link> to see your matches.
-            </div>
+          {selectedProfile && (
+            fieldsSet(selectedProfile).length === 0 ? (
+              <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                <Link href="/profile" className="text-blue-600 dark:text-blue-400 underline underline-offset-2">Set up your profile</Link> to see your matches.
+              </div>
+            ) : (
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                Matching: <span className="text-zinc-700 dark:text-zinc-300">{describeProfile(selectedProfile).join(" · ")}</span>
+              </div>
+            )
           )}
 
           <div className="text-sm text-zinc-500 dark:text-zinc-400">
