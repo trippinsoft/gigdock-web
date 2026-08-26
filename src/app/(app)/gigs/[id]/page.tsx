@@ -64,7 +64,7 @@ export default async function GigWorkspacePage({
   const headerMeta = [dateRange(gig.start_date, gig.end_date), gig.location].filter((x) => x && x !== "—").join(" · ");
 
   const tabs: GigTab[] = [
-    { id: "overview", label: "Overview", content: <OverviewPanel gig={gig} /> },
+    { id: "overview", label: "Overview", content: <OverviewPanel gig={gig} dates={dates} bumps={bumps} /> },
     { id: "work-days", label: "Work Days", count: dates.length, content: <WorkDaysPanel id={id} dates={dates} bumpsByDate={bumpsByDate} /> },
     { id: "payments", label: "Payments", count: payments.length, content: <PaymentsPanel id={id} payments={payments} earned={earned} paid={paid} remaining={remaining} /> },
     { id: "documents", label: "Documents", count: docs.length, content: <DocumentsPanel docs={docs} /> },
@@ -128,26 +128,72 @@ export default async function GigWorkspacePage({
 
 /* ── panels ────────────────────────────────────────────────────────────────── */
 
-function OverviewPanel({ gig }: { gig: GigWithNames }) {
+function OverviewPanel({ gig, dates, bumps }: { gig: GigWithNames; dates: GigDateWithEarnings[]; bumps: { gig_date_id: string; bump_type: string; amount: number }[] }) {
+  const dateById = new Map(dates.map((d) => [d.gig_date_id, d.date]));
   return (
-    <div>
-      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
-        <Row label="Production company" value={gig.gig_company_name} />
-        <Row label="Payroll company" value={gig.payroll_company_name} />
-        <Row label="Project" value={gig.project_title} />
-        <Row label="Location" value={gig.location} />
-        <Row label="Status" value={statusLabel(gig.status_overall)} />
-        <Row label="Pay structure" value={describePay(gig)} />
-        {gig.is_unpaid && <Row label="" value="Marked unpaid (excluded from earnings)" />}
-      </div>
-      {gig.notes && (
-        <div className="mt-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
-          <div className="text-xs font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500 mb-1">Notes</div>
-          <p className="text-sm text-zinc-700 dark:text-zinc-200 whitespace-pre-wrap leading-relaxed">{gig.notes}</p>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+      {/* Gig information */}
+      <div>
+        <SubTitle>Gig information</SubTitle>
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
+          <Row label="Production company" value={gig.gig_company_name} />
+          <Row label="Payroll company" value={gig.payroll_company_name} />
+          <Row label="Project" value={gig.project_title} />
+          <Row label="Location" value={gig.location} />
+          <Row label="Status" value={statusLabel(gig.status_overall)} />
+          <Row label="Pay structure" value={describePay(gig)} />
+          {gig.is_unpaid && <Row label="" value="Marked unpaid (excluded from earnings)" />}
         </div>
-      )}
+        {gig.notes && (
+          <div className="mt-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
+            <div className="text-xs font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500 mb-1">Notes</div>
+            <p className="text-sm text-zinc-700 dark:text-zinc-200 whitespace-pre-wrap leading-relaxed">{gig.notes}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Work summary + bumps */}
+      <div>
+        {dates.length > 0 && (
+          <>
+            <SubTitle>Work summary</SubTitle>
+            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
+              {dates.map((d) => (
+                <div key={d.gig_date_id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                  <span className="text-zinc-700 dark:text-zinc-200">{shortDate(d.date)}</span>
+                  <span className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
+                    <span>{statusLabel(d.status_for_day) ?? "—"}</span>
+                    {d.hours_total != null && <span>{Number(d.hours_total)} hrs</span>}
+                    <span className="font-medium text-zinc-700 dark:text-zinc-200">{money(d.gross_earned_calc ?? 0)}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+        {bumps.length > 0 && (
+          <>
+            <SubTitle className="mt-3">Bumps</SubTitle>
+            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
+              {bumps.map((b, i) => (
+                <div key={i} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                  <span className="text-zinc-700 dark:text-zinc-200 capitalize">{b.bump_type}</span>
+                  <span className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
+                    {dateById.get(b.gig_date_id) && <span>{shortDate(dateById.get(b.gig_date_id)!)}</span>}
+                    <span className="font-medium text-zinc-700 dark:text-zinc-200">{money(Number(b.amount))}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
+}
+
+function SubTitle({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <div className={`text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500 mb-1.5 ${className}`}>{children}</div>;
 }
 
 function WorkDaysPanel({ id, dates, bumpsByDate }: { id: string; dates: GigDateWithEarnings[]; bumpsByDate: Map<string, { type: string; amount: number }[]> }) {
