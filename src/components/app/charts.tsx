@@ -58,6 +58,28 @@ function Legend({ color, label }: { color: string; label: string }) {
   );
 }
 
+/** Single-series earnings bars ("how are my earnings changing?"). Restrained. */
+export function EarningsBars({ data, height = 160 }: { data: { label: string; value: number }[]; height?: number }) {
+  const max = Math.max(1, ...data.map((d) => d.value));
+  return (
+    <div>
+      <div className="flex items-end gap-1.5" style={{ height }}>
+        {data.map((d, i) => {
+          const h = d.value > 0 ? Math.max(4, Math.round((d.value / max) * 100)) : 0;
+          return (
+            <div key={i} className="flex-1 min-w-0 flex flex-col justify-end items-center h-full" title={`${d.label}: ${money(d.value)}`}>
+              <div className="w-full max-w-[34px] rounded-t bg-blue-500 dark:bg-blue-500/80" style={{ height: `${h}%` }} />
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-1 flex justify-between text-[10px] text-zinc-400 dark:text-zinc-500">
+        {data.map((d, i) => <span key={i} className="flex-1 text-center truncate">{d.label}</span>)}
+      </div>
+    </div>
+  );
+}
+
 export type DonutSeg = { label: string; value: number; color: string };
 
 /** Outstanding-by-age as horizontal bars (clearer than a donut for "where is my
