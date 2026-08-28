@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import PublicShell from "@/components/PublicShell";
 import AppCta from "@/components/AppCta";
 
@@ -21,8 +22,11 @@ export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: PATH },
-  openGraph: { title: `${TITLE} · GigDock`, description: DESCRIPTION, type: "article", siteName: "GigDock", url: `${BASE}${PATH}` },
-  twitter: { card: "summary", title: TITLE, description: DESCRIPTION },
+  openGraph: {
+    title: `${TITLE} · GigDock`, description: DESCRIPTION, type: "article", siteName: "GigDock", url: `${BASE}${PATH}`,
+    images: [{ url: "/guides/track-income-hero.png", width: 1200, height: 675, alt: "How to Track Income and Expenses From Film & TV Gigs — a GigDock guide" }],
+  },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, images: ["/guides/track-income-hero.png"] },
 };
 
 const FAQ: { q: string; a: string }[] = [
@@ -52,6 +56,23 @@ const A = ({ href, children }: { href: string; children: React.ReactNode }) => (
 const Cite = ({ href }: { href: string }) => (
   <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline text-sm"> (IRS)</a>
 );
+function Figure({ src, alt }: { src: string; alt: string }) {
+  return (
+    <figure className="mt-6">
+      <Image src={src} alt={alt} width={1200} height={675} sizes="(max-width: 672px) 100vw, 672px"
+        className="w-full h-auto rounded-xl border border-zinc-200 dark:border-zinc-800" />
+    </figure>
+  );
+}
+function Screenshot({ src, alt, caption }: { src: string; alt: string; caption?: string }) {
+  return (
+    <figure className="mt-6 flex flex-col items-center">
+      <Image src={src} alt={alt} width={603} height={1311} sizes="(max-width: 320px) 100vw, 320px"
+        className="w-full max-w-[300px] h-auto rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm" />
+      {caption && <figcaption className="mt-2 text-xs text-zinc-400 dark:text-zinc-500 text-center">{caption}</figcaption>}
+    </figure>
+  );
+}
 
 export default function Page() {
   const articleLd = {
@@ -87,7 +108,10 @@ export default function Page() {
           <span className="text-zinc-700 dark:text-zinc-300">Tracking gig income &amp; expenses</span>
         </nav>
 
-        <h1 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
+        <Image src="/guides/track-income-hero.png" alt="How to Track Income and Expenses From Film & TV Gigs — a production worker keeping their gigs, payments and receipts organized, from GigDock."
+          width={1200} height={675} priority sizes="(max-width: 672px) 100vw, 672px" className="w-full h-auto rounded-2xl" />
+
+        <h1 className="mt-6 text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
           How to Track Income and Expenses From Film &amp; TV Gigs
         </h1>
 
@@ -102,6 +126,7 @@ export default function Page() {
         <UL items={["multiple productions", "different production companies", "several payroll companies", "casting companies", "agencies or staffing companies", "direct clients", "different types of projects"]} />
         <P>You may also receive different kinds of compensation — hourly wages, day rates, guaranteed rates, overtime, bumps or adjustments, kit or equipment fees, mileage reimbursements, per diem, and other production-specific compensation.</P>
         <P>And payments do not necessarily arrive in the same order the gigs happened. That&rsquo;s why simply watching your bank account is a poor system for understanding your production income.</P>
+        <Figure src="/guides/track-income-money-problem.png" alt="The production money problem: different projects and work dates, different production/casting/clients, different payroll companies, and payments arriving on different schedules — leaving one worker trying to answer what they earned, what's been paid and what's still outstanding. The fix: keep the gig record first, then connect the money to it." />
 
         <H2>Start with the gig, not the payment</H2>
         <P>One of the best organizational habits is to create a record <strong>when the work is booked or performed</strong>, rather than waiting until the money arrives. For each production gig, record at least:</P>
@@ -139,6 +164,8 @@ export default function Page() {
           <><strong>Outstanding</strong> — work you&rsquo;ve completed that has not yet been recorded as paid.</>,
         ]} />
 
+        <Figure src="/guides/track-income-earned-received-outstanding.png" alt="Earned vs. Received vs. Outstanding are three different numbers: Earned ($7,550) is what the work generated; Received ($5,100) is money actually paid to you; Outstanding ($2,450) is completed work you haven't marked paid yet. Don't use your bank balance as your only record of what you made." />
+
         <H2>Keep your pay stubs and payment records</H2>
         <P>When a payment arrives, don&rsquo;t just record the bank deposit — save the supporting documentation when available: a pay stub, payroll statement, direct-deposit notice, check or check stub, payment-platform record, invoice or remittance statement.</P>
         <P>The pay stub can help explain the difference between gross and net. It may show gross wages, federal and state withholding, Social Security, Medicare, other deductions, work dates, production and payroll company. Those records can become especially important when you are reconciling income at the end of the year.</P>
@@ -175,6 +202,7 @@ export default function Page() {
 
         <H2>A simple production-gig recordkeeping system</H2>
         <P>At a minimum, maintain four sets of records:</P>
+        <Figure src="/guides/track-income-four-records.png" alt="The four records that keep you organized: 1) Gig record — project/role, work dates, rate & hours; 2) Payment record — gross & net, payment date, payroll/payer; 3) Expense record — date & amount, category, receipt/reason; 4) Tax documents — W-2s/1099s, pay stubs, year-end records. Good records today mean much less detective work later." />
         <UL items={[
           <><strong>Gig record</strong> — project, company, dates, role, rate, hours, other compensation.</>,
           <><strong>Payment record</strong> — gross, net, payment date, payer, and the work it corresponds to.</>,
@@ -190,6 +218,7 @@ export default function Page() {
         <H2>How GigDock fits into the process</H2>
         <P>GigDock is designed around the reality that production work happens <strong>gig by gig</strong>. Instead of treating the individual job as something you forget after the workday, GigDock gives you a place to keep the gig itself organized. You can keep records of things such as production, work dates, rates, hours, bumps or additional compensation, gross payments, net payments and payment status.</P>
         <P>That makes it easier to answer questions like: How much have I earned? What has actually been paid? Which gigs haven&rsquo;t I marked paid yet? What did I work three months ago? What rate was I booked at?</P>
+        <Screenshot src="/guides/track-income-gigdock-payments.png" alt="The GigDock payments summary for a month: received and outstanding totals with a percent-received ring, a payments-received-over-time chart, and a list of recorded payments by gig." caption="GigDock keeps earnings, payments received and outstanding balances organized by gig." />
         <P>GigDock should <strong>not</strong> be described as tax-preparation software, and recording something in GigDock does not determine its tax treatment. The goal is simpler: <strong>keep the work organized before tax season arrives.</strong></P>
         <P><A href="/app">See how GigDock helps manage your gig life →</A></P>
 
