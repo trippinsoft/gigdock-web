@@ -242,10 +242,10 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
 
        </div>
 
-       {/* Wider band: the SAME opportunity browser as /opportunities, at the same
-           max-w-7xl width so the card column and detail column match the standard
+       {/* The SAME opportunity browser as /opportunities, at the same site-standard
+           max-w-5xl width so the card column and detail column match the standard
            opportunities page exactly. SSR-seeded so the listings are crawlable. */}
-       <div className="max-w-7xl mx-auto mt-10">
+       <div className="max-w-5xl mx-auto mt-10">
          <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100">Open casting calls in {name}</h2>
          {opps.length > 0 ? (
            <div className="mt-4">

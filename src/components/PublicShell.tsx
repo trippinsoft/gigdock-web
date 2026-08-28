@@ -42,7 +42,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-3 min-w-0">
               <Link
@@ -196,7 +196,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
         )}
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">{children}</main>
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">{children}</main>
     </div>
   );
 }
