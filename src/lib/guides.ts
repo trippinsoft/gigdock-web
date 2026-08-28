@@ -11,6 +11,12 @@ export type Guide = {
 
 export const GUIDES: Guide[] = [
   {
+    slug: "how-to-track-film-tv-gig-income-expenses",
+    title: "How to Track Income and Expenses From Film & TV Gigs",
+    blurb:
+      "Working multiple film and TV gigs? How to track gigs, income, payments, expenses, receipts and tax records — without losing what you made or spent.",
+  },
+  {
     slug: "how-to-get-background-acting-work-in-atlanta",
     title: "How to Get Background Acting Work in Atlanta",
     blurb:
