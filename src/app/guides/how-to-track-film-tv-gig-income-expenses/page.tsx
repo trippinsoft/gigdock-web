@@ -59,7 +59,7 @@ const Cite = ({ href }: { href: string }) => (
 function Figure({ src, alt }: { src: string; alt: string }) {
   return (
     <figure className="mt-6">
-      <Image src={src} alt={alt} width={1200} height={675} sizes="(max-width: 672px) 100vw, 672px"
+      <Image src={src} alt={alt} width={1200} height={675} sizes="(max-width: 1024px) 100vw, 960px"
         className="w-full h-auto rounded-xl border border-zinc-200 dark:border-zinc-800" />
     </figure>
   );
@@ -101,7 +101,7 @@ export default function Page() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
 
-      <article className="mx-auto max-w-2xl py-4 text-zinc-800 dark:text-zinc-200">
+      <article className="mx-auto max-w-5xl py-4 text-zinc-800 dark:text-zinc-200">
         <nav className="text-sm text-zinc-500 dark:text-zinc-400 mb-3" aria-label="Breadcrumb">
           <Link href="/guides" className="hover:text-zinc-800 dark:hover:text-zinc-200">Guides</Link>
           <span className="mx-1.5">›</span>
@@ -109,7 +109,7 @@ export default function Page() {
         </nav>
 
         <Image src="/guides/track-income-hero.png" alt="How to Track Income and Expenses From Film & TV Gigs — a production worker keeping their gigs, payments and receipts organized, from GigDock."
-          width={1200} height={675} priority sizes="(max-width: 672px) 100vw, 672px" className="w-full h-auto rounded-2xl" />
+          width={1200} height={675} priority sizes="(max-width: 1024px) 100vw, 960px" className="w-full h-auto rounded-2xl" />
 
         <h1 className="mt-6 text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
           How to Track Income and Expenses From Film &amp; TV Gigs
