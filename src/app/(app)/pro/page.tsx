@@ -33,7 +33,7 @@ function ProLanding() {
       <div className="max-w-2xl mx-auto py-16 text-center">
         <ProBadge />
         <h1 className="mt-3 text-2xl font-bold text-zinc-900 dark:text-zinc-100">You&rsquo;re on GigDock Pro</h1>
-        <p className="mt-2 text-zinc-500 dark:text-zinc-400">Complete history, advanced insights, watches, documents, expenses and tax prep are all unlocked — on web and in the app.</p>
+        <p className="mt-2 text-zinc-500 dark:text-zinc-400">Complete history, advanced insights, watches, documents, expenses, reports and tax organization are all unlocked — on web and in the app.</p>
       </div>
     );
   }

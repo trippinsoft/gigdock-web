@@ -21,7 +21,10 @@ export const PRO_PILLARS: { key: PillarKey; title: string; blurb: string; icon: 
   { key: "watches", title: "Advanced Watches", blurb: "Let GigDock actively monitor for the right opportunities for you.", icon: "bell" },
   { key: "documents", title: "Advanced Documents", blurb: "Connect and intelligently organize documents across your gig career.", icon: "doc" },
   { key: "expenses", title: "Expenses & Mileage", blurb: "Understand what it actually costs you to work.", icon: "receipt" },
-  { key: "tax", title: "Tax Prep", blurb: "Turn your GigDock records into an organized annual tax package.", icon: "file" },
+  // Customer-facing paywall benefit groups reports + tax organization. The
+  // feature/destination itself is branded "Tax Ready" (built later). GigDock
+  // organizes records for tax time — it never prepares or files tax returns.
+  { key: "tax", title: "Reports & Tax Organization", blurb: "Advanced reports and organized records to help you get ready for tax time.", icon: "file" },
 ];
 
 /** Contextual paywall stories — the source that sent the user shapes the headline. */
