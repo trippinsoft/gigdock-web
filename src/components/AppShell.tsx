@@ -10,7 +10,7 @@ import { useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import { ProProvider, ProBadge } from "@/components/app/pro";
 
-type NavItem = { href: string; label: string; icon: React.ReactNode; match?: string; pro?: boolean };
+type NavItem = { href: string; label: string; icon: React.ReactNode; match?: string; pro?: boolean; newTab?: boolean };
 type NavGroup = { label: string | null; items: NavItem[] };
 
 // Grouped by user job (Part IV): Today · Find work · Manage work · Money.
@@ -47,11 +47,12 @@ const GROUPS: NavGroup[] = [
   // Reference content lives below the work surfaces. Guides and the mobile-app
   // page render in the public reading chrome (PublicShell), which gives signed-in
   // users a "← Dashboard" link back into the app.
+  // Public reading pages — open in a new tab so the app (and its rail) stays put.
   {
     label: "Learn",
     items: [
-      { href: "/guides", label: "Guides", icon: iconBook() },
-      { href: "/app", label: "Get the app", icon: iconPhone() },
+      { href: "/guides", label: "Guides", icon: iconBook(), newTab: true },
+      { href: "/app", label: "Get the app", icon: iconPhone(), newTab: true },
     ],
   },
   // Identity + app preferences. Profile/GigFit and Help & feedback render in the
@@ -99,6 +100,8 @@ export default function AppShell({
         key={item.href}
         href={item.href}
         onClick={onNavigate}
+        target={item.newTab ? "_blank" : undefined}
+        rel={item.newTab ? "noopener noreferrer" : undefined}
         className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
           active
             ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
@@ -109,6 +112,9 @@ export default function AppShell({
         <span>{item.label}</span>
         {item.pro && (
           <span className="ml-auto rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">Pro</span>
+        )}
+        {item.newTab && (
+          <svg className="ml-auto shrink-0 text-zinc-300 dark:text-zinc-600" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-label="opens in a new tab"><path d="M7 17 17 7M8 7h9v9" /></svg>
         )}
       </Link>
     );
