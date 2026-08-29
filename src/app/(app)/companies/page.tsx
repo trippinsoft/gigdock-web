@@ -22,6 +22,7 @@ export default async function CompaniesPage() {
       addPlaceholder="Add a gig company…"
       emptyText="No gig companies yet. Add the companies you’ve worked with."
       noun="gig company"
+      back={{ href: "/settings", label: "Settings" }}
     />
   );
 }

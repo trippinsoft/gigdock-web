@@ -28,6 +28,18 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
+function NavRow({ href, label, hint }: { href: string; label: string; hint: string }) {
+  return (
+    <Link href={href} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors">
+      <div className="min-w-0">
+        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{label}</div>
+        <div className="text-xs text-zinc-500 dark:text-zinc-400">{hint}</div>
+      </div>
+      <svg className="shrink-0 text-zinc-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+    </Link>
+  );
+}
+
 export default function SettingsPanel({
   email,
   plan,
@@ -71,6 +83,12 @@ export default function SettingsPanel({
         <Row label="Theme">
           <span className="text-zinc-500 dark:text-zinc-400">Follows your system setting</span>
         </Row>
+      </Card>
+
+      <Card title="Setup">
+        <NavRow href="/projects" label="Projects" hint="Productions you work on" />
+        <NavRow href="/companies" label="Gig companies" hint="Companies you’ve worked with" />
+        <NavRow href="/payroll" label="Payroll companies" hint="Companies that process your payments" />
       </Card>
 
       <Card title="Manage">

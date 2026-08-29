@@ -20,6 +20,7 @@ export default async function ProjectsPage() {
       addPlaceholder="Add a project…"
       emptyText="No projects yet. Add the productions you work on to organize your gigs."
       noun="project"
+      back={{ href: "/settings", label: "Settings" }}
     />
   );
 }

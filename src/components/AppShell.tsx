@@ -10,7 +10,7 @@ import { useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import { ProProvider, ProBadge } from "@/components/app/pro";
 
-type NavItem = { href: string; label: string; icon: React.ReactNode; match?: string; pro?: boolean; newTab?: boolean };
+type NavItem = { href: string; label: string; icon: React.ReactNode; match?: string | string[]; pro?: boolean; newTab?: boolean };
 type NavGroup = { label: string | null; items: NavItem[] };
 
 // Grouped by user job (Part IV): Today · Find work · Manage work · Money.
@@ -34,20 +34,8 @@ const GROUPS: NavGroup[] = [
       { href: "/tax-ready", label: "Tax Ready", icon: iconTax(), pro: true },
     ],
   },
-  // Associations — the mobile More → Setup managers (Projects, Gig companies,
-  // Payroll companies). Low-frequency reference data, so they sit below the work.
-  {
-    label: "Setup",
-    items: [
-      { href: "/projects", label: "Projects", icon: iconFolder() },
-      { href: "/companies", label: "Gig companies", icon: iconBuilding() },
-      { href: "/payroll", label: "Payroll companies", icon: iconWallet() },
-    ],
-  },
-  // Reference content lives below the work surfaces. Guides and the mobile-app
-  // page render in the public reading chrome (PublicShell), which gives signed-in
-  // users a "← Dashboard" link back into the app.
-  // Public reading pages — open in a new tab so the app (and its rail) stays put.
+  // Public reading pages — a real <a target=_blank> so the app tab (and rail)
+  // stays put. Guides and Get the app both live in PublicShell.
   {
     label: "Learn",
     items: [
@@ -55,13 +43,13 @@ const GROUPS: NavGroup[] = [
       { href: "/app", label: "Get the app", icon: iconPhone(), newTab: true },
     ],
   },
-  // Identity + app preferences. Profile/GigFit and Help & feedback render in the
-  // public chrome; Settings is an in-app page.
+  // Identity + app preferences. Profile, Settings, and Help & feedback are
+  // in-app pages (AppShell). Projects / gig companies / payroll live under Settings.
   {
     label: "Account",
     items: [
       { href: "/profile", label: "Profile / GigFit", icon: iconUser() },
-      { href: "/settings", label: "Settings", icon: iconGear() },
+      { href: "/settings", label: "Settings", icon: iconGear(), match: ["/settings", "/projects", "/companies", "/payroll", "/delete-account"] },
       { href: "/feedback", label: "Help & feedback", icon: iconHelp() },
     ],
   },
@@ -89,25 +77,19 @@ export default function AppShell({
   }
 
   const isActive = (item: NavItem) => {
-    const base = item.match ?? item.href;
-    return pathname === base || pathname.startsWith(base + "/");
+    const bases = [item.match ?? item.href].flat();
+    return bases.some((base) => pathname === base || pathname.startsWith(base + "/"));
   };
 
   const navLink = (item: NavItem, onNavigate?: () => void) => {
-    const active = isActive(item);
-    return (
-      <Link
-        key={item.href}
-        href={item.href}
-        onClick={onNavigate}
-        target={item.newTab ? "_blank" : undefined}
-        rel={item.newTab ? "noopener noreferrer" : undefined}
-        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-          active
-            ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
-            : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 hover:text-zinc-900 dark:hover:text-zinc-100"
-        }`}
-      >
+    const active = !item.newTab && isActive(item);
+    const className = `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+      active
+        ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
+        : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 hover:text-zinc-900 dark:hover:text-zinc-100"
+    }`;
+    const inner = (
+      <>
         <span className="shrink-0">{item.icon}</span>
         <span>{item.label}</span>
         {item.pro && (
@@ -116,6 +98,27 @@ export default function AppShell({
         {item.newTab && (
           <svg className="ml-auto shrink-0 text-zinc-300 dark:text-zinc-600" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-label="opens in a new tab"><path d="M7 17 17 7M8 7h9v9" /></svg>
         )}
+      </>
+    );
+    // Native <a> for new-tab Learn links so Next.js client navigation cannot
+    // take over the current app tab (same-tab would drop the user into PublicShell).
+    if (item.newTab) {
+      return (
+        <a
+          key={item.href}
+          href={item.href}
+          onClick={onNavigate}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={className}
+        >
+          {inner}
+        </a>
+      );
+    }
+    return (
+      <Link key={item.href} href={item.href} onClick={onNavigate} className={className}>
+        {inner}
       </Link>
     );
   };
@@ -221,9 +224,6 @@ function iconChart() { return svg(<><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" 
 function iconDoc() { return svg(<><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M9 13h6M9 17h6" /></>); }
 function iconBook() { return svg(<><path d="M12 7v13" /><path d="M3 5a2 2 0 0 1 2-2h4a3 3 0 0 1 3 3 3 3 0 0 1 3-3h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5a2 2 0 0 0-2 2 2 2 0 0 0-2-2H5a2 2 0 0 1-2-2z" /></>); }
 function iconPhone() { return svg(<><rect x="7" y="2" width="10" height="20" rx="2" /><path d="M11 18h2" /></>); }
-function iconFolder() { return svg(<><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></>); }
-function iconBuilding() { return svg(<><rect x="4" y="3" width="16" height="18" rx="1.5" /><path d="M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 15h.01M15 15h.01M10 21v-3h4v3" /></>); }
-function iconWallet() { return svg(<><path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2" /><path d="M3 7v10a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-3" /><path d="M21 11v4h-4a2 2 0 0 1 0-4z" /></>); }
 function iconUser() { return svg(<><circle cx="12" cy="8" r="4" /><path d="M5 21a7 7 0 0 1 14 0" /></>); }
 function iconGear() { return svg(<><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></>); }
 function iconHelp() { return svg(<><circle cx="12" cy="12" r="9" /><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></>); }

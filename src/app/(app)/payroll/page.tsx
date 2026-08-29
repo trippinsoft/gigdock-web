@@ -22,6 +22,7 @@ export default async function PayrollPage() {
       addPlaceholder="Add a payroll company…"
       emptyText="No payroll companies yet. Add the companies that process your payments."
       noun="payroll company"
+      back={{ href: "/settings", label: "Settings" }}
     />
   );
 }

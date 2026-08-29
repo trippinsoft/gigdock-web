@@ -6,6 +6,7 @@
 // Supabase client under the user's session (RLS scopes rows to auth.uid()).
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 
 export type AssociationItem = { id: string; label: string };
@@ -20,6 +21,7 @@ export default function AssociationManager({
   addPlaceholder,
   emptyText,
   noun,
+  back,
 }: {
   title: string;
   subtitle: string;
@@ -33,6 +35,7 @@ export default function AssociationManager({
   emptyText: string;
   /** Singular noun for confirmation copy, e.g. "project", "gig company". */
   noun: string;
+  back?: { href: string; label: string };
 }) {
   const supabase = createSupabaseBrowser();
   const labelColumn = table === "projects" ? "title" : "name";
@@ -86,6 +89,12 @@ export default function AssociationManager({
   return (
     <div className="max-w-3xl">
       <header className="mb-5">
+        {back && (
+          <Link href={back.href} className="inline-flex items-center gap-1 mb-2 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+            {back.label}
+          </Link>
+        )}
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{title}</h1>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{subtitle}</p>
       </header>
