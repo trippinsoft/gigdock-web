@@ -81,15 +81,20 @@ function ProLanding() {
 
         {notified ? (
           <div className="mt-5 rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/30 px-4 py-3 text-sm text-green-700 dark:text-green-300">
-            Thanks! GigDock Pro is rolling out with launch — we&rsquo;ll let you know the moment you can upgrade at this price.
+            Thanks! GigDock Pro checkout is not live yet — we&rsquo;ll let you know the moment you can upgrade at this price.
           </div>
         ) : (
-          <button onClick={upgrade} className="mt-5 w-full rounded-xl bg-violet-600 hover:bg-violet-700 px-5 py-3 text-sm font-semibold text-white">
-            Upgrade to GigDock Pro
-          </button>
+          <>
+            <p className="mt-5 text-center text-sm text-zinc-500 dark:text-zinc-400">
+              Checkout is not open yet. Prices above are the planned launch rates — no charge today.
+            </p>
+            <button onClick={upgrade} className="mt-3 w-full rounded-xl bg-violet-600 hover:bg-violet-700 px-5 py-3 text-sm font-semibold text-white">
+              Notify me when I can upgrade
+            </button>
+          </>
         )}
         <p className="mt-3 text-center text-xs text-zinc-400 dark:text-zinc-500">
-          Pro works everywhere — buy on web or in the app, you&rsquo;re Pro on both. Cancel anytime.
+          Pro will work everywhere — buy on web or in the app, you&rsquo;re Pro on both. Cancel anytime.
         </p>
       </div>
     </div>
