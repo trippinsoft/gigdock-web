@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { track } from "@/lib/analytics";
 import type { Opportunity } from "@/lib/types";
 import { fitTierColor, type GigFitResult } from "@/lib/gigfit";
@@ -318,6 +319,11 @@ export default function OpportunityCard({
 }) {
   const specs = opp.casting_specs as Record<string, unknown> | null;
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  // Portal target — the lightbox must render at document.body so no ancestor
+  // (e.g. the location page's sticky/overflow detail column) can clip its
+  // position:fixed overlay. Guarded so SSR/first paint don't touch `document`.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const postedAgo = relativeTime(opp.posted_at);
   const postedAbs = shortDate(opp.posted_at);
@@ -521,27 +527,29 @@ export default function OpportunityCard({
         </details>
       )}
 
-      {lightboxOpen && opp.image_url && (
-        <div
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-          onClick={() => setLightboxOpen(false)}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={opp.image_url}
-            alt=""
-            className="max-w-full max-h-full rounded-lg"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <button
-            type="button"
+      {mounted && lightboxOpen && opp.image_url &&
+        createPortal(
+          <div
+            className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4"
             onClick={() => setLightboxOpen(false)}
-            className="absolute top-4 right-4 text-white text-3xl leading-none"
           >
-            ×
-          </button>
-        </div>
-      )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={opp.image_url}
+              alt=""
+              className="max-w-full max-h-full rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              type="button"
+              onClick={() => setLightboxOpen(false)}
+              className="absolute top-4 right-4 text-white text-3xl leading-none"
+            >
+              ×
+            </button>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

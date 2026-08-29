@@ -389,8 +389,9 @@ export default function OpportunitiesFeed({
 
   // Selecting a card: desktop shows the detail in the right pane, so just set the
   // selection. The mobile bottom-sheet locks page scroll while open, so it must
-  // ONLY open on mobile — opening it on desktop would freeze scrolling (the bug
-  // seen logged-out, where the page scrolls at the window level).
+  // ONLY open on mobile — opening it on desktop would freeze scrolling both on
+  // the logged-out window-level feed and on flow-layout (embedded) location
+  // pages, where the list scrolls with the page body rather than its own container.
   const selectOpportunity = useCallback((id: string) => {
     if (typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches) {
       setSelectedId(id);
@@ -656,9 +657,11 @@ export default function OpportunitiesFeed({
   const shown = embedded ? visible.slice(0, EMBED_CAP) : visible;
   const moreCount = embedded ? Math.max(0, visible.length - EMBED_CAP) : 0;
   const rowCls = embedded ? "flex flex-col md:flex-row mt-4 gap-6 items-start" : "flex-1 flex min-h-0 mt-4 gap-6";
-  // List column matches the My Gigs / Payments master lists (MasterDetailLayout
-  // uses w-[23rem]) so the left card is a consistent width across the app.
-  const listColCls = embedded ? "w-full md:w-[23rem] md:shrink-0" : "w-full md:w-[23rem] md:shrink-0 flex flex-col min-h-0";
+  // Embedded (location pages): list is ~1/3 so the detail pane keeps ~2/3.
+  // App feed: list matches My Gigs / Payments (MasterDetailLayout w-[23rem]).
+  const listColCls = embedded
+    ? "w-full md:w-1/3 md:shrink-0"
+    : "w-full md:w-[23rem] md:shrink-0 flex flex-col min-h-0";
   const listScrollCls = embedded ? "pb-2" : "flex-1 min-h-0 overflow-y-auto overscroll-y-contain pr-1 pb-4";
   const detailColCls = embedded
     ? "hidden md:block flex-1 min-w-0 sticky top-20 self-start max-h-[calc(100dvh-6rem)] overflow-y-auto"

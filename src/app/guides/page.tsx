@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 export default function GuidesIndex() {
   return (
     <PublicShell>
-      <div className="mx-auto max-w-2xl py-4">
+      <div className="mx-auto max-w-5xl py-4">
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
           Guides for background actors &amp; extras
         </h1>

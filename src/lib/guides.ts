@@ -11,10 +11,22 @@ export type Guide = {
 
 export const GUIDES: Guide[] = [
   {
+    slug: "how-to-track-film-tv-gig-income-expenses",
+    title: "How to Track Income and Expenses From Film & TV Gigs",
+    blurb:
+      "Working multiple film and TV gigs? How to track gigs, income, payments, expenses, receipts and tax records — without losing what you made or spent.",
+  },
+  {
     slug: "how-to-get-background-acting-work-in-atlanta",
     title: "How to Get Background Acting Work in Atlanta",
     blurb:
       "Start getting paid background and extras work in Atlanta with no experience — how to prepare, where casting calls appear, how to submit, and what pay looks like.",
+  },
+  {
+    slug: "where-to-find-atlanta-casting-calls",
+    title: "Where to Find Atlanta Casting Calls",
+    blurb:
+      "Where Atlanta casting calls actually appear — the casting companies, websites, Facebook pages, social accounts, email lists and platforms to watch, and how to verify what you find.",
   },
   {
     slug: "how-background-actors-get-paid",
