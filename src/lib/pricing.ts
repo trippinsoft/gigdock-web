@@ -10,8 +10,10 @@ export const PRICING = {
   founding: { amount: 49.99, label: "$49.99", period: "/yr", note: "Founding member — locked in while your subscription stays active" },
 } as const;
 
-/** The product id stored in `entitlements.product` that grants Pro. */
-export const PRO_PRODUCT = "premium";
+/** The product id stored in `entitlements.product` that grants Pro.
+ *  Live rows use "pro". The has_active_entitlement RPC also treats the older
+ *  "premium" id as the same product — do not invent a second paid SKU. */
+export const PRO_PRODUCT = "pro";
 
 export type PillarKey = "history" | "insights" | "watches" | "documents" | "expenses" | "tax";
 

@@ -382,9 +382,11 @@ export async function getRecentOpportunities(limit = 3) {
 }
 
 /** Does the signed-in user currently hold an active entitlement to a product?
- * Backed by has_active_entitlement(p_product) which derives the user internally. */
+ * Backed by has_active_entitlement(p_product) which derives the user internally.
+ * Default is "pro" (live entitlements.product). The RPC treats "premium" as the
+ * same product. */
 export async function hasActiveEntitlement(
-  product = "premium"
+  product: string = PRO_PRODUCT
 ): Promise<boolean> {
   const supabase = await createSupabaseServer();
   const { data, error } = await supabase.rpc("has_active_entitlement", {
