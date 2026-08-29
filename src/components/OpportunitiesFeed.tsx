@@ -425,6 +425,13 @@ export default function OpportunitiesFeed({
   }, []);
 
   useEffect(() => {
+    if (!filtersMounted) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeFilters(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [filtersMounted, closeFilters]);
+
+  useEffect(() => {
     if (!sheetMounted && !filtersMounted) return;
     const body = document.body, html = document.documentElement;
     const scrollY = window.scrollY;
@@ -602,6 +609,27 @@ export default function OpportunitiesFeed({
 
   const filterCount = activeFilterCount(filters);
   const gigfitOn = !!gigfitProfileId;
+  const renderFilterChrome = () => (
+    <div className="flex items-center justify-between px-4 pb-3 border-b border-zinc-200 dark:border-zinc-800">
+      <button type="button" onClick={closeFilters} className="text-2xl leading-none text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 -ml-1 px-1" aria-label="Close">×</button>
+      <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Filters</h3>
+      {filterCount > 0 ? (
+        <button type="button" onClick={() => setFilters(EMPTY_FILTERS)} className="text-sm text-blue-600 dark:text-blue-400">Clear all</button>
+      ) : (
+        <span className="w-6" />
+      )}
+    </div>
+  );
+  const renderFilterFields = () => (
+    <FilterChips filters={filters} onChange={setFilters} availableStates={availableStates} availableSources={availableSources} layout="stacked" showEligibleOnly={profileHasCriteria} />
+  );
+  const renderFilterApply = () => (
+    <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 shrink-0">
+      <button type="button" onClick={closeFilters} className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
+        Show {visible.length} {visible.length === 1 ? "result" : "results"}
+      </button>
+    </div>
+  );
 
   // Region quick-select (the rest of the criteria live in the Filters sheet).
   const regionSelect = embedded ? null : (
@@ -789,9 +817,12 @@ export default function OpportunitiesFeed({
           </div>
         </div>
 
-        {/* Mobile filter sheet */}
+        {/* Filter UI — same FilterChips / applyFilters as main. Phase 4 hid the
+            always-on desktop chips behind a toolbar button but left this sheet
+            as md:hidden, so desktop (and the signed-in app shell) clicks did
+            nothing. Mobile keeps the bottom sheet; md+ gets a centered dialog. */}
         {filtersMounted && (
-          <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true">
+          <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Filters">
             <div
               className={`absolute inset-0 bg-black/50 ${fDragging ? "" : "transition-opacity duration-300"}`}
               style={{ opacity: filtersOpen ? Math.max(0, 1 - fDragY / 400) : 0 }}
@@ -799,29 +830,24 @@ export default function OpportunitiesFeed({
             />
             <div
               ref={fSheetRef}
-              className={`absolute inset-x-0 bottom-0 max-h-[85vh] bg-white dark:bg-zinc-900 rounded-t-2xl shadow-2xl flex flex-col ${fDragging ? "" : "transition-transform duration-300 ease-out"}`}
+              className={`md:hidden absolute inset-x-0 bottom-0 max-h-[85vh] bg-white dark:bg-zinc-900 rounded-t-2xl shadow-2xl flex flex-col ${fDragging ? "" : "transition-transform duration-300 ease-out"}`}
               style={{ transform: filtersOpen ? `translateY(${fDragY}px)` : "translateY(100%)" }}
             >
               <div ref={fHeaderRef} className="shrink-0 touch-none select-none">
                 <div className="flex justify-center pt-2.5 pb-1"><div className="h-1.5 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" /></div>
-                <div className="flex items-center justify-between px-4 pb-3 border-b border-zinc-200 dark:border-zinc-800">
-                  <button type="button" onClick={closeFilters} className="text-2xl leading-none text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 -ml-1 px-1" aria-label="Close">×</button>
-                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Filters</h3>
-                  {filterCount > 0 ? (
-                    <button type="button" onClick={() => setFilters(EMPTY_FILTERS)} className="text-sm text-blue-600 dark:text-blue-400">Clear all</button>
-                  ) : (
-                    <span className="w-6" />
-                  )}
-                </div>
+                {renderFilterChrome()}
               </div>
               <div ref={fContentRef} className="flex-1 overflow-y-auto overscroll-none px-4">
-                <FilterChips filters={filters} onChange={setFilters} availableStates={availableStates} availableSources={availableSources} layout="stacked" showEligibleOnly={profileHasCriteria} />
+                {renderFilterFields()}
               </div>
-              <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 shrink-0">
-                <button type="button" onClick={closeFilters} className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
-                  Show {visible.length} {visible.length === 1 ? "result" : "results"}
-                </button>
-              </div>
+              {renderFilterApply()}
+            </div>
+            <div
+              className={`hidden md:flex absolute left-1/2 top-[12%] w-full max-w-lg max-h-[min(80vh,40rem)] -translate-x-1/2 flex-col bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl transition-opacity duration-200 ${filtersOpen ? "opacity-100" : "opacity-0"}`}
+            >
+              <div className="shrink-0 pt-4">{renderFilterChrome()}</div>
+              <div className="flex-1 overflow-y-auto overscroll-none px-4">{renderFilterFields()}</div>
+              {renderFilterApply()}
             </div>
           </div>
         )}
