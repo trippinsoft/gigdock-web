@@ -11,7 +11,6 @@ const NAV = [
   { href: "/gigfit", label: "GigFit" },
   { href: "/guides", label: "Guides" },
   { href: "/app", label: "Get the app" },
-  { href: "/profile", label: "Profile" },
 ];
 
 
@@ -22,9 +21,9 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   const [menuOpen, setMenuOpen] = useState(false);
   const supabase = createSupabaseBrowser();
 
-  // Profile only makes sense once signed in — hide it for logged-out visitors
-  // (and while auth state is still resolving, to avoid a flash then removal).
-  const nav = NAV.filter((n) => n.href !== "/profile" || signedIn === true);
+  // Profile lives inside the signed-in app shell (not the public chrome), so the
+  // public nav is the same for everyone.
+  const nav = NAV;
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setSignedIn(!!data.user));

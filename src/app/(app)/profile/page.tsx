@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
-import PublicShell from "@/components/PublicShell";
 import { stateLabel } from "@/components/FilterChips";
 import {
   ageFromDob,
@@ -252,18 +251,15 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <PublicShell>
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-        </div>
-      </PublicShell>
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      </div>
     );
   }
 
   const age = ageFromDob(draft.date_of_birth);
 
   return (
-    <PublicShell>
     <div className="max-w-2xl space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
@@ -521,7 +517,6 @@ export default function ProfilePage() {
         )}
       </div>
     </div>
-    </PublicShell>
   );
 }
 
