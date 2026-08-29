@@ -32,6 +32,16 @@ const GROUPS: NavGroup[] = [
       { href: "/insights", label: "Insights", icon: iconChart() },
     ],
   },
+  // Reference content lives below the work surfaces. Guides and the mobile-app
+  // page render in the public reading chrome (PublicShell), which gives signed-in
+  // users a "← Dashboard" link back into the app.
+  {
+    label: "Learn",
+    items: [
+      { href: "/guides", label: "Guides", icon: iconBook() },
+      { href: "/app", label: "Get the app", icon: iconPhone() },
+    ],
+  },
 ];
 
 export default function AppShell({
@@ -178,3 +188,5 @@ function iconCalendar() { return svg(<><rect x="3" y="4" width="18" height="17" 
 function iconDollar() { return svg(<><path d="M12 2v20" /><path d="M17 6.5C17 4.6 14.8 3.5 12 3.5S7 4.6 7 6.5s2.2 3 5 3.5 5 1.6 5 3.5-2.2 3-5 3-5-1.1-5-3" /></>); }
 function iconChart() { return svg(<><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></>); }
 function iconDoc() { return svg(<><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M9 13h6M9 17h6" /></>); }
+function iconBook() { return svg(<><path d="M12 7v13" /><path d="M3 5a2 2 0 0 1 2-2h4a3 3 0 0 1 3 3 3 3 0 0 1 3-3h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5a2 2 0 0 0-2 2 2 2 0 0 0-2-2H5a2 2 0 0 1-2-2z" /></>); }
+function iconPhone() { return svg(<><rect x="7" y="2" width="10" height="20" rx="2" /><path d="M11 18h2" /></>); }
