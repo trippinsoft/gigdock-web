@@ -656,7 +656,9 @@ export default function OpportunitiesFeed({
   const shown = embedded ? visible.slice(0, EMBED_CAP) : visible;
   const moreCount = embedded ? Math.max(0, visible.length - EMBED_CAP) : 0;
   const rowCls = embedded ? "flex flex-col md:flex-row mt-4 gap-6 items-start" : "flex-1 flex min-h-0 mt-4 gap-6";
-  const listColCls = embedded ? "w-full md:w-[27rem] md:shrink-0" : "w-full md:w-[27rem] md:shrink-0 flex flex-col min-h-0";
+  // List column matches the My Gigs / Payments master lists (MasterDetailLayout
+  // uses w-[23rem]) so the left card is a consistent width across the app.
+  const listColCls = embedded ? "w-full md:w-[23rem] md:shrink-0" : "w-full md:w-[23rem] md:shrink-0 flex flex-col min-h-0";
   const listScrollCls = embedded ? "pb-2" : "flex-1 min-h-0 overflow-y-auto overscroll-y-contain pr-1 pb-4";
   const detailColCls = embedded
     ? "hidden md:block flex-1 min-w-0 sticky top-20 self-start max-h-[calc(100dvh-6rem)] overflow-y-auto"
