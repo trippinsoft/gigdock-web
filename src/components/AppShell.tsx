@@ -10,7 +10,7 @@ import { useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import { ProProvider, ProBadge } from "@/components/app/pro";
 
-type NavItem = { href: string; label: string; icon: React.ReactNode; match?: string };
+type NavItem = { href: string; label: string; icon: React.ReactNode; match?: string; pro?: boolean };
 type NavGroup = { label: string | null; items: NavItem[] };
 
 // Grouped by user job (Part IV): Today · Find work · Manage work · Money.
@@ -30,6 +30,8 @@ const GROUPS: NavGroup[] = [
     items: [
       { href: "/payments", label: "Payments", icon: iconDollar() },
       { href: "/insights", label: "Insights", icon: iconChart() },
+      { href: "/reports", label: "Advanced Reports", icon: iconFileText(), pro: true },
+      { href: "/tax-ready", label: "Tax Ready", icon: iconTax(), pro: true },
     ],
   },
   // Associations — the mobile More → Setup managers (Projects, Gig companies,
@@ -105,6 +107,9 @@ export default function AppShell({
       >
         <span className="shrink-0">{item.icon}</span>
         <span>{item.label}</span>
+        {item.pro && (
+          <span className="ml-auto rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">Pro</span>
+        )}
       </Link>
     );
   };
@@ -216,3 +221,5 @@ function iconWallet() { return svg(<><path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 
 function iconUser() { return svg(<><circle cx="12" cy="8" r="4" /><path d="M5 21a7 7 0 0 1 14 0" /></>); }
 function iconGear() { return svg(<><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></>); }
 function iconHelp() { return svg(<><circle cx="12" cy="12" r="9" /><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></>); }
+function iconFileText() { return svg(<><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M9 13h6M9 17h4" /></>); }
+function iconTax() { return svg(<><rect x="4" y="7" width="16" height="13" rx="2" /><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M12 11v5M9.5 12.5h3.5a1.25 1.25 0 0 1 0 2.5H11a1.25 1.25 0 0 0 0 2.5h3.5" /></>); }

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { getInsights, getPlan } from "@/lib/backoffice";
 import { money } from "@/lib/format";
 import { EarningsBars, AgingBars, type DonutSeg } from "@/components/app/charts";
-import { PartialReveal, ProLock } from "@/components/app/pro";
+import { PartialReveal } from "@/components/app/pro";
 import InsightsPeriodNav from "@/components/app/InsightsPeriodNav";
 
 export const metadata: Metadata = {
@@ -151,16 +151,14 @@ export default async function InsightsPage({
             </div>
           )}
 
-          {/* Reports — Pro entry */}
-          <div className="mb-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-3 flex items-center justify-between gap-3">
+          {/* Reports — entry to the Advanced Reports catalog */}
+          <Link href="/reports" className="mb-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-3 flex items-center justify-between gap-3 hover:border-blue-300 dark:hover:border-blue-800 transition-colors">
             <div>
-              <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Reports</div>
+              <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Advanced Reports</div>
               <div className="text-xs text-zinc-400 dark:text-zinc-500">Earnings, payments, gross vs net, company &amp; project — export to PDF or CSV.</div>
             </div>
-            <ProLock context="report_export" label="Create a report">
-              <span className="text-sm text-zinc-400 dark:text-zinc-500">Coming soon</span>
-            </ProLock>
-          </div>
+            <span className="shrink-0 text-sm font-medium text-blue-600 dark:text-blue-400">Open reports →</span>
+          </Link>
 
           {/* Complete history — one tasteful reveal */}
           <PartialReveal

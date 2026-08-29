@@ -198,6 +198,9 @@ export interface InsightsOverview {
   average_per_work_day: number;
   paid_gigs: number;
   net_complete_gigs: number;
+  // Returned by the shared load_insights_overview RPC and consumed by the
+  // reports; declared optional because the web type predates the reports.
+  net_complete_payments?: number;
   net_complete: boolean;
   outstanding: number;
   outstanding_gigs: number;
@@ -205,7 +208,8 @@ export interface InsightsOverview {
   payment_count: number;
   payment_gigs: number;
   trend: { date: string; gross: number }[];
-  payment_trend: { date: string; received: number }[];
+  payment_trend: { date: string; received: number; net?: number | null }[];
+  payments?: { title: string | null; pay_date: string | null; gross: number; net: number | null }[];
   gigs: {
     gig_id: string;
     title: string;
@@ -225,6 +229,8 @@ export interface InsightsOverview {
     earned: number;
     received: number;
     outstanding: number;
+    days_outstanding?: number | null;
+    company_name?: string | null;
   }[];
 }
 
