@@ -154,7 +154,7 @@ async function TaxReadyExperience({ year }: { year: number }) {
           label="Payments"
           status={missingNet > 0 ? "Needs Attention" : paymentCount > 0 ? "Looks Good" : "No Data"}
           desc={missingNet > 0 ? `Net amounts missing from ${missingNet} applicable ${missingNet === 1 ? "payment" : "payments"}` : `${paymentCount} payments recorded`}
-          action={missingNet > 0 ? { label: "Review Payments", href: `/insights?mode=year&p=${yr}` } : undefined}
+          action={missingNet > 0 ? { label: "Review Payments", href: "/payments" } : undefined}
         />
         <ChecklistRow label="Expenses" status="No Data" desc="No expenses recorded yet" />
         <ChecklistRow label="Mileage" status="No Data" desc="No mileage recorded" />
