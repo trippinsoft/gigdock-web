@@ -7,7 +7,7 @@ import PublicShell from "@/components/PublicShell";
 import { GigFitArt, SaveShareArt } from "@/components/HowItWorksArt";
 import AppCta from "@/components/AppCta";
 import { stateName, stateSlug } from "@/lib/markets";
-import { curatedMarkets } from "@/lib/marketContent";
+import { belongsToMarket, curatedMarkets, getSeoMarket } from "@/lib/marketContent";
 
 export const metadata: Metadata = {
   title: "GigDock — Film & TV Opportunities Matched to You",
@@ -76,22 +76,60 @@ async function getMarkets(): Promise<string[]> {
     .map(([code]) => code);
 }
 
+function preferArtwork(opps: Opportunity[]): Opportunity[] {
+  const withImg = opps.filter((o) => o.image_url);
+  const withoutImg = opps.filter((o) => !o.image_url);
+  return [...withImg, ...withoutImg];
+}
+
 async function getPreviewOpps(): Promise<Opportunity[]> {
   const today = new Date().toISOString().slice(0, 10);
   const supabase = await createSupabaseServer();
-  const { data } = await supabase
-    .from("opportunities")
-    .select("*")
-    .eq("status", "active")
-    .is("deleted_at", null)
-    .or(`expires_at.is.null,expires_at.gte.${today}`)
-    .order("posted_at", { ascending: false })
-    .limit(24);
-  const all = (data ?? []) as Opportunity[];
-  // Prefer listings with artwork — the inventory is the homepage's imagery.
-  const withImg = all.filter((o) => o.image_url);
-  const withoutImg = all.filter((o) => !o.image_url);
-  return [...withImg, ...withoutImg].slice(0, 3);
+  const atlanta = getSeoMarket("atlanta-ga");
+
+  const [atlantaRes, fallbackRes] = await Promise.all([
+    atlanta
+      ? supabase
+          .from("opportunities")
+          .select("*")
+          .eq("status", "active")
+          .is("deleted_at", null)
+          .eq("match_state", atlanta.stateCode)
+          .or(`expires_at.is.null,expires_at.gte.${today}`)
+          .order("posted_at", { ascending: false })
+          .limit(500)
+      : Promise.resolve({ data: [] as Opportunity[] }),
+    supabase
+      .from("opportunities")
+      .select("*")
+      .eq("status", "active")
+      .is("deleted_at", null)
+      .or(`expires_at.is.null,expires_at.gte.${today}`)
+      .order("posted_at", { ascending: false })
+      .limit(24),
+  ]);
+
+  // Same market membership as /opportunities/atlanta-ga (GA + belongsToMarket).
+  const atlantaOpps = preferArtwork(
+    ((atlantaRes.data ?? []) as Opportunity[]).filter((o) =>
+      atlanta ? belongsToMarket(atlanta, o) : false
+    )
+  );
+  const picked = new Set<string>();
+  const out: Opportunity[] = [];
+  for (const o of atlantaOpps) {
+    if (out.length >= 3) break;
+    out.push(o);
+    picked.add(o.id);
+  }
+  if (out.length < 3) {
+    for (const o of preferArtwork((fallbackRes.data ?? []) as Opportunity[])) {
+      if (out.length >= 3) break;
+      if (picked.has(o.id)) continue;
+      out.push(o);
+    }
+  }
+  return out;
 }
 
 /* ---------- small presentational pieces ---------- */
