@@ -48,17 +48,17 @@ async function getListings(spec: MarketSpec): Promise<Opportunity[]> {
 }
 
 type Pulse = {
-  total: number; newThisWeek: number; medianPay: number | null; activeCompanies: number;
+  total: number; medianPay: number | null; activeCompanies: number;
   companies: [string, number][]; cities: [string, number][];
 };
 
 // Proprietary market intelligence (the SEO moat) — 30-day activity from GigDock's
 // own data, scoped to the market's cities. Throughput stays strong even when few
-// calls are live right now.
+// calls are live right now. Weekly freshness is NOT counted here: that number
+// comes from the current live list so the header and stats tile agree.
 async function getPulse(spec: MarketSpec): Promise<Pulse> {
   const supabase = await createSupabaseServer();
   const since = new Date(Date.now() - 30 * 864e5).toISOString();
-  const week = new Date(Date.now() - 7 * 864e5).toISOString();
   const { data } = await supabase
     .from("opportunities")
     .select("source, pay_min, posted_at, location, title, summary")
@@ -68,7 +68,6 @@ async function getPulse(spec: MarketSpec): Promise<Pulse> {
     .limit(3000);
   const rows = (data ?? []).filter((r) => belongsToMarket(spec, r as { title: string | null; summary: string | null; location: string | null }));
   const total = rows.length;
-  const newThisWeek = rows.filter((r) => r.posted_at && r.posted_at >= week).length;
   const pays = rows.map((r) => r.pay_min as number | null).filter((n): n is number => n != null).sort((a, b) => a - b);
   const medianPay = pays.length ? pays[Math.floor(pays.length / 2)] : null;
   const comp = new Map<string, number>();
@@ -79,7 +78,7 @@ async function getPulse(spec: MarketSpec): Promise<Pulse> {
     if (c) city.set(c, (city.get(c) ?? 0) + 1);
   }
   return {
-    total, newThisWeek, medianPay, activeCompanies: comp.size,
+    total, medianPay, activeCompanies: comp.size,
     companies: [...comp.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5),
     cities: [...city.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8),
   };
@@ -270,7 +269,7 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
           <Section title={`${name} casting market — last 30 days`}>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <StatTile value={pulse.total} label="casting calls tracked" />
-              <StatTile value={pulse.newThisWeek} label="new this week" />
+              <StatTile value={newThisWeek} label="new this week" />
               {pulse.medianPay != null && <StatTile value={`$${pulse.medianPay}`} label="median posted rate" />}
               <StatTile value={pulse.activeCompanies} label="casting companies" />
             </div>
