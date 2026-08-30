@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { track } from "@/lib/analytics";
 import type { Opportunity } from "@/lib/types";
-import { getApplyHref } from "@/lib/applyHref";
 import { fitTierColor, type GigFitResult } from "@/lib/gigfit";
 
 // Join an array of tags into a readable string; return null if empty.
@@ -194,6 +193,106 @@ function freshnessBadge(f: NonNullable<Freshness>) {
     default:
       return <Badge color="zinc">{f.label}</Badge>;
   }
+}
+
+/* ---------- apply-link helpers ---------- */
+
+// Turn a single stored value into a valid href. Bare domains get https://,
+// bare emails get mailto:, anything already schemed is left alone.
+function normalizeHref(raw: string | null | undefined): string | null {
+  const v = (raw ?? "").trim();
+  if (!v) return null;
+  if (/^(https?:|mailto:|tel:)/i.test(v)) return v;
+  if (/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(v)) return `mailto:${v}`;
+  // Looks like a domain/URL missing its protocol
+  if (/^[a-z0-9-]+(\.[a-z0-9-]+)+([/?#].*)?$/i.test(v)) {
+    return `https://${v.replace(/^\/+/, "")}`;
+  }
+  return null;
+}
+
+// Pull the first usable URL or email out of a free-text blob.
+function extractHref(text: string | null | undefined): string | null {
+  const t = text ?? "";
+  const url = t.match(/https?:\/\/[^\s"'<>]+/i);
+  if (url) return url[0].replace(/[.,);]+$/, "");
+  const email = t.match(/[^\s@]+@[^\s@]+\.[a-z]{2,}/i);
+  if (email) return `mailto:${email[0]}`;
+  const domain = t.match(/\b[a-z0-9-]+(\.[a-z0-9-]+)+\/[^\s"'<>]+/i);
+  if (domain) return `https://${domain[0].replace(/[.,);]+$/, "")}`;
+  return null;
+}
+
+// Find a suggested email subject line. Casting posts often dictate an exact
+// subject ("Subject: PHOTO DOUBLE – Your Name"); honor it when stated. Otherwise
+// fall back to the gig title so the applicant opens their mail app with a
+// relevant, editable subject rather than a blank one.
+function extractSubject(opp: Opportunity): string | null {
+  const blob = [opp.application_info, opp.requirements, opp.summary]
+    .filter(Boolean)
+    .join("\n");
+  // "Subject: X" / "Subject line - X" (optionally quoted)
+  const direct = blob.match(
+    /subject(?:\s*line)?\s*[:\-–]\s*["“']?([^"”'\n]{3,120})/i
+  );
+  if (direct) return direct[1].trim().replace(/[\s.]+$/, "");
+  // "use/with/include the subject "X""
+  const phrase = blob.match(
+    /(?:use|with|include|put|enter)\s+(?:the\s+)?subject(?:\s*line)?\s+["“']([^"”'\n]{3,120})["”']/i
+  );
+  if (phrase) return phrase[1].trim();
+  return opp.title ? opp.title.trim() : null;
+}
+
+// Append a pre-filled subject to a mailto: href (no-op for web/tel links).
+function withSubject(href: string, subject: string | null): string {
+  if (!subject || !/^mailto:/i.test(href) || /[?&]subject=/i.test(href)) {
+    return href;
+  }
+  const sep = href.includes("?") ? "&" : "?";
+  return `${href}${sep}subject=${encodeURIComponent(subject)}`;
+}
+
+// Third-party submission/relink apps we don't want to funnel applicants into
+// (Branch/AppsFlyer/Firebase deep links + known casting-submission apps). When
+// the post's link is one of these, we prefer the caster's direct email instead.
+function isRelinkHost(href: string): boolean {
+  let host: string;
+  try {
+    host = new URL(href).hostname.toLowerCase();
+  } catch {
+    return false; // mailto:/tel: or unparseable → not a relink
+  }
+  if (!host) return false;
+  return (
+    host === "app.link" || host.endsWith(".app.link") || // Branch (Source & Cast, etc.)
+    host === "onelink.me" || host.endsWith(".onelink.me") || // AppsFlyer
+    host.endsWith(".page.link") || // Firebase Dynamic Links
+    host.includes("sourceandcast")
+  );
+}
+
+// First email mentioned in the post's instructions/summary, as a mailto:.
+function extractEmailHref(opp: Opportunity): string | null {
+  const blob = [opp.application_info, opp.requirements, opp.summary].filter(Boolean).join("\n");
+  const m = blob.match(/[^\s@]+@[^\s@]+\.[a-z]{2,}/i);
+  return m ? `mailto:${m[0].replace(/[.,);]+$/, "")}` : null;
+}
+
+// Best actionable apply target. Prefer a direct link — but never route the
+// applicant into a third-party submission app; when the only link is one of
+// those, fall back to the caster's email (or, failing that, the original post).
+function getApplyHref(opp: Opportunity): string | null {
+  const linkHref = normalizeHref(opp.link);
+  if (linkHref && !isRelinkHost(linkHref)) return withSubject(linkHref, extractSubject(opp));
+
+  const emailHref = extractEmailHref(opp);
+  if (emailHref) return withSubject(emailHref, extractSubject(opp));
+
+  const infoHref = extractHref(opp.application_info);
+  if (infoHref && !isRelinkHost(infoHref)) return withSubject(infoHref, extractSubject(opp));
+
+  return null; // only a relink app was available → card falls back to "View original post"
 }
 
 /* ---------- component ---------- */
