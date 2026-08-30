@@ -23,12 +23,16 @@ export default function InsightsPeriodNav({
   mode,
   period,
   current,
+  plan,
 }: {
   mode: "month" | "year";
   period: string; // YYYY-MM (month) or YYYY (year)
   current: string; // current period in the same shape
+  /** Server `getPlan()` — same source Settings uses. Overrides context. */
+  plan?: "free" | "pro";
 }) {
-  const isPro = usePlan() === "pro";
+  const ctxPlan = usePlan();
+  const isPro = (plan ?? ctxPlan) === "pro";
   const older = mode === "year" ? String(Number(period) - 1) : shiftMonth(period, -1);
   const newer = mode === "year" ? String(Number(period) + 1) : shiftMonth(period, 1);
   const canNewer = period < current;

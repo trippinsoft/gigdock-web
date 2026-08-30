@@ -156,7 +156,8 @@ export default function AppShell({
   );
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <ProProvider plan={plan}>
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Mobile top bar */}
       <header className="lg:hidden sticky top-0 z-30 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center justify-between h-14 px-4">
@@ -193,6 +194,7 @@ export default function AppShell({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/gigdock-logo.png" alt="GigDock" className="h-7 w-7" />
             <span className="font-bold text-xl tracking-tight text-zinc-900 dark:text-zinc-100">GigDock</span>
+            {plan === "pro" && <ProBadge />}
           </div>
           <nav className="flex-1 overflow-y-auto p-3">{nav()}</nav>
           <div className="p-3 border-t border-zinc-200 dark:border-zinc-800">{account}</div>
@@ -200,10 +202,11 @@ export default function AppShell({
 
         {/* Main content */}
         <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-6">
-          <ProProvider plan={plan}>{children}</ProProvider>
+          {children}
         </main>
       </div>
-    </div>
+      </div>
+    </ProProvider>
   );
 }
 

@@ -11,6 +11,7 @@
 
 // (No `server-only` import — this module uses next/headers via
 // createSupabaseServer, which already makes it unusable from client components.)
+import { cache } from "react";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { PRO_PRODUCT } from "@/lib/pricing";
 import type {
@@ -397,11 +398,13 @@ export async function hasActiveEntitlement(
 }
 
 /** The signed-in user's plan. Features read this; billing changes it. Fails
- * closed to "free" so a resolver error never accidentally grants Pro. */
-export async function getPlan(): Promise<"free" | "pro"> {
+ * closed to "free" so a resolver error never accidentally grants Pro.
+ * `cache()` so layout, Settings, Insights, and reports share one RPC result
+ * in the same request — Settings Pro / Insights locked was a split-read risk. */
+export const getPlan = cache(async (): Promise<"free" | "pro"> => {
   try {
     return (await hasActiveEntitlement(PRO_PRODUCT)) ? "pro" : "free";
   } catch {
     return "free";
   }
-}
+});

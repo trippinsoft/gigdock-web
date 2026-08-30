@@ -66,13 +66,18 @@ export function PartialReveal({
   free,
   pro,
   lockedCta,
+  plan,
 }: {
   context: ProContextTag;
   free: React.ReactNode;
   pro?: React.ReactNode;
   lockedCta: string;
+  /** Server `getPlan()` result. Wins over context so a page that already
+   * resolved Pro (Settings-style) cannot still render the lock CTA. */
+  plan?: "free" | "pro";
 }) {
-  const isPro = useIsPro();
+  const ctxPro = useIsPro();
+  const isPro = plan != null ? plan === "pro" : ctxPro;
   useImpression(context, !isPro);
   return (
     <div>

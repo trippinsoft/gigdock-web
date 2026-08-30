@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getInsights, getDocuments, getPlan } from "@/lib/backoffice";
 import { money } from "@/lib/format";
 import { ProBadge } from "@/components/app/pro";
+import { paymentNetStats } from "@/lib/reportDefs";
 
 export const metadata: Metadata = {
   title: "Tax Ready",
@@ -91,10 +92,7 @@ async function TaxReadyExperience({ year }: { year: number }) {
   const allDocs = await getDocuments();
   const yearDocs = allDocs.filter((d) => (d.document_date || d.created_at || "").slice(0, 4) === String(year));
 
-  const paidGigs = data?.paid_gigs ?? 0;
-  const netGigs = data?.net_complete_gigs ?? 0;
-  const missingNet = Math.max(0, paidGigs - netGigs);
-  const paymentCount = data?.payment_count ?? 0;
+  const { paymentCount, netComplete, missingNet } = paymentNetStats(data);
   const gigsWorked = data?.gigs_worked ?? 0;
   const yr = String(year);
 
@@ -124,11 +122,15 @@ async function TaxReadyExperience({ year }: { year: number }) {
         <div className="text-xs text-zinc-500 dark:text-zinc-400">Gross earnings recorded</div>
         <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
           <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{money(data?.net_recorded)}</div>
-          <div className="text-xs text-zinc-500 dark:text-zinc-400">{data?.net_complete ? "Net payments recorded" : `Net recorded for ${netGigs} of ${paidGigs} paid gigs`}</div>
+          <div className="text-xs text-zinc-500 dark:text-zinc-400">
+            {missingNet === 0 && paymentCount > 0
+              ? "Net recorded for every applicable payment"
+              : `Net recorded for ${netComplete} of ${paymentCount} applicable payments`}
+          </div>
         </div>
         {missingNet > 0 && (
           <p className="mt-3 text-xs text-amber-600 dark:text-amber-400">
-            {missingNet} paid {missingNet === 1 ? "gig is" : "gigs are"} missing a net amount. Missing values are never estimated.
+            {missingNet} applicable {missingNet === 1 ? "payment is" : "payments are"} missing a net amount. Missing values are never estimated.
           </p>
         )}
       </div>

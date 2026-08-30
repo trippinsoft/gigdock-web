@@ -80,7 +80,7 @@ export default async function InsightsPage({
     <div className="max-w-6xl">
       <div className="flex items-center justify-between mb-5 gap-4 flex-wrap">
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Insights</h1>
-        <InsightsPeriodNav mode={mode} period={period} current={current} />
+        <InsightsPeriodNav mode={mode} period={period} current={current} plan={plan} />
       </div>
 
       {!data || data.gigs_worked === 0 ? (
@@ -163,6 +163,7 @@ export default async function InsightsPage({
           {/* Complete history — one tasteful reveal */}
           <PartialReveal
             context="insights_history"
+            plan={plan}
             lockedCta="Unlock your complete history — year-over-year trends, payment speed & reports"
             free={<p className="text-sm text-zinc-500 dark:text-zinc-400">Showing {label}. GigDock keeps <strong className="font-medium text-zinc-700 dark:text-zinc-300">all</strong> of your history.</p>}
           />

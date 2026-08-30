@@ -98,6 +98,45 @@ function dateText(v: string | null | undefined): string {
   return `${Number(m)}/${Number(d)}/${y}`;
 }
 
+/** Product rule: we never estimate missing net. `0` and `null` both mean
+ * "not recorded" — a real take-home of $0 is not something GigDock infers. */
+export function isNetRecorded(net: number | null | undefined): boolean {
+  return net != null && Number(net) > 0;
+}
+
+export type PeriodPayment = NonNullable<InsightsOverview["payments"]>[number];
+
+/** Payments in the selected period with gross > 0 (same filter as the RPC). */
+export function periodPayments(data: InsightsOverview | null): PeriodPayment[] {
+  return (data?.payments ?? []).filter((p) => (p.gross ?? 0) > 0);
+}
+
+/** Completeness for the same unit the Gross & Net / Payments tables show:
+ * payments in the selected period, not complete gigs. */
+export function paymentNetStats(data: InsightsOverview | null): {
+  payments: PeriodPayment[];
+  paymentCount: number;
+  netComplete: number;
+  missingNet: number;
+  received: number;
+  recordedNet: number;
+} {
+  const payments = periodPayments(data);
+  const netComplete = payments.filter((p) => isNetRecorded(p.net)).length;
+  return {
+    payments,
+    paymentCount: payments.length,
+    netComplete,
+    missingNet: Math.max(0, payments.length - netComplete),
+    received: payments.reduce((s, p) => s + Number(p.gross ?? 0), 0),
+    recordedNet: payments.reduce((s, p) => s + (isNetRecorded(p.net) ? Number(p.net) : 0), 0),
+  };
+}
+
+function netCell(net: number | null | undefined): string {
+  return isNetRecorded(net) ? money(Number(net)) : "Not recorded";
+}
+
 export function buildReport(
   id: ReportId,
   data: InsightsOverview | null,
@@ -106,10 +145,7 @@ export function buildReport(
 ): BuiltReport {
   const grossEarned = data?.gross_earned ?? 0;
   const outstanding = data?.outstanding ?? 0;
-  const received = Math.max(grossEarned - outstanding, 0);
-  const paymentCount = data?.payment_count ?? 0;
-  const netComplete = data?.net_complete_payments ?? data?.net_complete_gigs ?? 0;
-  const missingNet = Math.max(0, paymentCount - netComplete);
+  const { payments, paymentCount, netComplete, missingNet, received, recordedNet } = paymentNetStats(data);
   const num = (n: number | undefined | null) => String(n ?? 0);
 
   switch (id) {
@@ -117,19 +153,20 @@ export function buildReport(
       return {
         summary: [
           { label: "Gross earned", value: money(grossEarned) },
-          { label: "Recorded net", value: money(data?.net_recorded) },
+          { label: "Recorded net", value: money(data?.net_recorded ?? recordedNet) },
           { label: "Work days", value: num(data?.days_worked) },
           { label: "Gigs worked", value: num(data?.gigs_worked) },
         ],
         columns: ["Period", "Gross earnings"],
         rows: (data?.trend ?? []).map((t) => [dateText(t.date), money(t.gross)]),
         emptyText: "No records found for this period",
+        note: "Rows are monthly earned totals from worked days, not individual payments.",
       };
 
     case "payments": {
-      const receivedRows = (data?.payments ?? []).map((p) => [
+      const receivedRows = payments.map((p) => [
         p.title || "Payment", "Received", dateText(p.pay_date), money(p.gross),
-        p.net == null ? "Net not recorded" : `Net ${money(p.net)}`,
+        isNetRecorded(p.net) ? `Net ${money(Number(p.net))}` : "Net not recorded",
       ]);
       const outstandingRows = (data?.outstanding_items ?? []).map((o) => {
         const days = o.days_outstanding ?? (o.worked_date ? Math.max(0, Math.floor((now - new Date(o.worked_date + "T00:00:00").getTime()) / 864e5)) : null);
@@ -142,28 +179,30 @@ export function buildReport(
       return {
         summary: [
           { label: "Earned", value: money(grossEarned) },
-          { label: "Received", value: money(received) },
+          { label: "Received", value: money(data?.received ?? received) },
           { label: "Outstanding", value: money(outstanding) },
           { label: "Payments received", value: num(paymentCount) },
         ],
         columns: ["Gig", "Status", "Date / age", "Amount", "Details"],
         rows: [...receivedRows, ...outstandingRows],
         emptyText: "No records found for this period",
+        note: `${paymentCount} payment${paymentCount === 1 ? "" : "s"} in this period. Net of $0 is treated as not recorded.`,
       };
     }
 
     case "grossNet":
       return {
         summary: [
-          { label: "Gross", value: money(data?.received) },
-          { label: "Recorded net", value: money(data?.net_recorded) },
+          { label: "Gross", value: money(data?.received ?? received) },
+          { label: "Recorded net", value: money(data?.net_recorded ?? recordedNet) },
           { label: "Net completeness", value: missingNet ? `${missingNet} missing` : "Complete" },
         ],
-        columns: ["Period", "Gross", "Recorded net"],
-        rows: (data?.payment_trend ?? []).map((p) => [
-          dateText(p.date), money(p.received), p.net == null ? "Not recorded" : money(p.net),
-        ]),
+        columns: ["Date", "Gig", "Gross", "Recorded net"],
+        rows: [...payments]
+          .sort((a, b) => (a.pay_date ?? "").localeCompare(b.pay_date ?? ""))
+          .map((p) => [dateText(p.pay_date), p.title || "Payment", money(p.gross), netCell(p.net)]),
         emptyText: "No records found for this period",
+        note: `${paymentCount} payment${paymentCount === 1 ? "" : "s"} in this period · net recorded on ${netComplete}. Net of $0 is treated as not recorded.`,
       };
 
     case "gigs":
@@ -218,21 +257,21 @@ export function buildReport(
       return {
         summary: [
           { label: "Gross earnings", value: money(grossEarned) },
-          { label: "Recorded net", value: money(data?.net_recorded) },
+          { label: "Recorded net", value: money(data?.net_recorded ?? recordedNet) },
           { label: "Gigs", value: num(data?.gigs_worked) },
           { label: "Work days", value: num(data?.days_worked) },
         ],
         columns: ["Area", "Recorded status", "Details"],
         rows: [
           ["Work summary", `${data?.gigs_worked || 0} gigs`, `${data?.days_worked || 0} work days · ${money(grossEarned)} gross`],
-          ["Payment summary", `${paymentCount} payments`, `${money(received)} received · ${money(outstanding)} outstanding`],
-          ["Net completeness", netStatus, `Net recorded for ${Math.max(0, paymentCount - missingNet)} of ${paymentCount} applicable payments`],
+          ["Payment summary", `${paymentCount} payments`, `${money(data?.received ?? received)} received · ${money(outstanding)} outstanding`],
+          ["Net completeness", netStatus, `Net recorded for ${netComplete} of ${paymentCount} applicable payments`],
           ["Expenses", "No data", "No expenses recorded yet"],
           ["Mileage", "No data", "No mileage recorded"],
           ["Documents", `${docs.length} stored`, "Uploaded documents are not automatically included in exports"],
         ],
         emptyText: "No records found for this period",
-        note: "GigDock organizes your records but does not prepare or file tax returns. Missing values are never estimated.",
+        note: "GigDock organizes your records but does not prepare or file tax returns. Missing values are never estimated. Net of $0 is treated as not recorded.",
       };
     }
   }
