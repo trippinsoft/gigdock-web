@@ -10,10 +10,15 @@ import {
   getCompanies,
   getAllPayments,
   getRecentOpportunities,
+  getDisplayName,
+  getDefaultPerformerProfile,
+  getGigFit,
 } from "@/lib/backoffice";
 import type { FilteredGig } from "@/lib/backoffice-types";
+import { fieldsSet, fitTierColor, type GigFitResult, type GigFitTier } from "@/lib/gigfit";
 import { Panel } from "@/components/app/ui";
 import MasterRow from "@/components/app/MasterRow";
+import TodayGreeting from "@/components/app/TodayGreeting";
 import { PartialReveal } from "@/components/app/pro";
 import { money, shortDate, shortDateNoYear } from "@/lib/format";
 
@@ -32,7 +37,7 @@ export default async function TodayPage() {
   const todayStr = fmt(now);
   const tomorrowStr = fmt(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
 
-  const [earnedM, earnedP, receivedM, allSummary, workM, workP, attention, gigs, companies, payments, opps] = await Promise.all([
+  const [earnedM, earnedP, receivedM, allSummary, workM, workP, attention, gigs, companies, payments, oppsRaw, displayName, profile] = await Promise.all([
     getEarnedInRange(fmt(mStart), fmt(mEnd)),
     getEarnedInRange(fmt(pStart), fmt(mStart)),
     getReceivedInRange(fmt(mStart), fmt(mEnd)),
@@ -43,8 +48,27 @@ export default async function TodayPage() {
     getGigs({ sort: "recent" }),
     getCompanies(),
     getAllPayments(),
-    getRecentOpportunities(3),
+    getRecentOpportunities(30),
+    getDisplayName(),
+    getDefaultPerformerProfile(),
   ]);
+
+  // "Opportunities for you" — when the user has GigFit criteria, show only the
+  // ones they qualify for (eligible), ranked strong/good first; otherwise fall
+  // back to the latest few. Fit labels appear on the cards when GigFit is on.
+  const gigfitOn = !!profile && fieldsSet(profile).length > 0;
+  const fitById = new Map<string, GigFitResult>();
+  if (gigfitOn && profile) {
+    for (const r of await getGigFit(profile.id)) fitById.set(r.opportunity_id, r);
+  }
+  const TIER_RANK: Record<GigFitTier, number> = { strong: 4, good: 3, open: 2, poor: 1, ineligible: 0 };
+  const opps = gigfitOn
+    ? oppsRaw
+        .filter((o) => fitById.get(o.id)?.eligible)
+        // stable sort keeps recency order within a tier
+        .sort((a, b) => TIER_RANK[fitById.get(b.id)!.tier] - TIER_RANK[fitById.get(a.id)!.tier])
+        .slice(0, 3)
+    : oppsRaw.slice(0, 3);
 
   const companyById = new Map(companies.map((c) => [c.id, c.name]));
   const companyOf = (g: FilteredGig) => (g.gig_company_id ? companyById.get(g.gig_company_id) ?? null : null);
@@ -80,7 +104,7 @@ export default async function TodayPage() {
   return (
     <div className="max-w-6xl">
       <div className="flex items-baseline justify-between gap-4 mb-5">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Today</h1>
+        <TodayGreeting name={displayName} />
         <span className="text-sm text-zinc-400 dark:text-zinc-500">{dateLabel}</span>
       </div>
 
@@ -193,26 +217,41 @@ export default async function TodayPage() {
         )}
       </div>
 
-      {/* Opportunities — full width, image-forward */}
-      {opps.length > 0 && (
+      {/* Opportunities — GigFit-personalized when the user has a profile */}
+      {(opps.length > 0 || gigfitOn) && (
         <div>
           <div className="flex items-baseline justify-between mb-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Opportunities for you</h2>
             <Link href="/opportunities" className="text-xs font-medium text-blue-600 dark:text-blue-400">View all →</Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {opps.map((o) => (
-              <MasterRow
-                key={o.id}
-                href={`/opportunities/${o.id}`}
-                showThumb={!!o.image_url}
-                image={o.image_url}
-                title={o.title}
-                meta={[o.location, o.work_date ? shortDateNoYear(o.work_date) : null].filter(Boolean).join(" · ") || undefined}
-                value={o.pay_rate || undefined}
-              />
-            ))}
-          </div>
+          {!gigfitOn && (
+            <p className="mb-2 text-xs text-zinc-400 dark:text-zinc-500">
+              <Link href="/profile" className="text-blue-600 dark:text-blue-400 hover:underline">Set up GigFit</Link> to see the ones that match you.
+            </p>
+          )}
+          {opps.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {opps.map((o) => {
+                const fit = gigfitOn ? fitById.get(o.id) ?? null : null;
+                return (
+                  <MasterRow
+                    key={o.id}
+                    href={`/opportunities/${o.id}`}
+                    showThumb={!!o.image_url}
+                    image={o.image_url}
+                    title={o.title}
+                    meta={[o.location, o.work_date ? shortDateNoYear(o.work_date) : null].filter(Boolean).join(" · ") || undefined}
+                    value={o.pay_rate || undefined}
+                    badge={fit ? <FitBadge fit={fit} /> : undefined}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 p-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
+              No matches for your profile right now — <Link href="/opportunities" className="text-blue-600 dark:text-blue-400 hover:underline">browse all opportunities</Link>.
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -266,5 +305,24 @@ function AttnRow({ n, label, sub, href, tone }: { n: number; label: string; sub?
         <span className="text-zinc-300 dark:text-zinc-600">→</span>
       </div>
     </Link>
+  );
+}
+
+const FIT_BADGE_CLS: Record<"green" | "blue" | "zinc" | "amber" | "red", string> = {
+  green: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+  blue: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+  zinc: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300",
+  amber: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+  red: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+};
+
+// GigFit tier badge — matches the mobile app (strong=green with ★, good=blue,
+// open=neutral, poor=amber, ineligible=red).
+function FitBadge({ fit }: { fit: GigFitResult }) {
+  const label = fit.tier === "strong" ? `★ ${fit.label}` : fit.label;
+  return (
+    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold ${FIT_BADGE_CLS[fitTierColor(fit.tier)]}`}>
+      {label}
+    </span>
   );
 }

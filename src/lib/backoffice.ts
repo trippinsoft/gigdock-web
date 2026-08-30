@@ -14,6 +14,7 @@
 import { cache } from "react";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { PRO_PRODUCT } from "@/lib/pricing";
+import type { PerformerProfile, GigFitRow } from "@/lib/gigfit";
 import type {
   CalendarDate,
   DateFlag,
@@ -418,6 +419,45 @@ export async function getRecentOpportunities(limit = 3) {
     work_date: string | null;
     image_url: string | null;
   }[];
+}
+
+/** The signed-in user's posting display name (profiles.display_name) — used for
+ * the Today greeting. Intentionally no fallback to a legacy first_name. */
+export async function getDisplayName(): Promise<string | null> {
+  const supabase = await createSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const name = (data?.display_name as string | null) ?? null;
+  return name && name.trim() ? name.trim() : null;
+}
+
+/** The user's default casting profile (for GigFit). Highest is_default first. */
+export async function getDefaultPerformerProfile(): Promise<PerformerProfile | null> {
+  const supabase = await createSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase
+    .from("performer_profiles")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("is_default", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data as PerformerProfile | null) ?? null;
+}
+
+/** GigFit match tiers for every active opportunity, for the given profile.
+ * Single source of truth is the Postgres gigfit(p_profile_id) RPC. */
+export async function getGigFit(profileId: string): Promise<GigFitRow[]> {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase.rpc("gigfit", { p_profile_id: profileId });
+  if (error) return [];
+  return (data ?? []) as GigFitRow[];
 }
 
 /** Does the signed-in user currently hold an active entitlement to a product?
