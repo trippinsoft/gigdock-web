@@ -58,7 +58,7 @@ export default async function CalendarPage({
       <CalendarGrid monthISO={monthISO} dates={dates} flags={flags} />
 
       <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">
-        Click a day with work to inspect it, then open the full gig. Editing days from the web is coming soon.
+        Click a day to inspect it. Status and hours save here; open the gig for full edit. Documents and expenses are still mobile-only.
       </p>
     </div>
   );

@@ -234,14 +234,20 @@ export interface InsightsOverview {
   }[];
 }
 
-/** A gig_dates row trimmed for the calendar, with the gig title embedded. */
+/** A gig_dates row trimmed for the calendar, with the gig title/location and
+ * gig-level payment summary (from load_active_gigs_with_financials_by_date_range). */
 export interface CalendarDate {
   id: string;
   gig_id: string | null;
   date: string;
   status_for_day: string | null;
   hours_total: number | null;
-  gig: { title: string } | null;
+  bumps: number | null;
+  gig: { title: string; location: string | null } | null;
+  gross_earned?: number | null;
+  total_paid?: number | null;
+  remaining?: number | null;
+  received_percent?: number | null;
 }
 
 /** A row of `date_flags` (personal per-day flag: hold, unavailable, ...). */

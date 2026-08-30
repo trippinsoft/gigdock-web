@@ -229,7 +229,9 @@ export async function getInsights(
   return (data as InsightsOverview) ?? null;
 }
 
-/** Worked/planned gig days within [start, end) for the calendar, gig title embedded. */
+/** Worked/planned gig days within [start, end) for the calendar, with gig
+ * title/location and the same gig-level payment summary the mobile day sheet
+ * loads via load_active_gigs_with_financials_by_date_range. */
 export async function getCalendarDates(
   start: string,
   end: string
@@ -237,13 +239,49 @@ export async function getCalendarDates(
   const supabase = await createSupabaseServer();
   const { data, error } = await supabase
     .from("gig_dates")
-    .select("id, gig_id, date, status_for_day, hours_total, gig:gigs(title)")
+    .select("id, gig_id, date, status_for_day, hours_total, bumps, gig:gigs(title, location)")
     .is("deleted_at", null)
     .gte("date", start)
     .lt("date", end)
     .order("date", { ascending: true });
   if (error) throw error;
-  return (data ?? []) as unknown as CalendarDate[];
+
+  const rows = (data ?? []) as unknown as CalendarDate[];
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return rows;
+
+  const { data: financials, error: finErr } = await supabase.rpc(
+    "load_active_gigs_with_financials_by_date_range",
+    { p_user_id: user.id, p_start_date: start, p_end_date: end }
+  );
+  if (finErr || !financials) return rows;
+
+  const byGig = new Map<
+    string,
+    { gross_earned: number; total_paid: number; remaining: number; received_percent: number }
+  >();
+  for (const row of financials as {
+    id: string;
+    gross_earned: number | null;
+    total_paid: number | null;
+    remaining: number | null;
+    received_percent: number | null;
+  }[]) {
+    byGig.set(row.id, {
+      gross_earned: Number(row.gross_earned ?? 0),
+      total_paid: Number(row.total_paid ?? 0),
+      remaining: Number(row.remaining ?? 0),
+      received_percent: Number(row.received_percent ?? 0),
+    });
+  }
+
+  return rows.map((d) => {
+    const fin = d.gig_id ? byGig.get(d.gig_id) : undefined;
+    return fin ? { ...d, ...fin } : d;
+  });
 }
 
 /** Personal date flags within [start, end). */

@@ -281,6 +281,168 @@ export async function deleteGigDate(
   }
 }
 
+export type CalendarDayPatch = {
+  status_for_day: string | null;
+  hours_total: number | null;
+  day_earned: number | null;
+  gross_earned: number | null;
+  total_paid: number | null;
+  remaining: number | null;
+  received_percent: number | null;
+};
+
+/** Patch one calendar day's status and/or hours (same tables as mobile
+ * updateSelectedDayStatus / UpdateGigDate). Recomputes stored gross for
+ * mobile parity, then returns load_gig_date_with_earnings + load_gig_earnings_summary. */
+export async function patchCalendarDay(opts: {
+  gigDateId: string;
+  gigId: string;
+  status_for_day?: string;
+  hours_total?: number;
+}): Promise<ActionResult<CalendarDayPatch>> {
+  try {
+    const { supabase } = await client();
+
+    const { data: existing, error: existErr } = await supabase
+      .from("gig_dates")
+      .select("id, gig_id, hours_total, bumps, base_pay_applies, status_for_day")
+      .eq("id", opts.gigDateId)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (existErr) throw existErr;
+    if (!existing || existing.gig_id !== opts.gigId) {
+      return { ok: false, error: "That day could not be found." };
+    }
+
+    const { data: gig, error: gigErr } = await supabase
+      .from("gigs")
+      .select("pay_type, pay_minimum_amount, pay_minimum_hours, pay_hourly_rate, ot_starts_after_hours, ot_multiplier")
+      .eq("id", opts.gigId)
+      .single();
+    if (gigErr) throw gigErr;
+
+    const hours = opts.hours_total ?? Number(existing.hours_total ?? 0);
+    const status = opts.status_for_day ?? existing.status_for_day ?? "worked";
+    const bumps = Number(existing.bumps ?? 0);
+    const applies = existing.base_pay_applies ?? true;
+
+    const base = dayGrossEarned({
+      payType: (gig.pay_type as PayType | null) ?? null,
+      hoursTotal: hours,
+      payMinimumAmount: Number(gig.pay_minimum_amount ?? 0),
+      payMinimumHours: Number(gig.pay_minimum_hours ?? 0),
+      payHourlyRate: Number(gig.pay_hourly_rate ?? 0),
+      otStartsAfterHours: Number(gig.ot_starts_after_hours ?? 0),
+      otMultiplier: Number(gig.ot_multiplier ?? 1),
+      bumps: 0,
+    });
+    const basePay = applies ? base : 0;
+    const grossPay = basePay + bumps;
+
+    const { error: updErr } = await supabase
+      .from("gig_dates")
+      .update({
+        status_for_day: status,
+        hours_total: hours,
+        base_pay: basePay,
+        gross_pay: grossPay,
+      })
+      .eq("id", opts.gigDateId);
+    if (updErr) throw updErr;
+
+    const { data: dayRow, error: dayErr } = await supabase.rpc("load_gig_date_with_earnings", {
+      p_gig_date_id: opts.gigDateId,
+    });
+    if (dayErr) throw dayErr;
+    const day = (Array.isArray(dayRow) ? dayRow[0] : dayRow) as {
+      gross_earned_calc?: number | null;
+      hours_total?: number | null;
+    } | null;
+
+    const { data: sumRow, error: sumErr } = await supabase.rpc("load_gig_earnings_summary", {
+      p_gig_id: opts.gigId,
+    });
+    if (sumErr) throw sumErr;
+    const sum = (Array.isArray(sumRow) ? sumRow[0] : sumRow) as {
+      gross_earned?: number | null;
+      total_paid?: number | null;
+      remaining?: number | null;
+      received_percent?: number | null;
+    } | null;
+
+    revalidatePath("/calendar");
+    revalidatePath(`/gigs/${opts.gigId}`);
+    revalidatePath("/today");
+
+    return {
+      ok: true,
+      data: {
+        status_for_day: status,
+        hours_total: day?.hours_total ?? hours,
+        day_earned: day?.gross_earned_calc ?? null,
+        gross_earned: sum?.gross_earned ?? null,
+        total_paid: sum?.total_paid ?? null,
+        remaining: sum?.remaining ?? null,
+        received_percent: sum?.received_percent ?? null,
+      },
+    };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+/** Refresh day earned + gig payment summary without writing (open inspector). */
+export async function loadCalendarDaySheet(opts: {
+  gigDateId: string;
+  gigId: string;
+}): Promise<ActionResult<CalendarDayPatch>> {
+  try {
+    const { supabase } = await client();
+    const { data: existing, error: existErr } = await supabase
+      .from("gig_dates")
+      .select("status_for_day, hours_total, gig_id")
+      .eq("id", opts.gigDateId)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (existErr) throw existErr;
+    if (!existing || existing.gig_id !== opts.gigId) {
+      return { ok: false, error: "That day could not be found." };
+    }
+
+    const { data: dayRow, error: dayErr } = await supabase.rpc("load_gig_date_with_earnings", {
+      p_gig_date_id: opts.gigDateId,
+    });
+    if (dayErr) throw dayErr;
+    const day = (Array.isArray(dayRow) ? dayRow[0] : dayRow) as { gross_earned_calc?: number | null } | null;
+
+    const { data: sumRow, error: sumErr } = await supabase.rpc("load_gig_earnings_summary", {
+      p_gig_id: opts.gigId,
+    });
+    if (sumErr) throw sumErr;
+    const sum = (Array.isArray(sumRow) ? sumRow[0] : sumRow) as {
+      gross_earned?: number | null;
+      total_paid?: number | null;
+      remaining?: number | null;
+      received_percent?: number | null;
+    } | null;
+
+    return {
+      ok: true,
+      data: {
+        status_for_day: existing.status_for_day,
+        hours_total: existing.hours_total,
+        day_earned: day?.gross_earned_calc ?? null,
+        gross_earned: sum?.gross_earned ?? null,
+        total_paid: sum?.total_paid ?? null,
+        remaining: sum?.remaining ?? null,
+        received_percent: sum?.received_percent ?? null,
+      },
+    };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
 /* ── Payments ────────────────────────────────────────────────────────────── */
 
 export interface PaymentFields {
