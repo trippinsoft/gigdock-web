@@ -37,9 +37,9 @@ async function getOpportunity(id: string): Promise<Opportunity | null> {
 // opportunities. Google's JobPosting policy restricts posting on behalf of an
 // organization without authorization, and GigDock aggregates third-party casting
 // calls — so chasing the Google-for-Jobs experience with this markup is a policy
-// risk. Shared listing URLs render the existing OpportunityCard (including its
-// Apply control) in the first HTML; we still do not add JobPosting schema. These
-// pages rank in normal search on their own merits; location pages are the SEO surface.
+// risk (and the listing detail is client-rendered, so the markup wouldn't match
+// visible content anyway). These pages still rank in normal search on their own
+// merits; the location pages are the real SEO surface.
 
 export async function generateMetadata({
   params,
@@ -125,7 +125,7 @@ export default async function OpportunitySlugPage({
           />
         </>
       )}
-      <OpportunitiesFeed initialSelectedId={slug} initialSelectedOpp={opp ?? undefined} />
+      <OpportunitiesFeed initialSelectedId={slug} />
     </>
   );
 }

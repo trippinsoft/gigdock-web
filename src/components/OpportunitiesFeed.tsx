@@ -52,7 +52,6 @@ const EMBED_CAP = 25;
 export default function OpportunitiesFeed({
   initialSelectedId,
   initialOpps,
-  initialSelectedOpp,
   embedded = false,
   scopeLabel,
   now,
@@ -62,9 +61,6 @@ export default function OpportunitiesFeed({
   /** Server-seeded, already-scoped opportunities. When present the feed renders
    *  these (SSR-crawlable) instead of client-fetching the whole active set. */
   initialOpps?: Opportunity[];
-  /** Shared-link listing so the existing OpportunityCard (including Apply) is
-   *  in the first HTML. Does not replace the client-fetched full feed. */
-  initialSelectedOpp?: Opportunity;
   /** Presentation mode only: flow layout for embedding inside a content page
    *  (location pages). The cards, detail and actions are identical either way. */
   embedded?: boolean;
@@ -94,11 +90,7 @@ export default function OpportunitiesFeed({
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("recent");
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [selectedId, setSelectedId] = useState<string | null>(
-    initialSelectedOpp && initialSelectedId && initialSelectedOpp.id === initialSelectedId
-      ? initialSelectedId
-      : null
-  );
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const [profiles, setProfiles] = useState<PerformerProfile[]>([]);
   const [gigfitProfileId, setGigfitProfileId] = useState<string | null>(null);
@@ -309,13 +301,7 @@ export default function OpportunitiesFeed({
   }, [opps, scopedOpps, scope, filters, debouncedSearch, sort, profileHasCriteria, fitById]);
 
   useEffect(() => {
-    if (visible.length === 0) {
-      // Keep the shared-link card mounted while the full feed is still loading
-      // so Apply stays in the first HTML without swapping the detail pane.
-      if (loading && initialSelectedOpp) return;
-      setSelectedId(null);
-      return;
-    }
+    if (visible.length === 0) { setSelectedId(null); return; }
     if (!selectedId || !visible.some((o) => o.id === selectedId)) {
       // A shared link's gig wins the default selection when it's present.
       const preferred =
@@ -324,14 +310,9 @@ export default function OpportunitiesFeed({
           : visible[0].id;
       setSelectedId(preferred);
     }
-  }, [visible, selectedId, initialSelectedId, loading, initialSelectedOpp]);
+  }, [visible, selectedId, initialSelectedId]);
 
-  const selected = useMemo(() => {
-    const fromList = visible.find((o) => o.id === selectedId) ?? null;
-    if (fromList) return fromList;
-    if (initialSelectedOpp && selectedId === initialSelectedOpp.id) return initialSelectedOpp;
-    return null;
-  }, [visible, selectedId, initialSelectedOpp]);
+  const selected = useMemo(() => visible.find((o) => o.id === selectedId) ?? null, [visible, selectedId]);
 
   /* ---------- save ---------- */
   async function toggleSave(id: string) {
