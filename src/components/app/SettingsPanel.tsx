@@ -73,7 +73,7 @@ export default function SettingsPanel({
           ) : (
             <span className="inline-flex items-center gap-2">
               <span className="font-semibold">GigDock</span>
-              <Link href="/pro?from=settings" className="font-medium text-violet-700 dark:text-violet-300 hover:underline">Explore Pro →</Link>
+              <Link href="/pro?from=settings" className="font-medium text-blue-700 dark:text-blue-300 hover:underline">Explore Pro →</Link>
             </span>
           )}
         </Row>

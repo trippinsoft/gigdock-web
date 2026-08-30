@@ -21,7 +21,7 @@ export function useIsPro() { return useContext(PlanCtx) === "pro"; }
 
 export function ProBadge({ className = "" }: { className?: string }) {
   return (
-    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300 ${className}`}>
+    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 ${className}`}>
       Pro
     </span>
   );
@@ -44,7 +44,7 @@ function ProCta({ context, children }: { context: ProContextTag; children: React
     <Link
       href={`/pro?from=${context}`}
       onClick={() => trackPro("pro_preview_clicked", context)}
-      className="inline-flex items-center gap-1 text-sm font-semibold text-violet-700 dark:text-violet-300 hover:underline"
+      className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 dark:text-blue-300 hover:underline"
     >
       {children}
     </Link>
@@ -85,8 +85,8 @@ export function PartialReveal({
       {isPro ? (
         pro
       ) : (
-        <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-violet-200 dark:border-violet-900/50 bg-violet-50/60 dark:bg-violet-950/20 px-3 py-2">
-          <span className="inline-flex items-center gap-1.5 text-xs text-violet-700 dark:text-violet-300"><LockIcon /> {lockedCta}</span>
+        <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-blue-200 dark:border-blue-900/50 bg-blue-50/60 dark:bg-blue-950/20 px-3 py-2">
+          <span className="inline-flex items-center gap-1.5 text-xs text-blue-700 dark:text-blue-300"><LockIcon /> {lockedCta}</span>
           <ProCta context={context}>Unlock →</ProCta>
         </div>
       )}
@@ -142,7 +142,7 @@ export function ProLock({
     <Link
       href={`/pro?from=${context}`}
       onClick={() => trackPro("locked_feature_attempted", context)}
-      className="inline-flex items-center gap-1.5 text-sm text-zinc-400 dark:text-zinc-500 hover:text-violet-700 dark:hover:text-violet-300"
+      className="inline-flex items-center gap-1.5 text-sm text-zinc-400 dark:text-zinc-500 hover:text-blue-700 dark:hover:text-blue-300"
     >
       <LockIcon /> {label} <ProBadge />
     </Link>

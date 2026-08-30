@@ -93,7 +93,7 @@ export default function AppShell({
         <span className="shrink-0">{item.icon}</span>
         <span>{item.label}</span>
         {item.pro && (
-          <span className="ml-auto rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">Pro</span>
+          <span className="ml-auto rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Pro</span>
         )}
         {item.newTab && (
           <svg className="ml-auto shrink-0 text-zinc-300 dark:text-zinc-600" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-label="opens in a new tab"><path d="M7 17 17 7M8 7h9v9" /></svg>
@@ -144,7 +144,7 @@ export default function AppShell({
           ) : (
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">GigDock</span>
-              <Link href="/pro?from=account" className="text-xs font-medium text-violet-700 dark:text-violet-300 hover:underline">Explore Pro →</Link>
+              <Link href="/pro?from=account" className="text-xs font-medium text-blue-700 dark:text-blue-300 hover:underline">Explore Pro →</Link>
             </div>
           )}
         </div>

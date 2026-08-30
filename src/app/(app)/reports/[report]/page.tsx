@@ -257,11 +257,11 @@ function FreePreview({
       </section>
 
       {/* Locked promo */}
-      <div className="rounded-xl border border-violet-200 dark:border-violet-900/50 bg-violet-50/60 dark:bg-violet-950/20 p-5 text-center">
+      <div className="rounded-xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/60 dark:bg-blue-950/20 p-5 text-center">
         <ProBadge />
         <h3 className="mt-2 text-base font-semibold text-zinc-900 dark:text-zinc-100">{meta.preview.title}</h3>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300 max-w-md mx-auto">{meta.preview.copy}</p>
-        <Link href="/pro?from=report_export" className="mt-4 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold">
+        <Link href="/pro?from=report_export" className="mt-4 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">
           Explore Pro →
         </Link>
       </div>

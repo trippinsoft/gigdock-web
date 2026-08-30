@@ -56,7 +56,7 @@ export default function InsightsPeriodNav({
             onClick={() => trackPro("locked_feature_attempted", "insights_history")}
             aria-label="Earlier periods (Pro)"
             title="Unlock your complete history with Pro"
-            className={`${arrow(true)} text-violet-500 dark:text-violet-400`}
+            className={`${arrow(true)} text-blue-500 dark:text-blue-400`}
           >🔒</Link>
         )}
         <span className="min-w-[9rem] text-center text-sm font-semibold text-zinc-900 dark:text-zinc-100">{labelFor(mode, period)}</span>

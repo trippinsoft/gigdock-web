@@ -43,7 +43,7 @@ export default async function ReportsPage() {
       ))}
 
       {plan !== "pro" && (
-        <div className="rounded-xl border border-violet-200 dark:border-violet-900/50 bg-violet-50/60 dark:bg-violet-950/20 px-4 py-3 text-sm text-violet-800 dark:text-violet-200">
+        <div className="rounded-xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/60 dark:bg-blue-950/20 px-4 py-3 text-sm text-blue-800 dark:text-blue-200">
           Detailed reports are included with <strong>GigDock Pro</strong>. Choose any report above to preview the Pro experience.
         </div>
       )}

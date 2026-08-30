@@ -60,9 +60,9 @@ function ProLanding() {
       {/* Pillars */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
         {pillars.map((p) => (
-          <div key={p.key} className={`rounded-2xl border p-4 ${p.key === emphasize ? "border-violet-300 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20" : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900"}`}>
+          <div key={p.key} className={`rounded-2xl border p-4 ${p.key === emphasize ? "border-blue-300 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20" : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900"}`}>
             <div className="flex items-center gap-2">
-              <span className="text-violet-600 dark:text-violet-400"><PillarIcon icon={p.icon} /></span>
+              <span className="text-blue-600 dark:text-blue-400"><PillarIcon icon={p.icon} /></span>
               <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">{p.title}</h3>
             </div>
             <p className="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">{p.blurb}</p>
@@ -88,7 +88,7 @@ function ProLanding() {
             <p className="mt-5 text-center text-sm text-zinc-500 dark:text-zinc-400">
               Checkout is not open yet. Prices above are the planned launch rates — no charge today.
             </p>
-            <button onClick={upgrade} className="mt-3 w-full rounded-xl bg-violet-600 hover:bg-violet-700 px-5 py-3 text-sm font-semibold text-white">
+            <button onClick={upgrade} className="mt-3 w-full rounded-xl bg-blue-600 hover:bg-blue-700 px-5 py-3 text-sm font-semibold text-white">
               Notify me when I can upgrade
             </button>
           </>
@@ -107,10 +107,10 @@ function PlanCard({
   tier: string; selected: boolean; onSelect: () => void; title: string; price: string; period: string; sub?: string; badge?: string;
 }) {
   return (
-    <button onClick={onSelect} className={`text-left rounded-xl border p-4 transition-colors ${selected ? "border-violet-500 dark:border-violet-500 bg-violet-50/60 dark:bg-violet-950/20 ring-1 ring-violet-500" : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"}`}>
+    <button onClick={onSelect} className={`text-left rounded-xl border p-4 transition-colors ${selected ? "border-blue-500 dark:border-blue-500 bg-blue-50/60 dark:bg-blue-950/20 ring-1 ring-blue-500" : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"}`}>
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{title}</span>
-        {badge && <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400">{badge}</span>}
+        {badge && <span className="text-[10px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">{badge}</span>}
       </div>
       <div className="mt-1 flex items-baseline gap-1">
         <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{price}</span>

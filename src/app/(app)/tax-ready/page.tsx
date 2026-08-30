@@ -34,7 +34,7 @@ function LockedSplash() {
           Review your earnings, expenses, mileage and tax documents, then create reports to use yourself or share with your tax professional.
         </p>
         <p className="mt-4 text-xs text-zinc-400 dark:text-zinc-500">{DISCLAIMER}</p>
-        <Link href="/pro?from=tax_prep" className="mt-5 inline-flex items-center gap-1.5 px-6 py-2.5 rounded-full bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold">
+        <Link href="/pro?from=tax_prep" className="mt-5 inline-flex items-center gap-1.5 px-6 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">
           Unlock Tax Ready →
         </Link>
       </div>
