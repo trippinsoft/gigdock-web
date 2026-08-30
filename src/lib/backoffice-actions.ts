@@ -10,6 +10,7 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { dayGrossEarned, type PayType } from "@/lib/pay";
+import { isDocumentType } from "@/lib/documentTypes";
 
 type ActionResult<T = undefined> =
   | { ok: true; data?: T }
@@ -500,6 +501,40 @@ export async function deletePayment(
     revalidatePath(`/gigs/${gigId}`);
     revalidatePath(`/gigs/${gigId}/edit`);
     revalidatePath("/payments");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+/** Rename a document or change its type. Does not connect a gig (that's Pro). */
+export async function updateDocumentMeta(
+  id: string,
+  fields: { display_name: string; document_type: string }
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await client();
+    const name = fields.display_name.trim();
+    if (name.length < 1 || name.length > 160) {
+      return { ok: false, error: "Name must be between 1 and 160 characters." };
+    }
+    if (!isDocumentType(fields.document_type)) {
+      return { ok: false, error: "Choose a valid document type." };
+    }
+    const { error } = await supabase
+      .from("documents")
+      .update({
+        display_name: name,
+        document_type: fields.document_type,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .is("deleted_at", null);
+    if (error) throw error;
+    revalidatePath("/documents");
+    revalidatePath("/tax-ready");
+    revalidatePath("/reports/taxReady");
+    revalidatePath("/reports/documents");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: msg(e) };

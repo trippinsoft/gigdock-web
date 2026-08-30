@@ -4,6 +4,12 @@ import { getInsights, getDocuments, getPlan } from "@/lib/backoffice";
 import { money } from "@/lib/format";
 import { ProBadge } from "@/components/app/pro";
 import { paymentNetStats } from "@/lib/reportDefs";
+import {
+  documentTypeBreakdown,
+  taxDocumentsForYear,
+  taxDocumentsLibraryHref,
+} from "@/lib/documentTypes";
+import type { DocumentRow, InsightsOverview } from "@/lib/backoffice-types";
 
 export const metadata: Metadata = {
   title: "Tax Ready",
@@ -11,6 +17,9 @@ export const metadata: Metadata = {
 };
 
 const DISCLAIMER = "GigDock helps organize your records but does not prepare or file tax returns.";
+const TAGLINE = "Get your gig records ready for tax time.";
+
+type Doc = DocumentRow & { gig: { title: string } | null };
 
 function CalendarIcon() {
   return (
@@ -20,8 +29,27 @@ function CalendarIcon() {
   );
 }
 
+function taxDocCopy(taxDocs: Doc[]): { count: number; breakdown: string; recordedLine: string } {
+  const count = taxDocs.length;
+  const breakdown = documentTypeBreakdown(taxDocs);
+  const recordedLine = count
+    ? `${count} ${count === 1 ? "document" : "documents"} recorded${breakdown ? ` · ${breakdown}` : ""}`
+    : "No tax documents recorded";
+  return { count, breakdown, recordedLine };
+}
+
 /* ── free (locked) splash ─────────────────────────────────────────────────── */
-function LockedSplash() {
+function LockedSplash({
+  year,
+  gross,
+  taxDocs,
+}: {
+  year: number;
+  gross: number | null | undefined;
+  taxDocs: Doc[];
+}) {
+  const yr = String(year);
+  const { count, breakdown, recordedLine } = taxDocCopy(taxDocs);
   return (
     <div className="max-w-2xl">
       <h1 className="flex items-center gap-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-6">Tax Ready <ProBadge /></h1>
@@ -29,13 +57,28 @@ function LockedSplash() {
         <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
           <CalendarIcon />
         </div>
-        <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Get your gig records ready for tax time.</h2>
+        <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{TAGLINE}</h2>
         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300 max-w-md mx-auto">
           Review your earnings, expenses, mileage and tax documents, then create reports to use yourself or share with your tax professional.
         </p>
+
+        <div className="mt-6 rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/40 px-4 py-4 text-left">
+          <div className="text-xs font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{yr} records</div>
+          <div className="mt-1 text-3xl font-extrabold text-blue-600 dark:text-blue-400">{money(gross)}</div>
+          <div className="text-xs text-zinc-500 dark:text-zinc-400">Gross earnings recorded</div>
+          <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-700">
+            <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{recordedLine}</div>
+            {count > 0 && breakdown ? (
+              <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">W-2, 1099, and Other Tax Document only</div>
+            ) : (
+              <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">W-2, 1099, and Other Tax Document files you keep with your {yr} records</div>
+            )}
+          </div>
+        </div>
+
         <p className="mt-4 text-xs text-zinc-400 dark:text-zinc-500">{DISCLAIMER}</p>
         <Link href="/pro?from=tax_prep" className="mt-5 inline-flex items-center gap-1.5 px-6 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">
-          Unlock Tax Ready →
+          Explore Pro →
         </Link>
       </div>
     </div>
@@ -43,16 +86,18 @@ function LockedSplash() {
 }
 
 /* ── checklist row ────────────────────────────────────────────────────────── */
-type Status = "Looks Good" | "Needs Attention" | "No Data";
+type Status = "Looks Good" | "Needs Attention" | "Recorded" | "No Data";
 function ChecklistRow({ label, status, desc, action }: { label: string; status: Status; desc: string; action?: { label: string; href: string } }) {
   const tone =
     status === "Looks Good" ? "text-green-600 dark:text-green-400"
       : status === "Needs Attention" ? "text-amber-600 dark:text-amber-400"
-        : "text-zinc-400 dark:text-zinc-500";
+        : status === "Recorded" ? "text-blue-600 dark:text-blue-400"
+          : "text-zinc-400 dark:text-zinc-500";
   const icon =
     status === "Looks Good" ? <path d="M20 6 9 17l-5-5" />
       : status === "Needs Attention" ? <><circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" /></>
-        : <><circle cx="12" cy="12" r="9" /><path d="M8 12h8" /></>;
+        : status === "Recorded" ? <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3" fill="currentColor" /></>
+          : <><circle cx="12" cy="12" r="9" /><path d="M8 12h8" /></>;
   return (
     <div className="flex items-start justify-between gap-3 px-4 py-3">
       <div className="flex items-start gap-3 min-w-0">
@@ -85,20 +130,25 @@ function Card({ title, subtitle, children }: { title: string; subtitle?: string;
 }
 
 /* ── Pro experience ───────────────────────────────────────────────────────── */
-async function TaxReadyExperience({ year }: { year: number }) {
-  const start = `${year}-01-01`;
-  const end = `${year + 1}-01-01`;
-  const data = await getInsights(start, end, "year");
-  const allDocs = await getDocuments();
-  const yearDocs = allDocs.filter((d) => (d.document_date || d.created_at || "").slice(0, 4) === String(year));
-
+function TaxReadyExperience({
+  year,
+  data,
+  allDocs,
+}: {
+  year: number;
+  data: InsightsOverview | null;
+  allDocs: Doc[];
+}) {
   const { paymentCount, netComplete, missingNet } = paymentNetStats(data);
   const gigsWorked = data?.gigs_worked ?? 0;
   const yr = String(year);
+  const taxDocs = taxDocumentsForYear(allDocs, year);
+  const { count: taxCount, recordedLine } = taxDocCopy(taxDocs);
 
   const thisYear = new Date().getFullYear();
   const prev = `/tax-ready?year=${year - 1}`;
   const next = `/tax-ready?year=${year + 1}`;
+  const reviewDocsHref = taxDocumentsLibraryHref(yr);
 
   return (
     <div className="max-w-2xl">
@@ -137,8 +187,11 @@ async function TaxReadyExperience({ year }: { year: number }) {
 
       {/* Tax-time records */}
       <Card title="Tax-time records" subtitle={DISCLAIMER}>
-        <Link href="/documents" className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
-          <div><div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Tax documents</div><div className="text-xs text-zinc-500 dark:text-zinc-400">{yearDocs.length} {yearDocs.length === 1 ? "document" : "documents"} dated {yr}</div></div>
+        <Link href={taxCount ? reviewDocsHref : "/documents"} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
+          <div>
+            <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Tax documents</div>
+            <div className="text-xs text-zinc-500 dark:text-zinc-400">{recordedLine}</div>
+          </div>
           <svg className="text-zinc-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
         </Link>
         <Link href={`/insights?mode=year&p=${yr}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
@@ -149,7 +202,11 @@ async function TaxReadyExperience({ year }: { year: number }) {
 
       {/* Checklist */}
       <Card title="Tax Ready checklist" subtitle="Review the areas supported by records in GigDock. No readiness score is calculated.">
-        <ChecklistRow label="Earnings" status={gigsWorked > 0 ? "Looks Good" : "No Data"} desc={`${gigsWorked} ${gigsWorked === 1 ? "gig" : "gigs"} recorded`} />
+        <ChecklistRow
+          label="Earnings"
+          status={gigsWorked > 0 ? "Recorded" : "No Data"}
+          desc={`${gigsWorked} ${gigsWorked === 1 ? "gig" : "gigs"} recorded`}
+        />
         <ChecklistRow
           label="Payments"
           status={missingNet > 0 ? "Needs Attention" : paymentCount > 0 ? "Looks Good" : "No Data"}
@@ -160,9 +217,13 @@ async function TaxReadyExperience({ year }: { year: number }) {
         <ChecklistRow label="Mileage" status="No Data" desc="No mileage recorded" />
         <ChecklistRow
           label="Tax Documents"
-          status={yearDocs.length ? "Needs Attention" : "No Data"}
-          desc={yearDocs.length ? `Review ${yearDocs.length} stored ${yearDocs.length === 1 ? "document" : "documents"}` : "No tax documents recorded"}
-          action={yearDocs.length ? { label: "Review Documents", href: "/documents" } : undefined}
+          status={taxCount ? "Recorded" : "No Data"}
+          desc={taxCount
+            ? recordedLine
+            : `No tax documents recorded. Add tax-related documents you want to keep with your ${yr} records.`}
+          action={taxCount
+            ? { label: "Review Documents", href: reviewDocsHref }
+            : { label: "Add Document", href: "/documents" }}
         />
       </Card>
 
@@ -187,11 +248,22 @@ async function TaxReadyExperience({ year }: { year: number }) {
 }
 
 export default async function TaxReadyPage({ searchParams }: { searchParams: Promise<{ year?: string }> }) {
-  const plan = await getPlan();
-  if (plan !== "pro") return <LockedSplash />;
   const sp = await searchParams;
   const thisYear = new Date().getFullYear();
   const requested = sp.year && /^\d{4}$/.test(sp.year) ? Number(sp.year) : thisYear;
   const year = Math.min(requested, thisYear);
-  return <TaxReadyExperience year={year} />;
+  const start = `${year}-01-01`;
+  const end = `${year + 1}-01-01`;
+
+  const [plan, data, allDocs] = await Promise.all([
+    getPlan(),
+    getInsights(start, end, "year"),
+    getDocuments(),
+  ]);
+
+  const taxDocs = taxDocumentsForYear(allDocs, year);
+  if (plan !== "pro") {
+    return <LockedSplash year={year} gross={data?.gross_earned} taxDocs={taxDocs} />;
+  }
+  return <TaxReadyExperience year={year} data={data} allDocs={allDocs} />;
 }

@@ -168,6 +168,24 @@ function fail(msg: string): never {
   assert.equal(netRow[2], "Net recorded for 3 of 8 applicable payments");
   const payRow = r.rows.find((row) => row[0] === "Payment summary") ?? fail("missing payment row");
   assert.equal(payRow[1], "8 payments");
+  const taxRow = r.rows.find((row) => row[0] === "Tax documents") ?? fail("missing tax documents row");
+  assert.equal(taxRow[1], "No data", "pay stubs / receipts / vouchers / contracts are not tax documents");
+  assert.equal(taxRow[2], "No tax documents recorded");
+  assert.equal(r.rows.find((row) => row[0] === "Documents"), undefined);
+}
+
+{
+  const withTax: DocWithGig[] = [
+    ...YEAR_DOCS,
+    { id: "6", user_id: "u", gig_id: null, project_id: null, payment_id: null, document_type: "w2", display_name: "W-2 2026", storage_path: "", original_file_name: "", mime_type: "", file_size: 0, document_date: "2026-01-31", notes: null, created_at: "2026-02-01T00:00:00Z", gig: null },
+    { id: "7", user_id: "u", gig_id: null, project_id: null, payment_id: null, document_type: "other_tax_document", display_name: "1099-NEC packet", storage_path: "", original_file_name: "", mime_type: "", file_size: 0, document_date: "2026-02-01", notes: null, created_at: "2026-02-01T00:00:00Z", gig: null },
+  ];
+  const r = buildReport("taxReady", YEAR_OVERVIEW, filterDocsByPeriod(withTax, "year", "2026"));
+  const taxRow = r.rows.find((row) => row[0] === "Tax documents") ?? fail("missing tax documents row");
+  assert.equal(taxRow[1], "2 recorded");
+  assert.equal(taxRow[2], "1 W-2, 1 Other Tax Document");
+  const docsReport = buildReport("documents", YEAR_OVERVIEW, filterDocsByPeriod(withTax, "year", "2026"));
+  assert.equal(docsReport.summary[0].value, "7", "the Documents report still lists every file");
 }
 
 console.log("reportDefs tester10 year/month audit: all reports match payment-level units");

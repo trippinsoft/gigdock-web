@@ -5,6 +5,7 @@
 
 import { money } from "@/lib/format";
 import type { InsightsOverview, DocumentRow } from "@/lib/backoffice-types";
+import { documentTypeLabel, filterTaxDocuments, documentTypeBreakdown } from "@/lib/documentTypes";
 
 export type ReportId =
   | "earnings" | "payments" | "grossNet" | "gigs" | "companies" | "expenses" | "documents" | "taxReady";
@@ -237,7 +238,7 @@ export function buildReport(
       return {
         summary: [{ label: "Documents stored", value: num(docs.length) }],
         columns: ["Document", "Type", "Date", "Connected gig"],
-        rows: docs.map((d) => [d.display_name, d.document_type, dateText(d.document_date), d.gig?.title || "Personal"]),
+        rows: docs.map((d) => [d.display_name, documentTypeLabel(d.document_type), dateText(d.document_date), d.gig?.title || "Personal"]),
         emptyText: "No records found for this period",
       };
 
@@ -254,6 +255,10 @@ export function buildReport(
 
     case "taxReady": {
       const netStatus = missingNet ? "Partial data" : paymentCount ? "Looks good" : "No data";
+      const taxDocs = filterTaxDocuments(docs);
+      const taxDetails = taxDocs.length
+        ? documentTypeBreakdown(taxDocs)
+        : "No tax documents recorded";
       return {
         summary: [
           { label: "Gross earnings", value: money(grossEarned) },
@@ -268,7 +273,7 @@ export function buildReport(
           ["Net completeness", netStatus, `Net recorded for ${netComplete} of ${paymentCount} applicable payments`],
           ["Expenses", "No data", "No expenses recorded yet"],
           ["Mileage", "No data", "No mileage recorded"],
-          ["Documents", `${docs.length} stored`, "Uploaded documents are not automatically included in exports"],
+          ["Tax documents", taxDocs.length ? `${taxDocs.length} recorded` : "No data", taxDetails],
         ],
         emptyText: "No records found for this period",
         note: "GigDock organizes your records but does not prepare or file tax returns. Missing values are never estimated. Net of $0 is treated as not recorded.",

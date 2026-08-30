@@ -1,13 +1,23 @@
 "use client";
 
-// Cross-gig document library as a file-manager: search + type filters and a
-// document list on the left, a preview/details inspector on the right (drawer on
-// mobile). Files open via short-lived signed URLs; each doc links back to its gig.
+// Cross-gig document library: search + type filters and a document list on the
+// left, a preview/details inspector on the right (drawer on mobile). Files open
+// via short-lived signed URLs. Connecting a file to a gig is Pro and is not
+// offered here.
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { DocumentRow } from "@/lib/backoffice-types";
 import { shortDate } from "@/lib/format";
+import { updateDocumentMeta } from "@/lib/backoffice-actions";
+import {
+  DOCUMENT_TYPES,
+  documentTypeLabel,
+  documentYearKey,
+  isDocumentType,
+  type DocumentTypeId,
+} from "@/lib/documentTypes";
 
 type Doc = DocumentRow & { gig: { title: string } | null; url?: string };
 
@@ -17,28 +27,39 @@ function bytes(n: number): string {
   if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
-function typeLabel(t: string): string {
-  return t.replace(/[_-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
 
-export default function DocumentsLibrary({ docs }: { docs: Doc[] }) {
+export default function DocumentsLibrary({
+  docs,
+  initialTypes = null,
+  initialYear = null,
+}: {
+  docs: Doc[];
+  initialTypes?: DocumentTypeId[] | null;
+  initialYear?: string | null;
+}) {
   const [q, setQ] = useState("");
-  const [type, setType] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<string[] | null>(initialTypes);
+  const [year, setYear] = useState<string | null>(initialYear);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const yearScoped = useMemo(() => {
+    if (!year) return docs;
+    return docs.filter((d) => documentYearKey(d) === year);
+  }, [docs, year]);
 
   const types = useMemo(() => {
     const set = new Map<string, number>();
-    for (const d of docs) set.set(d.document_type, (set.get(d.document_type) ?? 0) + 1);
+    for (const d of yearScoped) set.set(d.document_type, (set.get(d.document_type) ?? 0) + 1);
     return [...set.entries()].sort((a, b) => b[1] - a[1]);
-  }, [docs]);
+  }, [yearScoped]);
 
   const visible = useMemo(() => {
-    let list = docs;
-    if (type) list = list.filter((d) => d.document_type === type);
+    let list = yearScoped;
+    if (typeFilter?.length) list = list.filter((d) => typeFilter.includes(d.document_type));
     const s = q.trim().toLowerCase();
-    if (s) list = list.filter((d) => [d.display_name, d.gig?.title, d.document_type].filter(Boolean).join(" ").toLowerCase().includes(s));
+    if (s) list = list.filter((d) => [d.display_name, d.gig?.title, documentTypeLabel(d.document_type)].filter(Boolean).join(" ").toLowerCase().includes(s));
     return list;
-  }, [docs, type, q]);
+  }, [yearScoped, typeFilter, q]);
 
   const selected = docs.find((d) => d.id === selectedId) ?? null;
 
@@ -46,7 +67,7 @@ export default function DocumentsLibrary({ docs }: { docs: Doc[] }) {
     <div className="max-w-6xl">
       <div className="flex items-baseline justify-between gap-4 mb-4">
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Documents</h1>
-        <span className="text-sm text-zinc-400 dark:text-zinc-500">{docs.length}</span>
+        <span className="text-sm text-zinc-400 dark:text-zinc-500">{visible.length}{visible.length !== docs.length ? ` of ${docs.length}` : ""}</span>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
@@ -55,9 +76,18 @@ export default function DocumentsLibrary({ docs }: { docs: Doc[] }) {
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search documents & gigs" className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 pl-9 pr-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
         <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-          <Chip active={type === null} onClick={() => setType(null)}>All</Chip>
+          <Chip active={typeFilter === null && year === null} onClick={() => { setTypeFilter(null); setYear(null); }}>All</Chip>
+          {year && (
+            <Chip active onClick={() => setYear(null)}>{year}</Chip>
+          )}
           {types.map(([t, n]) => (
-            <Chip key={t} active={type === t} onClick={() => setType(type === t ? null : t)}>{typeLabel(t)}<span className="ml-1 opacity-70">{n}</span></Chip>
+            <Chip
+              key={t}
+              active={typeFilter?.includes(t) ?? false}
+              onClick={() => setTypeFilter(typeFilter?.length === 1 && typeFilter[0] === t ? null : [t])}
+            >
+              {documentTypeLabel(t)}<span className="ml-1 opacity-70">{n}</span>
+            </Chip>
           ))}
         </div>
       </div>
@@ -82,7 +112,9 @@ export default function DocumentsLibrary({ docs }: { docs: Doc[] }) {
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium text-zinc-900 dark:text-zinc-100">{d.display_name}</div>
                   <div className="truncate text-xs text-zinc-400 dark:text-zinc-500">
-                    {typeLabel(d.document_type)}{d.gig?.title ? ` · ${d.gig.title}` : ""}
+                    {documentTypeLabel(d.document_type)}
+                    {` · ${documentYearKey(d) || "—"}`}
+                    {d.gig?.title ? ` · ${d.gig.title}` : ""}
                   </div>
                 </div>
                 <div className="shrink-0 text-xs text-zinc-400 dark:text-zinc-500 text-right">
@@ -97,38 +129,110 @@ export default function DocumentsLibrary({ docs }: { docs: Doc[] }) {
           {selected && (
             <>
               <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setSelectedId(null)} />
-              <div className="fixed inset-x-0 bottom-0 z-50 max-h-[80vh] overflow-y-auto rounded-t-2xl border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 lg:static lg:z-auto lg:w-80 lg:shrink-0 lg:max-h-none lg:rounded-2xl lg:border">
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="min-w-0">
-                    <div className="font-semibold text-zinc-900 dark:text-zinc-100 break-words">{selected.display_name}</div>
-                    <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">{typeLabel(selected.document_type)}</div>
-                  </div>
-                  <button onClick={() => setSelectedId(null)} className="shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-xl leading-none" aria-label="Close">×</button>
-                </div>
-
-                <Preview doc={selected} />
-
-                <div className="mt-3 rounded-xl border border-zinc-200 dark:border-zinc-800 divide-y divide-zinc-100 dark:divide-zinc-800">
-                  <Meta label="Type" value={typeLabel(selected.document_type)} />
-                  {selected.gig?.title && selected.gig_id && (
-                    <div className="flex items-center justify-between gap-3 px-3 py-2">
-                      <span className="text-xs text-zinc-500 dark:text-zinc-400">Gig</span>
-                      <Link href={`/gigs/${selected.gig_id}`} className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline text-right truncate">{selected.gig.title}</Link>
-                    </div>
-                  )}
-                  <Meta label="Date" value={shortDate(selected.document_date ?? selected.created_at)} />
-                  {selected.file_size ? <Meta label="Size" value={bytes(selected.file_size)} /> : null}
-                </div>
-
-                {selected.url && (
-                  <a href={selected.url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white">Open / download</a>
-                )}
-              </div>
+              <Inspector doc={selected} onClose={() => setSelectedId(null)} />
             </>
           )}
         </div>
       )}
       <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">Links open securely and expire after a few minutes. Uploading from the web is coming soon.</p>
+    </div>
+  );
+}
+
+function Inspector({ doc, onClose }: { doc: Doc; onClose: () => void }) {
+  const router = useRouter();
+  const [name, setName] = useState(doc.display_name);
+  const [docType, setDocType] = useState(doc.document_type);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setName(doc.display_name);
+    setDocType(doc.document_type);
+    setError(null);
+  }, [doc.id, doc.display_name, doc.document_type]);
+
+  const dirty = name.trim() !== doc.display_name || docType !== doc.document_type;
+  const typeOptions = DOCUMENT_TYPES.some((t) => t.id === docType)
+    ? DOCUMENT_TYPES
+    : [{ id: docType, label: documentTypeLabel(docType) }, ...DOCUMENT_TYPES];
+
+  async function save() {
+    setError(null);
+    if (!isDocumentType(docType)) {
+      setError("Choose a valid document type.");
+      return;
+    }
+    setBusy(true);
+    const res = await updateDocumentMeta(doc.id, { display_name: name, document_type: docType });
+    setBusy(false);
+    if (!res.ok) {
+      setError(res.error);
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-50 max-h-[80vh] overflow-y-auto rounded-t-2xl border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 lg:static lg:z-auto lg:w-80 lg:shrink-0 lg:max-h-none lg:rounded-2xl lg:border">
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <div className="min-w-0">
+          <div className="font-semibold text-zinc-900 dark:text-zinc-100 break-words">{doc.display_name}</div>
+          <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">{documentTypeLabel(doc.document_type)}</div>
+        </div>
+        <button onClick={onClose} className="shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-xl leading-none" aria-label="Close">×</button>
+      </div>
+
+      <Preview doc={doc} />
+
+      <div className="mt-3 space-y-2">
+        <label className="block">
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">Name</span>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={160}
+            className="mt-1 w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-1.5 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </label>
+        <label className="block">
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">Type</span>
+          <select
+            value={docType}
+            onChange={(e) => setDocType(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-1.5 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {typeOptions.map((t) => (
+              <option key={t.id} value={t.id}>{t.label}</option>
+            ))}
+          </select>
+        </label>
+        {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
+        <button
+          type="button"
+          disabled={!dirty || busy}
+          onClick={save}
+          className="w-full rounded-lg bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white disabled:opacity-40 px-4 py-2 text-sm font-semibold text-white dark:text-zinc-900"
+        >
+          {busy ? "Saving…" : "Save"}
+        </button>
+      </div>
+
+      <div className="mt-3 rounded-xl border border-zinc-200 dark:border-zinc-800 divide-y divide-zinc-100 dark:divide-zinc-800">
+        {doc.gig?.title && doc.gig_id && (
+          <div className="flex items-center justify-between gap-3 px-3 py-2">
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">Connected gig</span>
+            <Link href={`/gigs/${doc.gig_id}`} className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline text-right truncate">{doc.gig.title}</Link>
+          </div>
+        )}
+        <Meta label="Date" value={shortDate(doc.document_date ?? doc.created_at)} />
+        <Meta label="Year" value={documentYearKey(doc) || "—"} />
+        {doc.file_size ? <Meta label="Size" value={bytes(doc.file_size)} /> : null}
+      </div>
+
+      {doc.url && (
+        <a href={doc.url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white">Open / download</a>
+      )}
     </div>
   );
 }

@@ -19,6 +19,7 @@ import { paymentStatusOf } from "@/lib/gigBuckets";
 import { StatusPill } from "@/components/app/ui";
 import GigTabs, { type GigTab } from "@/components/app/GigTabs";
 import { money, shortDate, dateRange } from "@/lib/format";
+import { documentTypeLabel } from "@/lib/documentTypes";
 
 export const metadata: Metadata = {
   title: "Gig",
@@ -302,7 +303,7 @@ function PaymentRow({ p }: { p: GigPayment }) {
 }
 
 function DocRow({ d }: { d: DocumentRow & { url?: string } }) {
-  const meta = [typeLabel(d.document_type), shortDate(d.document_date ?? d.created_at)].filter(Boolean).join(" · ");
+  const meta = [documentTypeLabel(d.document_type), shortDate(d.document_date ?? d.created_at)].filter(Boolean).join(" · ");
   const inner = (
     <div className="flex items-center gap-3 px-4 py-3">
       <span className="shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
@@ -332,9 +333,6 @@ function statusLabel(code: string | null | undefined): string | null {
   if (!code) return null;
   const map: Record<string, string> = { availability_checked: "Availability check", booked: "Booked", worked: "Worked", paid: "Paid" };
   return map[code] ?? code;
-}
-function typeLabel(t: string): string {
-  return t.replace(/[_-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 function describePay(g: GigWithNames): string | null {
   switch (g.pay_type) {
