@@ -187,7 +187,9 @@ export default function AppShell({
         )}
       </header>
 
-      <div className="mx-auto max-w-[1400px] lg:flex">
+      {/* Full-bleed: the left rail hugs the viewport's left edge (no centered
+          max-width cap), and the main content fills the rest to the right. */}
+      <div className="lg:flex">
         {/* Desktop left rail */}
         <aside className="hidden lg:flex lg:flex-col lg:w-60 lg:shrink-0 lg:h-screen lg:sticky lg:top-0 border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
           <div className="h-14 flex items-center gap-2 px-5 border-b border-zinc-200 dark:border-zinc-800">
