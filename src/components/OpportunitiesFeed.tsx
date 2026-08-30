@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
@@ -55,6 +55,7 @@ export default function OpportunitiesFeed({
   embedded = false,
   scopeLabel,
   now,
+  children,
 }: {
   /** When set (a shared /opportunities/[id] link), that gig opens pre-selected. */
   initialSelectedId?: string;
@@ -69,6 +70,8 @@ export default function OpportunitiesFeed({
   /** Stable render-time clock (from the server on SSR-seeded pages) so the
    *  cards' relative times hydrate without a mismatch. */
   now?: number;
+  /** Server-rendered listing extras (e.g. apply-at-source) so crawlers see them. */
+  children?: ReactNode;
 } = {}) {
   const router = useRouter();
   const supabase = createSupabaseBrowser();
@@ -657,6 +660,7 @@ export default function OpportunitiesFeed({
 
   const content = (
     <div className={embedded ? "" : "flex flex-col h-[calc(100dvh-6.5rem)]"}>
+        {children}
         {/* Toolbar */}
         <div className="space-y-2 pb-3 border-b border-zinc-200 dark:border-zinc-800">
           {/* Row 1: search + sort (+ scope & GigFit inline on desktop) */}
