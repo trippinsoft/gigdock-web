@@ -17,6 +17,7 @@ import FilterChips, {
   stateLabel,
   type Filters,
 } from "@/components/FilterChips";
+import { formatPostRoleCount, matchingRolesForFilters } from "@/lib/roles";
 import {
   describeProfile,
   fieldsSet,
@@ -305,6 +306,11 @@ export default function OpportunitiesFeed({
     else if (sort === "apply-by") sorted.sort((a, b) => cmpDateAsc(a.apply_by, b.apply_by));
     return sorted;
   }, [opps, scopedOpps, scope, filters, debouncedSearch, sort, profileHasCriteria, fitById]);
+
+  const visibleRoleCount = useMemo(
+    () => visible.reduce((n, o) => n + matchingRolesForFilters(o, filters).length, 0),
+    [visible, filters]
+  );
 
   useEffect(() => {
     if (visible.length === 0) { setSelectedId(null); return; }
@@ -626,7 +632,7 @@ export default function OpportunitiesFeed({
   const renderFilterApply = () => (
     <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 shrink-0">
       <button type="button" onClick={closeFilters} className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
-        Show {visible.length} {visible.length === 1 ? "result" : "results"}
+        Show {formatPostRoleCount(visible.length, visibleRoleCount)}
       </button>
     </div>
   );
@@ -751,7 +757,7 @@ export default function OpportunitiesFeed({
           )}
 
           <div className="text-sm text-zinc-500 dark:text-zinc-400">
-            {loading ? "Loading..." : `${visible.length} ${visible.length === 1 ? "opportunity" : "opportunities"}`}
+            {loading ? "Loading..." : formatPostRoleCount(visible.length, visibleRoleCount)}
           </div>
         </div>
 

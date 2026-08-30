@@ -28,6 +28,8 @@ export interface Opportunity {
   dedup_fingerprint: string | null;
   production_name: string | null;
   role_key: string | null;
+  /** Distinct named roles on this source post. One item for a single open call. */
+  roles?: { label: string; role_key?: string | null; casting_specs?: CastingCriteria | null }[] | null;
   author_user_id: string | null;
   image_url: string | null;
 }

@@ -6,6 +6,7 @@ import TrackEvent from "@/components/TrackEvent";
 import AppCta from "@/components/AppCta";
 import OpportunitiesFeed from "@/components/OpportunitiesFeed";
 import { ROLE_TYPES, specFaqs, belongsToMarket, marketsInState, type MarketSpec } from "@/lib/marketContent";
+import { formatPostRoleCount, roleCount } from "@/lib/roles";
 import { stateName, stateSlug } from "@/lib/markets";
 
 const BASE = "https://www.gigdock.co";
@@ -15,20 +16,13 @@ function cityOf(loc: string | null): string | null {
   return c || null;
 }
 
-// Honest counts: distinct productions (grouping a project's roles) vs. individual
-// roles vs. distinct sources — so we show "38 opportunities · 126 roles · 18
-// sources" instead of an inflated role total. A role with no production groups as
-// its own opportunity.
-function honestCounts(opps: Opportunity[]): { opportunities: number; roles: number; sources: number } {
-  const projects = new Set<string>();
+// Posts (source listings) vs named roles on those posts vs distinct sources.
+function honestCounts(opps: Opportunity[]): { posts: number; roles: number; sources: number } {
   const sources = new Set<string>();
-  let ungrouped = 0;
   for (const o of opps) {
-    const p = (o.production_name ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-    if (p) projects.add(p); else ungrouped++;
     if (o.source) sources.add(o.source);
   }
-  return { opportunities: projects.size + ungrouped, roles: opps.length, sources: sources.size };
+  return { posts: opps.length, roles: roleCount(opps), sources: sources.size };
 }
 
 async function getListings(spec: MarketSpec): Promise<Opportunity[]> {
@@ -194,7 +188,7 @@ export default async function LocationListing({ spec }: { spec: MarketSpec }) {
             <>
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-green-500" aria-hidden="true" />
-                <span className="font-bold text-zinc-900 dark:text-zinc-100">{opps.length}</span> active {opps.length === 1 ? "opportunity" : "opportunities"}
+                <span className="font-bold text-zinc-900 dark:text-zinc-100">{formatPostRoleCount(counts.posts, counts.roles)}</span>
               </span>
               {newThisWeek > 0 && (
                 <><span className="text-zinc-300 dark:text-zinc-600">·</span>
