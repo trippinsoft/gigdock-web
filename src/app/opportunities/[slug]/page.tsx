@@ -4,7 +4,6 @@ import type { Opportunity } from "@/lib/types";
 import OpportunitiesFeed from "@/components/OpportunitiesFeed";
 import LocationListing from "@/components/LocationListing";
 import TrackEvent from "@/components/TrackEvent";
-import { listingApplyCta } from "@/lib/applyHref";
 import { codeForSlug } from "@/lib/markets";
 import { getSeoMarket, stateSpec, type MarketSpec } from "@/lib/marketContent";
 
@@ -38,32 +37,9 @@ async function getOpportunity(id: string): Promise<Opportunity | null> {
 // opportunities. Google's JobPosting policy restricts posting on behalf of an
 // organization without authorization, and GigDock aggregates third-party casting
 // calls — so chasing the Google-for-Jobs experience with this markup is a policy
-// risk. These pages still rank in normal search on their own merits; the location
-// pages are the real SEO surface. Apply-at-source is a visible HTML link using
-// the stored email/form/URL (omitted when none exists) — not JobPosting schema.
-
-function ListingApplyAtSource({ opp }: { opp: Opportunity }) {
-  const cta = listingApplyCta(opp);
-  if (!cta && !opp.application_info) return null;
-  return (
-    <div className="mb-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
-      <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-2">How to apply</p>
-      {opp.application_info && (
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3 whitespace-pre-wrap">{opp.application_info}</p>
-      )}
-      {cta && (
-        <a
-          href={cta.href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-6 py-3"
-        >
-          {cta.label}
-        </a>
-      )}
-    </div>
-  );
-}
+// risk (and the listing detail is client-rendered, so the markup wouldn't match
+// visible content anyway). These pages still rank in normal search on their own
+// merits; the location pages are the real SEO surface.
 
 export async function generateMetadata({
   params,
@@ -149,9 +125,7 @@ export default async function OpportunitySlugPage({
           />
         </>
       )}
-      <OpportunitiesFeed initialSelectedId={slug}>
-        {opp && <ListingApplyAtSource opp={opp} />}
-      </OpportunitiesFeed>
+      <OpportunitiesFeed initialSelectedId={slug} />
     </>
   );
 }

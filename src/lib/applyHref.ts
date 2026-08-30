@@ -88,18 +88,3 @@ export function getApplyHref(opp: Opportunity): string | null {
 
   return null;
 }
-
-/** Primary CTA the listing card already uses: apply href, else original post. */
-export function listingApplyCta(opp: Opportunity): { href: string; label: string } | null {
-  const applyHref = getApplyHref(opp);
-  if (applyHref) {
-    return {
-      href: applyHref,
-      label: /^mailto:/i.test(applyHref) ? "Apply via Email" : "Apply on company site",
-    };
-  }
-  if (opp.source_url) {
-    return { href: opp.source_url, label: "View original post" };
-  }
-  return null;
-}
