@@ -19,27 +19,22 @@ const PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 
 const SERVER_INSTRUCTIONS =
   "GigDock tracks the user's gigs, hours, earnings and payments. Amounts are USD gross unless stated. " +
-  "GigDock is the only authority for money. Never calculate, estimate, or reconstruct earnings, received, outstanding, " +
-  "worked-day counts, or averages from list_gigs, from a day rate, or from counting dates. " +
+  "CRITICAL: Money tools return an `answer` field. Tell the user that sentence and that dollar amount. " +
+  "Never calculate earnings yourself. Never multiply a day rate by worked days. That shortcut is wrong whenever bumps exist or a date has base_pay_applies=false. " +
+  "If you get a different number than `answer` / `gross_earned`, your number is wrong — do not tell the user GigDock is inconsistent or incorrect. " +
+  "If they ask why, quote `dates[].reason` and `shortcut_is_wrong`. " +
   "Only dates with status 'worked' (earns=true) generate earnings. Booked and availability-check dates earn $0. " +
-  "Do not use any leftover/legacy rate text if you ever see it. Structured pay is display-only — never multiply pay.amount by the number of dates. " +
-  "Earned = what was earned from worked dates. Received = cash recorded; it can include payments for earlier work, so received may exceed earned in the same month. Outstanding = earned − received. " +
-  "Tool routing: " +
-  "(1) Period totals ('last month', 'in August') → get_earnings with concrete start_date/end_date. " +
-  "(2) 'How much from [company / casting director / production]?' → get_earnings_by_company. " +
-  "(3) One gig by name or id → get_gig_financials. " +
-  "(4) list_gigs is discovery only (find ids/titles/date statuses). After you have a gig id, call get_gig_financials for money. " +
-  "If GigDock's number disagrees with rate × days, trust GigDock and explain using dates[].earned, dates[].base_pay_applies, and dates[].bumps — do not substitute your own total.";
+  "Earned = worked-date pay. Received = cash recorded (can include earlier work). Outstanding = earned − received. " +
+  "Tool routing: period totals → get_earnings; 'how much from [company]?' → get_earnings_by_company; one gig → get_gig_financials; list_gigs is discovery only.";
 
 const TOOLS = [
   {
     name: "get_earnings",
     title: "Get earnings summary",
     description:
-      "AUTHORITATIVE earnings for an optional date window: gross_earned, received, outstanding, gig count, days worked, averages. " +
-      "Never independently recompute these from list_gigs. " +
+      "AUTHORITATIVE earnings for an optional date window. Reply with the `answer` field. Never recompute gross_earned. " +
       "Omit both dates for all-time. For 'last month' or 'in May', compute concrete start_date/end_date first and call once per period. " +
-      "gross_earned is what was earned from worked dates. received is cash recorded and may include payments for earlier work.",
+      "received is cash recorded and may include payments for earlier work.",
     inputSchema: {
       type: "object",
       properties: {
@@ -53,11 +48,10 @@ const TOOLS = [
     name: "get_earnings_by_company",
     title: "Get earnings by company",
     description:
-      "AUTHORITATIVE earnings for one company, casting director, payroll company, or gig title (fuzzy match). " +
-      "Use this for questions like 'how much did I earn from Rose Locke?' Do not answer those from list_gigs. " +
-      "Returns gross_earned, received, outstanding, worked_days, and each matching gig with per-date status and earned. " +
-      "Only status 'worked' earns. Trust gross_earned; never multiply the day rate by the date count. " +
-      "Optional start_date/end_date limit to worked dates (and payments) in that inclusive window.",
+      "AUTHORITATIVE earnings for one company, casting director, payroll company, or gig title. " +
+      "Use this for 'how much did I earn from Rose Locke?'. Reply with the `answer` field. " +
+      "Do not multiply day rate × worked days. If `shortcut_is_wrong` is present, that figure is the mistake you must not make. " +
+      "Quote dates[].reason if asked why. Optional start_date/end_date are inclusive.",
     inputSchema: {
       type: "object",
       properties: {
@@ -73,9 +67,8 @@ const TOOLS = [
     name: "get_gig_financials",
     title: "Get gig financials",
     description:
-      "AUTHORITATIVE financials for one gig: gross_earned, received, outstanding, pay setup, and every date with status, whether it earns, bumps, base_pay_applies, and earned. " +
-      "Use this after list_gigs (or when the user names a gig). Never recompute the total from the day rate. " +
-      "If a worked date has base_pay_applies=false, the day/flat/hourly rate is not applied that day — only bumps earn.",
+      "AUTHORITATIVE financials for one gig. Reply with the `answer` field. Never recompute from a day rate. " +
+      "Each date has a `reason` explaining earned. If `shortcut_is_wrong` is set, do not use that rate × days figure.",
     inputSchema: {
       type: "object",
       properties: {
@@ -156,11 +149,19 @@ function rpcError(id: unknown, code: number, message: string) {
 
 function toolResult(id: unknown, data: unknown) {
   const structured = Array.isArray(data) ? { items: data } : (data ?? {});
+  const obj = structured && typeof structured === "object" && !Array.isArray(structured)
+    ? (structured as Record<string, unknown>)
+    : null;
+  const answer = typeof obj?.answer === "string" ? obj.answer : null;
+  const guard = typeof obj?.assistant_instructions === "string" ? obj.assistant_instructions : null;
+  const shortcut = typeof obj?.shortcut_is_wrong === "string" ? obj.shortcut_is_wrong : null;
+  const preamble = [answer, guard, shortcut].filter(Boolean).join("\n\n");
+  const body = JSON.stringify(data ?? {}, null, 2);
   return {
     jsonrpc: "2.0",
     id,
     result: {
-      content: [{ type: "text", text: JSON.stringify(data ?? {}, null, 2) }],
+      content: [{ type: "text", text: preamble ? `${preamble}\n\n${body}` : body }],
       structuredContent: structured,
       isError: false,
     },
@@ -201,7 +202,7 @@ Deno.serve(async (req) => {
           result: {
             protocolVersion,
             capabilities: { tools: { listChanged: false } },
-            serverInfo: { name: "gigdock", title: "GigDock", version: "1.1.0" },
+            serverInfo: { name: "gigdock", title: "GigDock", version: "1.2.0" },
             instructions: SERVER_INSTRUCTIONS,
           },
         });

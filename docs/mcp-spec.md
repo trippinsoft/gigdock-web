@@ -62,9 +62,10 @@ server. See "Related work" at the end.
 | `get_outstanding` | Needs attention | payments due / missing pay / missing dates |
 
 `list_gigs` does **not** expose `rate_text` / `pay_flat_rate`. Dates include
-`status` and `earns`. If GigDock's `gross_earned` disagrees with rate × days
-(bumps, `base_pay_applies = false`, etc.), trust `gross_earned` and explain
-from `dates[].earned`.
+`status`, `earns`, and (on financial tools) a `reason`. Money tools lead with
+an `answer` sentence and, when rate × days would mislead, a `shortcut_is_wrong`
+field. If GigDock's `gross_earned` disagrees with rate × days (bumps,
+`base_pay_applies = false`, etc.), trust `answer`.
 
 ## Architecture
 
