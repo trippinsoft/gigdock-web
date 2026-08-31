@@ -1,7 +1,20 @@
 # GigDock MCP Server — spec v0.1
 
-> **Status:** design. Nothing is built yet. This document is the reference for
-> the initial implementation and should be updated as we ship.
+> **Status:** read slice SHIPPED 2026-08-31 (see below). This document remains
+> the reference for OAuth and the write phases.
+>
+> **Shipped:** `supabase/functions/mcp` (Streamable HTTP, live at
+> `https://thewnhnbbjendvgezmmx.supabase.co/functions/v1/mcp`) with read tools
+> `get_earnings`, `list_gigs`, `get_outstanding`; `mcp_tokens` table +
+> `mcp_create_token` / `mcp_revoke_token`; and the Settings → Connected
+> assistants panel (this spec's Phase 5) to mint/revoke `gd_...` bearer tokens.
+> Auth is personal-access-token first — OAuth 2.1 below is the follow-up, and
+> the shipped `mcp_tokens` table is a simpler variant to be extended then.
+> One deliberate deviation: the Edge Function calls SECURITY DEFINER
+> `mcp_*` wrappers (service-role execute only) that validate the token and
+> impersonate its owner via `request.jwt.claims` before invoking the same
+> `load_*` RPCs — so every answer is still scoped exactly like web/mobile.
+> SQL: `sql/mcp-tokens.sql`.
 
 ## Purpose
 
