@@ -135,7 +135,8 @@ export async function getNeedsAttention(): Promise<NeedsAttention | null> {
   return (row as NeedsAttention) ?? null;
 }
 
-/** Total gross earned across the given date window (load_month_earned_summary). */
+/** Total gross earned across the given date window. Same number as Insights
+ *  gross_earned for [start, end). */
 export async function getEarnedInRange(
   start: string,
   end: string

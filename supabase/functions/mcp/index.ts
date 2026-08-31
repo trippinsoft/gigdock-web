@@ -26,18 +26,21 @@ const SERVER_INSTRUCTIONS =
   "If they ask why, quote `dates[].reason` (e.g. bump-only day) and `shortcut_is_wrong`. " +
   "Only dates with status 'worked' (earns=true) generate earnings. Booked and availability-check dates earn $0. " +
   "Earned = worked-date pay. Received = cash recorded (can include earlier work). Outstanding = earned − received. " +
-  "Tool routing: period totals → get_earnings; 'how much from [company]?' → get_earnings_by_company; one gig → get_gig_financials; " +
-  "'what's outstanding this year / Insights Year YYYY' → get_outstanding with start_date=YYYY-01-01 and end_date=YYYY-12-31; " +
-  "unscoped get_outstanding is all-time (includes prior years). list_gigs is discovery only.";
+  "Tool routing: Insights month/year totals → get_earnings with those dates; " +
+  "'how much from [company]?' → get_earnings_by_company; one gig → get_gig_financials; " +
+  "Insights outstanding for a year → get_outstanding with start_date=YYYY-01-01 and end_date=YYYY-12-31; " +
+  "unscoped get_outstanding / get_earnings is all-time (Today / Payments). list_gigs is discovery only.";
 
 const TOOLS = [
   {
     name: "get_earnings",
     title: "Get earnings summary",
     description:
-      "AUTHORITATIVE earnings for an optional date window. Reply with the `answer` field. Never recompute gross_earned. " +
-      "Omit both dates for all-time. For 'last month' or 'in May', compute concrete start_date/end_date first and call once per period. " +
-      "received is cash recorded and may include payments for earlier work.",
+      "AUTHORITATIVE earnings. Reply with the `answer` field. Never recompute gross_earned. " +
+      "With start_date/end_date this is Insights for that window (inclusive). " +
+      "For 'this year' or Insights Year 2026 pass start_date=2026-01-01 and end_date=2026-12-31. " +
+      "Omit both dates for all-time (Today totals — not the Insights year). " +
+      "received is cash recorded in the window and may include payments for earlier work.",
     inputSchema: {
       type: "object",
       properties: {
@@ -215,7 +218,7 @@ Deno.serve(async (req) => {
           result: {
             protocolVersion,
             capabilities: { tools: { listChanged: false } },
-            serverInfo: { name: "gigdock", title: "GigDock", version: "1.3.0" },
+            serverInfo: { name: "gigdock", title: "GigDock", version: "1.4.0" },
             instructions: SERVER_INSTRUCTIONS,
           },
         });

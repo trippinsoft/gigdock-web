@@ -24,10 +24,12 @@
 > SQL: `sql/mcp-tokens.sql`. **v1.1 (2026-08-31):** `get_earnings_by_company`
 > and `get_gig_financials`; slim `list_gigs` (no conflicting rate fields;
 > per-date status). SQL: `sql/mcp-authoritative-financials.sql`. GigDock
-> calculates; the model must not reconstruct pay. **v1.3 (2026-08-31):**
-> Insights honors bump-only days (`sql/insights-honor-bump-only.sql`).
-> `get_outstanding` takes optional inclusive dates and returns itemized
-> remaining that matches Insights for that window. Unscoped = all-time.
+> calculates; the model must not reconstruct pay. **v1.4 (2026-08-31):**
+> Dated `get_earnings` / `get_outstanding` call `load_insights_overview`
+> (same as Insights / Reports). Today month earned wraps that RPC.
+> Unscoped tools are all-time (Today / Payments). SQL:
+> `sql/mcp-app-alignment.sql`. Run `mcp_check_app_alignment(2026)` as the
+> user to confirm screens still agree.
 
 ## Purpose
 
@@ -69,6 +71,25 @@ server. See "Related work" at the end.
 bump-only worked day is intentional: the user turned off base pay, so that
 day earns bumps only. Money tools lead with an `answer` sentence. Never
 treat rate × worked days as a correction.
+
+### Screen → RPC → MCP (keep these identical)
+
+GigDock has one period calculator and one gig calculator. MCP must wrap
+those, never a third copy.
+
+| User is looking at | Web/mobile RPC | MCP tool |
+|---|---|---|
+| Insights / Reports (month or year) | `load_insights_overview` | `get_earnings` + `get_outstanding` **with dates** |
+| Today, earned this month | `load_month_earned_summary` (= Insights gross) | `get_earnings` with that month |
+| Today / Payments, all-time remaining | `calculate_gig_earned_amount` − paid | `get_outstanding` with **no** dates |
+| One gig | `calculate_gig_earned_amount` | `get_gig_financials` |
+
+Dates on MCP tools are inclusive. Insights Year 2026 = `start_date=2026-01-01`
+and `end_date=2026-12-31`. After changing pay logic, run
+`select mcp_check_app_alignment(2026);` as the test user. `ok` must be true.
+
+Do not add a new SQL formula for a screen. Point the screen (or MCP) at
+Insights or `calculate_gig_earned_amount`.
 
 ## Architecture
 
