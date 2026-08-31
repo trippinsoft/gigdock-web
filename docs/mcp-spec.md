@@ -4,6 +4,7 @@
 > the reference for OAuth and the write phases.
 >
 > **Shipped:** `supabase/functions/mcp` (Streamable HTTP, live at
+> `https://www.gigdock.co/mcp` — a next.config rewrite proxying
 > `https://thewnhnbbjendvgezmmx.supabase.co/functions/v1/mcp`) with read tools
 > `get_earnings`, `list_gigs`, `get_outstanding`; `mcp_tokens` table +
 > `mcp_create_token` / `mcp_revoke_token`; and the Settings → Connected

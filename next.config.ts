@@ -1,6 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      // Public MCP endpoint on our domain. Proxies to the Supabase Edge
+      // Function so AI assistants (Claude, ChatGPT, Cursor) are configured
+      // with www.gigdock.co/mcp instead of the raw *.supabase.co URL.
+      {
+        source: "/mcp",
+        destination:
+          "https://thewnhnbbjendvgezmmx.supabase.co/functions/v1/mcp",
+      },
+    ];
+  },
   async redirects() {
     return [
       // Canonical host: never let anyone linger on the raw *.vercel.app alias —

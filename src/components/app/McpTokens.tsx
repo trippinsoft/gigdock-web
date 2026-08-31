@@ -8,8 +8,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 
-export const MCP_ENDPOINT =
-  "https://thewnhnbbjendvgezmmx.supabase.co/functions/v1/mcp";
+// Served by a next.config rewrite that proxies to the Supabase Edge Function.
+export const MCP_ENDPOINT = "https://www.gigdock.co/mcp";
 
 type TokenRow = {
   id: string;
