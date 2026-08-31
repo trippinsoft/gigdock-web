@@ -6,7 +6,8 @@
 > **Shipped:** `supabase/functions/mcp` (Streamable HTTP, live at
 > `https://www.gigdock.co/mcp` — a next.config rewrite proxying
 > `https://thewnhnbbjendvgezmmx.supabase.co/functions/v1/mcp`) with read tools
-> `get_earnings`, `list_gigs`, `get_outstanding`; `mcp_tokens` table +
+> `get_earnings`, `get_earnings_by_company`, `get_gig_financials`, `list_gigs`,
+> `get_outstanding`; `mcp_tokens` table +
 > `mcp_create_token` / `mcp_revoke_token`; and the Settings → Connected
 > assistants panel (this spec's Phase 5) to mint/revoke `gd_...` bearer tokens.
 > **OAuth 2.1 also SHIPPED 2026-08-31** (migration `mcp_oauth`,
@@ -20,7 +21,10 @@
 > `mcp_*` wrappers (service-role execute only) that validate the token and
 > impersonate its owner via `request.jwt.claims` before invoking the same
 > `load_*` RPCs — so every answer is still scoped exactly like web/mobile.
-> SQL: `sql/mcp-tokens.sql`.
+> SQL: `sql/mcp-tokens.sql`. **v1.1 (2026-08-31):** `get_earnings_by_company`
+> and `get_gig_financials`; slim `list_gigs` (no conflicting rate fields;
+> per-date status). SQL: `sql/mcp-authoritative-financials.sql`. GigDock
+> calculates; the model must not reconstruct pay.
 
 ## Purpose
 
@@ -42,6 +46,25 @@ server. See "Related work" at the end.
   and web app already call — this server is a thin adapter, not a rewrite.
 - **RLS is the only authorization layer.** Never use the service-role key.
 - **Ship the read path first.** Highest reach, zero mutation risk.
+- **GigDock owns financial logic.** MCP returns answers, not ingredients.
+  Models must never reconstruct pay from `list_gigs` (rate × date count,
+  leftover `rate_text`, treating booked/avail-check dates as worked). Only
+  `status = worked` earns. SQL: `sql/mcp-authoritative-financials.sql`.
+
+### Authoritative money tools (v1.1)
+
+| Tool | Use for | Returns |
+|---|---|---|
+| `get_earnings` | Period totals ("last month") | gross_earned, received, outstanding, days_worked |
+| `get_earnings_by_company` | "How much from Rose Locke?" | company match + per-date status/earned |
+| `get_gig_financials` | One gig | pay setup, gross_earned, every date with status + earned |
+| `list_gigs` | Discovery only | titles, companies, date statuses, GigDock totals — no rate amounts |
+| `get_outstanding` | Needs attention | payments due / missing pay / missing dates |
+
+`list_gigs` does **not** expose `rate_text` / `pay_flat_rate`. Dates include
+`status` and `earns`. If GigDock's `gross_earned` disagrees with rate × days
+(bumps, `base_pay_applies = false`, etc.), trust `gross_earned` and explain
+from `dates[].earned`.
 
 ## Architecture
 
