@@ -214,7 +214,9 @@ export async function getProjects() {
   return (data ?? []) as { id: string; title: string }[];
 }
 
-/** Insights roll-up for a window (load_insights_overview). bucket: 'month'|'year'. */
+/** Insights roll-up for a window (load_insights_overview). bucket: 'month'|'year'.
+ *  Per-date gross honors base_pay_applies (bump-only days earn bumps only),
+ *  matching calculate_gig_earned_amount. */
 export async function getInsights(
   start: string,
   end: string,

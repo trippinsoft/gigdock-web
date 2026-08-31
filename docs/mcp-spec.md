@@ -24,7 +24,10 @@
 > SQL: `sql/mcp-tokens.sql`. **v1.1 (2026-08-31):** `get_earnings_by_company`
 > and `get_gig_financials`; slim `list_gigs` (no conflicting rate fields;
 > per-date status). SQL: `sql/mcp-authoritative-financials.sql`. GigDock
-> calculates; the model must not reconstruct pay.
+> calculates; the model must not reconstruct pay. **v1.3 (2026-08-31):**
+> Insights honors bump-only days (`sql/insights-honor-bump-only.sql`).
+> `get_outstanding` takes optional inclusive dates and returns itemized
+> remaining that matches Insights for that window. Unscoped = all-time.
 
 ## Purpose
 
@@ -59,7 +62,7 @@ server. See "Related work" at the end.
 | `get_earnings_by_company` | "How much from Rose Locke?" | company match + per-date status/earned |
 | `get_gig_financials` | One gig | pay setup, gross_earned, every date with status + earned |
 | `list_gigs` | Discovery only | titles, companies, date statuses, GigDock totals — no rate amounts |
-| `get_outstanding` | Needs attention | payments due / missing pay / missing dates |
+| `get_outstanding` | Remaining pay ("what's outstanding this year?") | `answer`, itemized gigs; optional dates match Insights |
 
 `list_gigs` does **not** expose `rate_text` / `pay_flat_rate`. Dates include
 `status`, `earns`, and (on financial tools) `bump_only` + a `reason`. A

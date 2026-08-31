@@ -163,28 +163,15 @@ begin
 end;
 $$;
 
--- Tool: what still needs attention (outstanding payments etc.).
-create or replace function public.mcp_get_outstanding(p_token text)
-returns jsonb
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v jsonb;
-begin
-  perform public.mcp__auth(p_token);
-  select to_jsonb(n) into v from public.load_needs_attention() n;
-  return coalesce(v, '{}'::jsonb);
-end;
-$$;
+-- Tool: outstanding. Live definition (date window + itemized remaining) is in
+-- sql/mcp-authoritative-financials.sql. Do not recreate the all-time-only
+-- load_needs_attention wrapper — ChatGPT used that for "year" questions and
+-- disagreed with Insights.
 
 -- Only the Edge Function (service role) may execute the token-authenticated tools.
 revoke all on function public.mcp__auth(text) from public, anon, authenticated;
 revoke all on function public.mcp_get_earnings(text, date, date) from public, anon, authenticated;
 revoke all on function public.mcp_list_gigs(text, text, text) from public, anon, authenticated;
-revoke all on function public.mcp_get_outstanding(text) from public, anon, authenticated;
 grant execute on function public.mcp__auth(text) to service_role;
 grant execute on function public.mcp_get_earnings(text, date, date) to service_role;
 grant execute on function public.mcp_list_gigs(text, text, text) to service_role;
-grant execute on function public.mcp_get_outstanding(text) to service_role;

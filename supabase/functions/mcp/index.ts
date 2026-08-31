@@ -26,7 +26,9 @@ const SERVER_INSTRUCTIONS =
   "If they ask why, quote `dates[].reason` (e.g. bump-only day) and `shortcut_is_wrong`. " +
   "Only dates with status 'worked' (earns=true) generate earnings. Booked and availability-check dates earn $0. " +
   "Earned = worked-date pay. Received = cash recorded (can include earlier work). Outstanding = earned − received. " +
-  "Tool routing: period totals → get_earnings; 'how much from [company]?' → get_earnings_by_company; one gig → get_gig_financials; list_gigs is discovery only.";
+  "Tool routing: period totals → get_earnings; 'how much from [company]?' → get_earnings_by_company; one gig → get_gig_financials; " +
+  "'what's outstanding this year / Insights Year YYYY' → get_outstanding with start_date=YYYY-01-01 and end_date=YYYY-12-31; " +
+  "unscoped get_outstanding is all-time (includes prior years). list_gigs is discovery only.";
 
 const TOOLS = [
   {
@@ -100,9 +102,19 @@ const TOOLS = [
     name: "get_outstanding",
     title: "Get outstanding items",
     description:
-      "What still needs attention: count and total of payments due, gigs with an incomplete pay model, and gigs missing work dates. " +
-      "Payments-due totals come from GigDock; do not recompute them from list_gigs.",
-    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+      "AUTHORITATIVE remaining pay. Reply with the `answer` field. Never recompute from day rates. " +
+      "Pass start_date and end_date (inclusive) to match Insights for that window. " +
+      "For 'this year' or Insights Year 2026, pass start_date=2026-01-01 and end_date=2026-12-31 (full calendar year, not year-to-date). " +
+      "Omit both dates for all-time (includes prior years — not the Insights year total). " +
+      "Use items[].title and items[].outstanding. Bump-only days earn bumps only.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        start_date: { type: "string", format: "date", description: "Inclusive start (YYYY-MM-DD). For calendar year YYYY use YYYY-01-01." },
+        end_date: { type: "string", format: "date", description: "Inclusive end (YYYY-MM-DD). For calendar year YYYY use YYYY-12-31." },
+      },
+      additionalProperties: false,
+    },
   },
 ];
 
@@ -203,7 +215,7 @@ Deno.serve(async (req) => {
           result: {
             protocolVersion,
             capabilities: { tools: { listChanged: false } },
-            serverInfo: { name: "gigdock", title: "GigDock", version: "1.2.1" },
+            serverInfo: { name: "gigdock", title: "GigDock", version: "1.3.0" },
             instructions: SERVER_INSTRUCTIONS,
           },
         });
@@ -241,7 +253,11 @@ Deno.serve(async (req) => {
             p_search: args.search ?? null,
           });
         } else if (name === "get_outstanding") {
-          data = await callRpc("mcp_get_outstanding", { p_token: token });
+          data = await callRpc("mcp_get_outstanding", {
+            p_token: token,
+            p_start: args.start_date ?? null,
+            p_end: args.end_date ?? null,
+          });
         } else {
           return json(200, rpcError(id, -32602, `Unknown tool: ${name}`));
         }

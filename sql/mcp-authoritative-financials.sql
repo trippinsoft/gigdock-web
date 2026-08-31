@@ -11,6 +11,8 @@
 --      by the same calculators the app uses (calculate_gig_earned_amount
 --      / calc_gig_date_gross_earned). Only status 'worked' earns.
 --   3. Label earned vs received so the model does not mix them up.
+--   4. get_outstanding takes optional inclusive dates and returns itemized
+--      remaining that matches Insights (after bump-only is honored there).
 
 -- ---------------------------------------------------------------------------
 -- Helpers (internal; called only from mcp_* after mcp__auth)
@@ -790,3 +792,136 @@ grant execute on function public.mcp_get_gig_financials(text, uuid) to service_r
 grant execute on function public.mcp_get_earnings_by_company(text, text, date, date) to service_role;
 grant execute on function public.mcp_get_earnings(text, date, date) to service_role;
 grant execute on function public.mcp_list_gigs(text, text, text) to service_role;
+
+-- ---------------------------------------------------------------------------
+-- get_outstanding — itemized remaining. Optional dates match Insights.
+-- ---------------------------------------------------------------------------
+-- Unscoped = all-time payments due (calculate_gig_earned_amount − paid).
+-- With start/end (inclusive) = same outstanding_items as Insights for that
+-- window (load_insights_overview; exclusive end = p_end + 1). For "Insights
+-- Year 2026" pass 2026-01-01 through 2026-12-31.
+
+drop function if exists public.mcp_get_outstanding(text);
+
+create or replace function public.mcp_get_outstanding(
+  p_token text,
+  p_start date default null,
+  p_end date default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user uuid;
+  v_start date;
+  v_end_exclusive date;
+  v_insights jsonb;
+  v_items jsonb := '[]'::jsonb;
+  v_total numeric := 0;
+  v_count int := 0;
+  v_window boolean := p_start is not null or p_end is not null;
+  v_scope text;
+  v_attention record;
+  v_year int;
+begin
+  v_user := public.mcp__auth(p_token);
+  select * into v_attention from public.load_needs_attention();
+
+  if v_window then
+    v_start := coalesce(p_start, date '1900-01-01');
+    v_end_exclusive := coalesce(p_end, current_date) + 1;
+    v_insights := public.load_insights_overview(
+      v_start,
+      v_end_exclusive,
+      case when v_end_exclusive - v_start > 45 then 'year' else 'month' end
+    );
+    v_items := coalesce(v_insights->'outstanding_items', '[]'::jsonb);
+    v_total := coalesce((v_insights->>'outstanding')::numeric, 0);
+    v_count := coalesce((v_insights->>'outstanding_gigs')::int, 0);
+    if p_start is not null
+      and p_end is not null
+      and p_start = date_trunc('year', p_start)::date
+      and p_end = (date_trunc('year', p_start) + interval '1 year' - interval '1 day')::date
+    then
+      v_year := extract(year from p_start)::int;
+      v_scope := 'calendar year ' || v_year::text;
+    else
+      v_scope := coalesce(p_start::text, 'the beginning') || ' through ' || coalesce(p_end::text, 'today');
+    end if;
+  else
+    select coalesce(jsonb_agg(item order by (item->>'outstanding')::numeric desc), '[]'::jsonb),
+           coalesce(sum((item->>'outstanding')::numeric), 0),
+           count(*)::int
+    into v_items, v_total, v_count
+    from (
+      select jsonb_build_object(
+        'gig_id', g.id,
+        'title', g.title,
+        'worked_date', (
+          select min(gd.date)
+          from public.gig_dates gd
+          where gd.gig_id = g.id
+            and gd.user_id = v_user
+            and gd.deleted_at is null
+            and gd.status_for_day = 'worked'
+        ),
+        'earned', public.calculate_gig_earned_amount(g.id),
+        'received', coalesce(pt.total_paid, 0),
+        'outstanding', round(public.calculate_gig_earned_amount(g.id) - coalesce(pt.total_paid, 0), 2)
+      ) as item
+      from public.gigs g
+      left join lateral (
+        select coalesce(sum(gp.gross_pay), 0) as total_paid
+        from public.gig_payments gp
+        where gp.gig_id = g.id
+          and gp.user_id = v_user
+          and gp.deleted_at is null
+      ) pt on true
+      where g.user_id = v_user
+        and g.active = true
+        and g.deleted_at is null
+        and coalesce(g.is_unpaid, false) = false
+        and public.calculate_gig_earned_amount(g.id) > coalesce(pt.total_paid, 0)
+    ) due;
+    v_scope := 'all-time';
+  end if;
+
+  return jsonb_build_object(
+    'answer',
+      'The user has ' || public.mcp__money(v_total)
+      || ' outstanding from ' || v_count::text || ' gig'
+      || case when v_count = 1 then '' else 's' end
+      || ' (' || v_scope || '). Report this number. Do not recalculate it.',
+    'assistant_instructions',
+      'Report ' || public.mcp__money(v_total) || ' outstanding. '
+      || 'That number is final. Use items[].outstanding; do not recompute from rates. '
+      || case when v_window
+           then 'This window matches Insights for the same dates. Bump-only days earn bumps only.'
+           else 'This is all-time, not a calendar year. For Insights Year YYYY pass start_date=YYYY-01-01 and end_date=YYYY-12-31.'
+         end,
+    'currency', 'USD',
+    'scope', case when v_window then 'window' else 'all_time' end,
+    'start_date', p_start,
+    'end_date', p_end,
+    'outstanding', round(v_total, 2),
+    'outstanding_gigs', v_count,
+    'items', coalesce(v_items, '[]'::jsonb),
+    'payments_due_count', v_attention.payments_due_count,
+    'payments_due_amount_all_time', v_attention.payments_due_amount,
+    'missing_payment_count', v_attention.missing_payment_count,
+    'missing_dates_count', v_attention.missing_dates_count,
+    'definitions', jsonb_build_object(
+      'answer', 'The sentence to tell the user. Use this dollar amount.',
+      'outstanding', 'Earned minus received. Bump-only worked days earn bumps only, not the day/flat/hourly/guarantee rate.',
+      'items', 'Gigs that still have remaining pay. Quote title + outstanding. Do not reconstruct.',
+      'scope', 'window = Insights for start_date through end_date (inclusive). all_time = every unpaid gig, including prior years.',
+      'payments_due_amount_all_time', 'All-time payments-due total. Ignore this when scope is window; use outstanding instead.'
+    )
+  );
+end;
+$$;
+
+revoke all on function public.mcp_get_outstanding(text, date, date) from public, anon, authenticated;
+grant execute on function public.mcp_get_outstanding(text, date, date) to service_role;
