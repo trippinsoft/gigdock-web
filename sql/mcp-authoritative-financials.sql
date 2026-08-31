@@ -141,8 +141,8 @@ as $$
     when p_status is distinct from 'worked' then
       public.mcp__status_label(p_status) || ' — does not earn.'
     when not coalesce(p_base_pay_applies, true) then
-      'Worked, but the day/flat/hourly rate is not applied this day (base_pay_applies=false). '
-      || 'Bumps only: ' || public.mcp__money(p_bumps) || '. Earned ' || public.mcp__money(p_earned) || '.'
+      'Bump-only day — the user turned off base pay for this date. Earned '
+      || public.mcp__money(p_earned) || ' in bumps.'
     when p_pay_type = 'dayRate' and coalesce(p_bumps, 0) = 0 then
       'Worked; ' || public.mcp__money(p_pay_flat_rate) || ' day rate. Earned ' || public.mcp__money(p_earned) || '.'
     when p_pay_type = 'dayRate' then
@@ -172,8 +172,8 @@ immutable
 as $$
   select 'Report ' || public.mcp__money(p_gross)
     || ' as the user''s earnings. That number is final. '
-    || 'Do not tell the user GigDock is wrong or inconsistent. '
-    || 'Do not multiply a day rate by worked days — that shortcut ignores bumps and days where base pay does not apply. '
+    || 'A worked day can be bump-only: the user turned off base pay, so that day earns bumps only. '
+    || 'Do not multiply the day rate by every worked day. '
     || 'If they ask why, quote dates[].reason.';
 $$;
 
@@ -181,21 +181,27 @@ create or replace function public.mcp__shortcut_warning(
   p_pay_type text,
   p_amount numeric,
   p_worked_days integer,
-  p_gross numeric
+  p_gross numeric,
+  p_bump_only_days integer default 0
 )
 returns text
 language sql
 immutable
 as $$
   select case
+    when coalesce(p_bump_only_days, 0) > 0 then
+      p_worked_days::text || ' worked days include ' || p_bump_only_days::text
+      || ' bump-only day(s) where the user turned off base pay. '
+      || 'Do not multiply every worked day by ' || public.mcp__money(p_amount)
+      || '. Report ' || public.mcp__money(p_gross) || '.'
     when p_pay_type in ('dayRate', 'flatRate')
       and coalesce(p_amount, 0) > 0
       and coalesce(p_worked_days, 0) > 0
       and round(p_amount * p_worked_days, 2) is distinct from round(p_gross, 2)
     then p_worked_days::text || ' worked days × ' || public.mcp__money(p_amount)
       || ' would be ' || public.mcp__money(p_amount * p_worked_days)
-      || '. That shortcut is wrong. Actual gross_earned is ' || public.mcp__money(p_gross)
-      || ' (bumps and days where base pay does not apply are already in the per-date earned).'
+      || '. That is not how this gig is paid (bumps and/or bump-only days). Report '
+      || public.mcp__money(p_gross) || '.'
     else null
   end;
 $$;
@@ -219,6 +225,7 @@ as $$
       'status', coalesce(gd.status_for_day, 'unknown'),
       'status_label', public.mcp__status_label(gd.status_for_day),
       'earns', gd.status_for_day = 'worked',
+      'bump_only', gd.status_for_day = 'worked' and not coalesce(gd.base_pay_applies, true),
       'hours', gd.hours_total,
       'base_pay_applies', coalesce(gd.base_pay_applies, true),
       'bumps', round(coalesce(gd.bumps, 0), 2),
@@ -305,7 +312,8 @@ as $$
         'date', gd.date,
         'status', coalesce(gd.status_for_day, 'unknown'),
         'status_label', public.mcp__status_label(gd.status_for_day),
-        'earns', gd.status_for_day = 'worked'
+        'earns', gd.status_for_day = 'worked',
+        'bump_only', gd.status_for_day = 'worked' and not coalesce(gd.base_pay_applies, true)
       ) order by gd.date), '[]'::jsonb)
       from public.gig_dates gd
       where gd.gig_id = p_gig.id
@@ -505,7 +513,14 @@ begin
   end if;
 
   return jsonb_build_object(
-    'answer', 'The user earned ' || public.mcp__money(v_gross) || ' gross on "' || g.title || '". Report this number.',
+    'answer', 'The user earned ' || public.mcp__money(v_gross) || ' gross on "' || g.title || '"'
+      || case when (
+        select count(*) from public.gig_dates gd
+        where gd.gig_id = g.id and gd.user_id = v_user and gd.deleted_at is null
+          and gd.status_for_day = 'worked' and not coalesce(gd.base_pay_applies, true)
+      ) > 0 then '. One or more worked days are bump-only (base pay turned off by the user)'
+      else '' end
+      || '. Report this number.',
     'assistant_instructions', public.mcp__assistant_guard(v_gross),
     'shortcut_is_wrong', public.mcp__shortcut_warning(
       g.pay_type::text,
@@ -518,7 +533,16 @@ begin
           and gd.deleted_at is null
           and gd.status_for_day = 'worked'
       ),
-      v_gross
+      v_gross,
+      (
+        select count(*)::int
+        from public.gig_dates gd
+        where gd.gig_id = g.id
+          and gd.user_id = v_user
+          and gd.deleted_at is null
+          and gd.status_for_day = 'worked'
+          and not coalesce(gd.base_pay_applies, true)
+      )
     ),
     'id', g.id,
     'title', g.title,
@@ -538,6 +562,15 @@ begin
         and gd.deleted_at is null
         and gd.status_for_day = 'worked'
     ),
+    'bump_only_days', (
+      select count(*)::int
+      from public.gig_dates gd
+      where gd.gig_id = g.id
+        and gd.user_id = v_user
+        and gd.deleted_at is null
+        and gd.status_for_day = 'worked'
+        and not coalesce(gd.base_pay_applies, true)
+    ),
     'dates', v_dates,
     'data_quality', case
       when jsonb_array_length(v_issues) > 0 then jsonb_build_object('status', 'warning', 'issues', v_issues)
@@ -546,8 +579,9 @@ begin
     'definitions', jsonb_build_object(
       'answer', 'The sentence to tell the user. Use this dollar amount.',
       'gross_earned', 'Same amount as answer. Do not recompute from a day rate or date count.',
-      'dates.reason', 'Why that date earned what it did. Quote this if asked why the total is not rate × days.',
-      'shortcut_is_wrong', 'When present, this is the rate × days figure you must not use.'
+      'dates.reason', 'Why that date earned what it did. Bump-only days are intentional: the user turned off base pay.',
+      'bump_only', 'Worked day with base pay turned off. Earns bumps only. Not an error.',
+      'shortcut_is_wrong', 'Reminder not to multiply day rate × every worked day when bump-only days exist.'
     )
   );
 end;
@@ -608,6 +642,11 @@ begin
         where (d->>'earns')::boolean
       ) as worked_days,
       (
+        select count(*)::int
+        from jsonb_array_elements(dt.dates) d
+        where coalesce((d->>'bump_only')::boolean, false)
+      ) as bump_only_days,
+      (
         select coalesce(sum(gp.gross_pay), 0)
         from public.gig_payments gp
         where gp.gig_id = g.id
@@ -627,7 +666,12 @@ begin
         coalesce((
           select sum((d->>'earned')::numeric)
           from jsonb_array_elements(dt.dates) d
-        ), 0)
+        ), 0),
+        (
+          select count(*)::int
+          from jsonb_array_elements(dt.dates) d
+          where coalesce((d->>'bump_only')::boolean, false)
+        )
       ) as shortcut_is_wrong
     from public.gigs g
     left join public.companies gc on gc.id = g.gig_company_id
@@ -660,6 +704,7 @@ begin
       'received', iw.received,
       'outstanding', round(iw.gross_earned - iw.received, 2),
       'worked_days', iw.worked_days,
+      'bump_only_days', iw.bump_only_days,
       'shortcut_is_wrong', iw.shortcut_is_wrong,
       'dates', iw.dates
     ) order by iw.title), '[]'::jsonb),
@@ -677,7 +722,14 @@ begin
         || case
              when p_start is not null or p_end is not null then ' in this window'
              else ''
-           end || '. Report this number. Do not recalculate it.'
+           end
+        || case when coalesce((
+             select sum(coalesce((g->>'bump_only_days')::int, 0))
+             from jsonb_array_elements(coalesce(v_gigs, '[]'::jsonb)) g
+           ), 0) > 0
+           then '. At least one worked day is bump-only (the user turned off base pay that day)'
+           else '' end
+        || '. Report this number. Do not recalculate it.'
     end,
     'assistant_instructions', case
       when jsonb_array_length(coalesce(v_gigs, '[]'::jsonb)) = 0 then null
@@ -697,6 +749,10 @@ begin
     'received', v_paid,
     'outstanding', round(v_gross - v_paid, 2),
     'worked_days', v_worked,
+    'bump_only_days', coalesce((
+      select sum(coalesce((g->>'bump_only_days')::int, 0))
+      from jsonb_array_elements(coalesce(v_gigs, '[]'::jsonb)) g
+    ), 0),
     'gig_count', jsonb_array_length(coalesce(v_gigs, '[]'::jsonb)),
     'gigs', coalesce(v_gigs, '[]'::jsonb),
     'message', case
@@ -707,8 +763,9 @@ begin
     'definitions', jsonb_build_object(
       'answer', 'The sentence to tell the user. Use this dollar amount.',
       'gross_earned', 'Same amount as answer. Sum of dates.earned. Do not recompute from rates or date counts.',
-      'dates.reason', 'Why that date earned what it did. Quote this if asked why the total is not rate × days.',
-      'shortcut_is_wrong', 'When present, this is the rate × days figure you must not use.'
+      'dates.reason', 'Why that date earned what it did. Bump-only days are intentional: the user turned off base pay.',
+      'bump_only', 'Worked day with base pay turned off. Earns bumps only. Not an error.',
+      'shortcut_is_wrong', 'Reminder not to multiply day rate × every worked day when bump-only days exist.'
     )
   );
 end;
@@ -720,7 +777,8 @@ revoke all on function public.mcp__pay_object(text, numeric, numeric, numeric, n
 revoke all on function public.mcp__money(numeric) from public, anon, authenticated;
 revoke all on function public.mcp__date_reason(text, boolean, numeric, text, numeric, numeric, numeric, numeric) from public, anon, authenticated;
 revoke all on function public.mcp__assistant_guard(numeric) from public, anon, authenticated;
-revoke all on function public.mcp__shortcut_warning(text, numeric, integer, numeric) from public, anon, authenticated;
+drop function if exists public.mcp__shortcut_warning(text, numeric, integer, numeric);
+revoke all on function public.mcp__shortcut_warning(text, numeric, integer, numeric, integer) from public, anon, authenticated;
 revoke all on function public.mcp__date_earned(text, boolean, numeric, text, numeric, numeric, numeric, numeric, numeric, numeric, numeric) from public, anon, authenticated;
 drop function if exists public.mcp__gig_dates(uuid);
 revoke all on function public.mcp__gig_dates(uuid, date, date) from public, anon, authenticated;

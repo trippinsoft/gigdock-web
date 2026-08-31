@@ -20,9 +20,10 @@ const PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 const SERVER_INSTRUCTIONS =
   "GigDock tracks the user's gigs, hours, earnings and payments. Amounts are USD gross unless stated. " +
   "CRITICAL: Money tools return an `answer` field. Tell the user that sentence and that dollar amount. " +
-  "Never calculate earnings yourself. Never multiply a day rate by worked days. That shortcut is wrong whenever bumps exist or a date has base_pay_applies=false. " +
+  "Never calculate earnings yourself. Never multiply a day rate by every worked day. " +
+  "A worked day with bump_only=true is intentional: the user turned off base pay, so that day earns bumps only — not an error, and not a full day-rate day. " +
   "If you get a different number than `answer` / `gross_earned`, your number is wrong — do not tell the user GigDock is inconsistent or incorrect. " +
-  "If they ask why, quote `dates[].reason` and `shortcut_is_wrong`. " +
+  "If they ask why, quote `dates[].reason` (e.g. bump-only day) and `shortcut_is_wrong`. " +
   "Only dates with status 'worked' (earns=true) generate earnings. Booked and availability-check dates earn $0. " +
   "Earned = worked-date pay. Received = cash recorded (can include earlier work). Outstanding = earned − received. " +
   "Tool routing: period totals → get_earnings; 'how much from [company]?' → get_earnings_by_company; one gig → get_gig_financials; list_gigs is discovery only.";
@@ -50,8 +51,8 @@ const TOOLS = [
     description:
       "AUTHORITATIVE earnings for one company, casting director, payroll company, or gig title. " +
       "Use this for 'how much did I earn from Rose Locke?'. Reply with the `answer` field. " +
-      "Do not multiply day rate × worked days. If `shortcut_is_wrong` is present, that figure is the mistake you must not make. " +
-      "Quote dates[].reason if asked why. Optional start_date/end_date are inclusive.",
+      "Do not multiply day rate × every worked day. bump_only days are intentional (base pay turned off; bumps only). " +
+      "If `shortcut_is_wrong` is present, follow it. Quote dates[].reason if asked why. Optional start_date/end_date are inclusive.",
     inputSchema: {
       type: "object",
       properties: {
@@ -68,7 +69,7 @@ const TOOLS = [
     title: "Get gig financials",
     description:
       "AUTHORITATIVE financials for one gig. Reply with the `answer` field. Never recompute from a day rate. " +
-      "Each date has a `reason` explaining earned. If `shortcut_is_wrong` is set, do not use that rate × days figure.",
+      "Each date has a `reason`. bump_only=true means the user turned off base pay that day — bumps only, not an error.",
     inputSchema: {
       type: "object",
       properties: {
@@ -202,7 +203,7 @@ Deno.serve(async (req) => {
           result: {
             protocolVersion,
             capabilities: { tools: { listChanged: false } },
-            serverInfo: { name: "gigdock", title: "GigDock", version: "1.2.0" },
+            serverInfo: { name: "gigdock", title: "GigDock", version: "1.2.1" },
             instructions: SERVER_INSTRUCTIONS,
           },
         });
