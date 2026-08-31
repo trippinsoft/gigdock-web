@@ -160,8 +160,9 @@ export default function McpTokens() {
         </div>
         {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
         <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500">
-          In Claude: Settings → Connectors → Add custom connector, paste the server URL, choose Bearer token.
-          In ChatGPT: Settings → enable Developer Mode → add connector → Authentication: Token.
+          In Claude or ChatGPT you can also just add the server URL as a custom connector and sign in
+          when prompted — no token needed (OAuth). Tokens are for clients you point at the URL manually
+          (Cursor, scripts) or when you prefer a paste-in credential.
         </p>
       </div>
     </div>

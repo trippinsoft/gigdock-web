@@ -9,8 +9,13 @@
 > `get_earnings`, `list_gigs`, `get_outstanding`; `mcp_tokens` table +
 > `mcp_create_token` / `mcp_revoke_token`; and the Settings → Connected
 > assistants panel (this spec's Phase 5) to mint/revoke `gd_...` bearer tokens.
-> Auth is personal-access-token first — OAuth 2.1 below is the follow-up, and
-> the shipped `mcp_tokens` table is a simpler variant to be extended then.
+> **OAuth 2.1 also SHIPPED 2026-08-31** (migration `mcp_oauth`,
+> `sql/mcp-oauth.sql`): discovery at `/.well-known/oauth-authorization-server`
+> and `/.well-known/oauth-protected-resource[/mcp]`, Dynamic Client
+> Registration at `/api/oauth/register`, PKCE token endpoint (+ rotating
+> refresh) at `/api/oauth/token`, and the consent page at `/oauth/authorize`
+> (reuses `/login?next=`). OAuth access tokens live in the same `mcp_tokens`
+> table with `expires_at` + `refresh_token_hash`; personal tokens still work.
 > One deliberate deviation: the Edge Function calls SECURITY DEFINER
 > `mcp_*` wrappers (service-role execute only) that validate the token and
 > impersonate its owner via `request.jwt.claims` before invoking the same

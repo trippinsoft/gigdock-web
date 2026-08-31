@@ -95,8 +95,11 @@ function json(status: number, payload: unknown, extra: Record<string, string> = 
 }
 
 function unauthorized(): Response {
+  // resource_metadata lets OAuth-capable MCP clients (claude.ai, ChatGPT)
+  // discover the GigDock authorization server and run the connect flow.
   return json(401, { error: "invalid_token", message: "Provide a GigDock access token: Authorization: Bearer gd_..." }, {
-    "www-authenticate": 'Bearer realm="GigDock MCP", error="invalid_token"',
+    "www-authenticate":
+      'Bearer realm="GigDock MCP", error="invalid_token", resource_metadata="https://www.gigdock.co/.well-known/oauth-protected-resource/mcp"',
   });
 }
 
