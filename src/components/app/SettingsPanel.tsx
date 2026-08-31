@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
+import McpTokens from "@/components/app/McpTokens";
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -89,6 +90,10 @@ export default function SettingsPanel({
         <NavRow href="/projects" label="Projects" hint="Productions you work on" />
         <NavRow href="/companies" label="Gig companies" hint="Companies you’ve worked with" />
         <NavRow href="/payroll" label="Payroll companies" hint="Companies that process your payments" />
+      </Card>
+
+      <Card title="Connected assistants">
+        <McpTokens />
       </Card>
 
       <Card title="Manage">
