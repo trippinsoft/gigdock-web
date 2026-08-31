@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import PublicShell from "@/components/PublicShell";
 import AppCta from "@/components/AppCta";
 
@@ -8,6 +9,7 @@ const PATH = "/guides/how-to-keep-track-of-gig-work";
 const TITLE = "How to Keep Track of Gig Work: Jobs, Hours, Pay & Records";
 const DESCRIPTION =
   "Doing the work is only part of the job. How to keep gigs, hours, pay, companies and documents connected — so outstanding money and missing records don’t disappear.";
+const HERO = "/guides/keep-track-hero.png";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -19,8 +21,9 @@ export const metadata: Metadata = {
     type: "article",
     siteName: "GigDock",
     url: `${BASE}${PATH}`,
+    images: [{ url: HERO, width: 1200, height: 630, alt: "How to Keep Track of Gig Work — a GigDock guide" }],
   },
-  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, images: [HERO] },
 };
 
 const FAQ: { q: string; a: string }[] = [
@@ -52,8 +55,8 @@ function H2({ children }: { children: React.ReactNode }) {
 function H3({ children }: { children: React.ReactNode }) {
   return <h3 className="mt-6 text-lg font-bold text-zinc-900 dark:text-zinc-100">{children}</h3>;
 }
-function P({ children }: { children: React.ReactNode }) {
-  return <p className="mt-3 leading-relaxed">{children}</p>;
+function P({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <p className={`mt-3 leading-relaxed ${className ?? ""}`}>{children}</p>;
 }
 function UL({ items }: { items: React.ReactNode[] }) {
   return <ul className="mt-3 list-disc space-y-1.5 pl-5">{items.map((t, i) => <li key={i}>{t}</li>)}</ul>;
@@ -61,11 +64,20 @@ function UL({ items }: { items: React.ReactNode[] }) {
 const A = ({ href, children }: { href: string; children: React.ReactNode }) => (
   <Link href={href} className="font-medium text-blue-600 hover:underline dark:text-blue-400">{children}</Link>
 );
+function Figure({ src, alt, w, h }: { src: string; alt: string; w: number; h: number }) {
+  return (
+    <figure className="mt-6">
+      <Image src={src} alt={alt} width={w} height={h} sizes="(max-width: 1024px) 100vw, 960px"
+        className="w-full h-auto rounded-xl border border-zinc-200 dark:border-zinc-800" />
+    </figure>
+  );
+}
 
 export default function Page() {
   const articleLd = {
     "@context": "https://schema.org", "@type": "Article",
     headline: TITLE, description: DESCRIPTION,
+    image: `${BASE}${HERO}`,
     author: { "@type": "Organization", name: "GigDock" },
     publisher: { "@type": "Organization", name: "GigDock", logo: { "@type": "ImageObject", url: `${BASE}/gigdock-logo.png` } },
     mainEntityOfPage: `${BASE}${PATH}`,
@@ -96,11 +108,11 @@ export default function Page() {
           <span className="text-zinc-700 dark:text-zinc-300">Keeping track of gig work</span>
         </nav>
 
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
-          How to Keep Track of Gig Work: Jobs, Hours, Pay &amp; Records
-        </h1>
+        <Image src={HERO} alt="How to Keep Track of Gig Work: Jobs, Hours, Pay and Records — keep the important details connected from booking through payment. A GigDock guide."
+          width={1200} height={630} priority sizes="(max-width: 1024px) 100vw, 960px" className="w-full h-auto rounded-2xl" />
+        <h1 className="sr-only">How to Keep Track of Gig Work: Jobs, Hours, Pay &amp; Records</h1>
 
-        <P>When you only have one gig to keep up with, the details may seem easy enough to remember.</P>
+        <P className="mt-6">When you only have one gig to keep up with, the details may seem easy enough to remember.</P>
         <P>Then another opportunity comes along.</P>
         <P>One job is booked for Tuesday. Another is waiting on confirmation. The rate for one is buried in a text message. You worked longer than expected on another. A payment arrives weeks later from a company name you barely recognize. Meanwhile, a receipt, contract or work document you need is somewhere in your email or camera roll.</P>
         <P>That is one of the hidden challenges of gig work: <strong>doing the work is only part of the job. You also have to keep track of the work.</strong></P>
@@ -109,6 +121,8 @@ export default function Page() {
         <H2>What should you keep track of for each gig?</H2>
         <P>You don&rsquo;t need to record every possible detail. You do need enough information to answer a few basic questions later:</P>
         <P><strong>What was the gig? When did I work? Who was it for? What was I supposed to earn? What actually happened? And did I get paid?</strong></P>
+        <Figure src="/guides/keep-track-what-to-track.png" w={1200} h={760}
+          alt="What to track for every gig: project or gig name, company or client, work dates, rate or compensation, actual hours worked, additional pay or adjustments, payments and status, and notes plus documents. The rule: keep the important information connected to the gig that created it." />
         <P>A useful gig record typically includes:</P>
         <UL items={[
           "Project or gig name",
@@ -144,6 +158,8 @@ export default function Page() {
         <P>Your work record should tell you what actually happened.</P>
         <P>Suppose you accepted a gig advertised at $200 for 10 hours. You ended up working 12 hours and qualified for an additional $25 payment.</P>
         <P>If you only save the original $200 rate, your record no longer reflects the work you performed.</P>
+        <Figure src="/guides/keep-track-booked-vs-actual.png" w={1200} h={675}
+          alt="Booked versus what actually happened: a gig booked at $200 for 10 hours versus the actual work of 12 hours plus $25 extra. If you only save the original booking, your record may no longer match the work." />
         <P>Depending on your type of gig, record things such as:</P>
         <UL items={[
           "Actual start and end time",
@@ -160,34 +176,8 @@ export default function Page() {
         <P>This is one of the most useful habits a gig worker can develop.</P>
         <P><strong>Earning money and receiving money are not the same event.</strong></P>
         <P>Imagine you work three gigs:</P>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-sm border border-zinc-200 dark:border-zinc-800 rounded-lg">
-            <thead className="bg-zinc-50 dark:bg-zinc-900 text-left">
-              <tr>
-                <th className="px-3 py-2 font-semibold">Gig</th>
-                <th className="px-3 py-2 font-semibold text-right">Earned</th>
-                <th className="px-3 py-2 font-semibold text-right">Received</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-              <tr>
-                <td className="px-3 py-2">Gig A</td>
-                <td className="px-3 py-2 text-right">$250</td>
-                <td className="px-3 py-2 text-right">$250</td>
-              </tr>
-              <tr>
-                <td className="px-3 py-2">Gig B</td>
-                <td className="px-3 py-2 text-right">$400</td>
-                <td className="px-3 py-2 text-right">$0</td>
-              </tr>
-              <tr>
-                <td className="px-3 py-2">Gig C</td>
-                <td className="px-3 py-2 text-right">$175</td>
-                <td className="px-3 py-2 text-right">$175</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <Figure src="/guides/keep-track-earned-vs-received.png" w={1200} h={675}
+          alt="Earned is not the same as received. Three gigs totaling $825 earned and $425 received leave $400 outstanding. Payment can arrive long after the work — track the two separately. Your bank account alone cannot tell you the full story." />
         <P>You earned <strong>$825</strong>.</P>
         <P>But you have only received <strong>$425</strong>.</P>
         <P>That means <strong>$400 is still outstanding</strong>.</P>
@@ -260,9 +250,8 @@ export default function Page() {
         <P>The challenge comes as your gig history grows. Documents live somewhere else, schedules live somewhere else, and updating multiple pieces manually becomes cumbersome.</P>
         <H3>Gig-management platform</H3>
         <P>A dedicated gig-management system can connect the pieces:</P>
-        <p className="mt-3 rounded-lg bg-zinc-100 dark:bg-zinc-800/60 px-4 py-3 text-center text-sm font-semibold text-zinc-800 dark:text-zinc-200 overflow-x-auto">
-          Opportunity → Gig → Schedule → Hours → Earnings → Payment → Documents → History
-        </p>
+        <Figure src="/guides/keep-track-work-connected.png" w={1200} h={675}
+          alt="Keep the work connected: opportunity, gig, schedule, hours, earnings, payment, documents and history — one gig, one connected history from opportunity through payment." />
         <P>That is particularly useful for people who work many short-term jobs rather than one traditional job with one employer.</P>
 
         <H2>Create a routine after every gig</H2>
