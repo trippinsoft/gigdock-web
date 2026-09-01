@@ -10,12 +10,9 @@ The app already reads the **same live Supabase database** as the web app (RolePa
 
 ## What to change
 
-Replace the upper count that currently looks like **“98 opportunities”** with:
+Replace the upper count that currently looks like **“98 opportunities”** with **“{posts} posts · {roles} roles”** (singular when 1: `1 post · 6 roles`). Always show both numbers, even when they match.
 
-- If the number of visible posts equals the number of named roles: keep **“{n} opportunity”** / **“{n} opportunities”**
-- If they differ: **“{posts} posts · {roles} roles”** (singular when 1: `1 post · 6 roles`)
-
-Examples: `98 opportunities` · `1 post · 6 roles` · `20 posts · 27 roles`
+Examples: `98 posts · 98 roles` · `1 post · 6 roles` · `20 posts · 27 roles`
 
 If the Filters sheet button says “Show N opportunities”, use the same string there.
 
@@ -35,7 +32,6 @@ function roleCountOnPost(item) {
 }
 
 function formatPostRoleCount(posts, roles) {
-  if (roles === posts) return `${posts} ${posts === 1 ? "opportunity" : "opportunities"}`;
   const postWord = posts === 1 ? "post" : "posts";
   const roleWord = roles === 1 ? "role" : "roles";
   return `${posts} ${postWord} · ${roles} ${roleWord}`;

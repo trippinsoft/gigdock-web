@@ -112,7 +112,6 @@ export function rolesOf(item: RoleBearing): OppRole[] {
 export function formatPostRoleCount(posts: number, roles: number): string {
   const postWord = posts === 1 ? "post" : "posts";
   const roleWord = roles === 1 ? "role" : "roles";
-  if (roles === posts) return `${posts} ${posts === 1 ? "opportunity" : "opportunities"}`;
   return `${posts} ${postWord} · ${roles} ${roleWord}`;
 }
 

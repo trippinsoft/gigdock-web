@@ -65,7 +65,8 @@ assert.equal(
   null
 );
 
-assert.equal(formatPostRoleCount(98, 98), "98 opportunities");
+assert.equal(formatPostRoleCount(98, 98), "98 posts · 98 roles");
+assert.equal(formatPostRoleCount(1, 1), "1 post · 1 role");
 assert.equal(formatPostRoleCount(1, 6), "1 post · 6 roles");
 assert.equal(formatPostRoleCount(20, 27), "20 posts · 27 roles");
 
