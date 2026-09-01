@@ -142,6 +142,21 @@ export default async function InsightsPage({
               </div>
             </Card>
 
+            <Card className="md:col-span-2">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <div>
+                  <div className="text-sm font-medium text-zinc-700 dark:text-zinc-200">Earnings trend</div>
+                  <div className="text-sm text-zinc-400 dark:text-zinc-500">Monthly gross earnings</div>
+                </div>
+                <ProBadge />
+              </div>
+              {chartData.some((d) => d.value > 0) ? (
+                <EarningsBars data={chartData} height={mode === "year" ? 140 : 160} />
+              ) : (
+                <p className="text-sm text-zinc-400 dark:text-zinc-500 py-8 text-center">No earnings to chart for {label}.</p>
+              )}
+            </Card>
+
             <Link href={hrefFor(mode, period, "payments")} className="block group">
               <Card className="h-full transition-colors group-hover:border-zinc-300 dark:group-hover:border-zinc-700">
                 <div className="flex items-start justify-between gap-2">
@@ -188,21 +203,6 @@ export default async function InsightsPage({
                 <p className="mt-3 text-sm text-zinc-400 dark:text-zinc-500">{periodStatusLabel(mode, label)}</p>
               </Card>
             </Link>
-
-            <Card className="md:col-span-2">
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <div>
-                  <div className="text-sm font-medium text-zinc-700 dark:text-zinc-200">Earnings trend</div>
-                  <div className="text-sm text-zinc-400 dark:text-zinc-500">Monthly gross earnings</div>
-                </div>
-                <ProBadge />
-              </div>
-              {chartData.some((d) => d.value > 0) ? (
-                <EarningsBars data={chartData} height={mode === "year" ? 140 : 160} />
-              ) : (
-                <p className="text-sm text-zinc-400 dark:text-zinc-500 py-8 text-center">No earnings to chart for {label}.</p>
-              )}
-            </Card>
 
             <Card className="md:col-span-2">
               <div className="flex items-center justify-between gap-2 mb-4">
