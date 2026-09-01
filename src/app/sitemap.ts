@@ -1,37 +1,68 @@
 import type { MetadataRoute } from "next";
-import { createSupabasePublic } from "@/lib/supabase-public";
-import { buildSitemapEntries, type SitemapOpp } from "@/lib/sitemap-entries";
+import { createSupabaseServer } from "@/lib/supabase-server";
+import { stateSlug } from "@/lib/markets";
+import { indexableMarketSlugs } from "@/lib/marketContent";
+import { guideSlugs } from "@/lib/guides";
 
-export const revalidate = 3600;
-export const dynamic = "force-static";
+const BASE = "https://www.gigdock.co";
 
-async function loadSitemapOpportunities(): Promise<SitemapOpp[]> {
-  try {
-    const supabase = createSupabasePublic();
-    if (!supabase) return [];
-
-    const today = new Date().toISOString().slice(0, 10);
-    const { data, error } = await supabase
-      .from("opportunities")
-      .select("id, updated_at, match_state")
-      .eq("status", "active")
-      .is("deleted_at", null)
-      .or(`expires_at.is.null,expires_at.gte.${today}`)
-      .order("posted_at", { ascending: false })
-      .limit(5000);
-
-    if (error) {
-      console.error("sitemap opportunities query failed:", error.message);
-      return [];
-    }
-    return (data ?? []) as SitemapOpp[];
-  } catch (err) {
-    console.error("sitemap opportunities fetch failed:", err);
-    return [];
-  }
-}
+export const revalidate = 3600; // refresh hourly
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const opps = await loadSitemapOpportunities();
-  return buildSitemapEntries(opps);
+  const today = new Date().toISOString().slice(0, 10);
+  const supabase = await createSupabaseServer();
+
+  const { data } = await supabase
+    .from("opportunities")
+    .select("id, updated_at, match_state")
+    .eq("status", "active")
+    .is("deleted_at", null)
+    .or(`expires_at.is.null,expires_at.gte.${today}`)
+    .order("posted_at", { ascending: false })
+    .limit(5000);
+
+  const opps = data ?? [];
+
+  const oppUrls: MetadataRoute.Sitemap = opps.map((o) => ({
+    url: `${BASE}/opportunities/${o.id}`,
+    lastModified: o.updated_at ?? undefined,
+    changeFrequency: "hourly",
+    priority: 0.7,
+  }));
+
+  // One market page per state that currently has active opportunities.
+  const states = Array.from(
+    new Set(opps.map((o) => o.match_state).filter(Boolean) as string[])
+  );
+  const marketUrls: MetadataRoute.Sitemap = states.map((code) => ({
+    url: `${BASE}/opportunities/${stateSlug(code)}`,
+    changeFrequency: "hourly",
+    priority: 0.8,
+  }));
+
+  // Region market pages (e.g. /opportunities/atlanta-ga) — the primary SEO pages.
+  // Only INDEXABLE markets (real content + inventory); stubs render but stay out.
+  const regionUrls: MetadataRoute.Sitemap = indexableMarketSlugs().map((slug) => ({
+    url: `${BASE}/opportunities/${slug}`,
+    changeFrequency: "hourly",
+    priority: 0.9,
+  }));
+
+  return [
+    { url: BASE, changeFrequency: "hourly", priority: 1 },
+    { url: `${BASE}/opportunities`, changeFrequency: "hourly", priority: 0.9 },
+    { url: `${BASE}/app`, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${BASE}/gigfit`, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${BASE}/opportunities/locations`, changeFrequency: "hourly", priority: 0.8 },
+    // Evergreen guides hub + each guide (from the registry).
+    { url: `${BASE}/guides`, changeFrequency: "weekly", priority: 0.7 },
+    ...guideSlugs().map((slug) => ({
+      url: `${BASE}/guides/${slug}`,
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    })),
+    ...regionUrls,
+    ...marketUrls,
+    ...oppUrls,
+  ];
 }

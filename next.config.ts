@@ -1,16 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  async headers() {
-    return [
-      {
-        source: "/sitemap.xml",
-        headers: [
-          { key: "Access-Control-Allow-Origin", value: "*" },
-        ],
-      },
-    ];
-  },
   async rewrites() {
     return [
       // Public MCP endpoint on our domain. Proxies to the Supabase Edge
