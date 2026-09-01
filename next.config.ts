@@ -6,7 +6,6 @@ const nextConfig: NextConfig = {
       {
         source: "/sitemap.xml",
         headers: [
-          { key: "Content-Type", value: "application/xml; charset=utf-8" },
           { key: "Access-Control-Allow-Origin", value: "*" },
         ],
       },
