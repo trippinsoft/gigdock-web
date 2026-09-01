@@ -27,6 +27,7 @@ const built = buildSitemapEntries([
   { id: "20be5daf-b5ae-4218-bedc-62c9639f454c", updated_at: "2026-08-30T21:23:07.392875+00:00", match_state: "GA" },
   { id: "not-a-uuid", updated_at: "2026-08-30T21:23:07Z", match_state: "GA" },
   { id: "57e6f558-5268-409d-be56-2cb046aa5b9f", updated_at: "bogus", match_state: "MadeUp" },
+  { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", updated_at: "2026-08-30T21:23:07Z", match_state: null },
 ]);
 
 const urls = built.map((e) => e.url);
@@ -35,6 +36,10 @@ assert.ok(urls.includes(`${SITEMAP_BASE}/opportunities/georgia`));
 assert.ok(urls.includes(`${SITEMAP_BASE}/opportunities/20be5daf-b5ae-4218-bedc-62c9639f454c`));
 assert.ok(!urls.includes(`${SITEMAP_BASE}/opportunities/not-a-uuid`));
 assert.ok(!urls.includes(`${SITEMAP_BASE}/opportunities/madeup`));
+assert.ok(
+  !built.some((e) => e.url.includes("/opportunities/null")),
+  "null match_state must not become a location URL"
+);
 
 const gig = built.find((e) => e.url.endsWith("20be5daf-b5ae-4218-bedc-62c9639f454c"));
 assert.equal(gig?.lastModified, "2026-08-30");

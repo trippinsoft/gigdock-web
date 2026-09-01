@@ -13,6 +13,10 @@ export type SitemapOpp = {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+function isKnownStateCode(code: string | null): code is string {
+  return typeof code === "string" && code in STATE_NAMES;
+}
+
 /**
  * Google Search Console rejects many valid W3C datetimes (microseconds,
  * +00:00 offsets, etc.). Date-only lastmod is explicitly supported.
@@ -71,7 +75,7 @@ export function buildSitemapEntries(opps: SitemapOpp[]): MetadataRoute.Sitemap {
     new Set(
       opps
         .map((o) => o.match_state)
-        .filter((code): code is string => Boolean(code) && code in STATE_NAMES)
+        .filter(isKnownStateCode)
     )
   );
   for (const code of states) {
