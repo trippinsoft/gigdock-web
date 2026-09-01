@@ -36,6 +36,10 @@ assert.ok(urls.includes(`${SITEMAP_BASE}/opportunities/georgia`));
 assert.ok(urls.includes(`${SITEMAP_BASE}/opportunities/20be5daf-b5ae-4218-bedc-62c9639f454c`));
 assert.ok(!urls.includes(`${SITEMAP_BASE}/opportunities/not-a-uuid`));
 assert.ok(!urls.includes(`${SITEMAP_BASE}/opportunities/madeup`));
+assert.ok(
+  !built.some((e) => e.url.includes("/opportunities/null")),
+  "null match_state must not become a location URL"
+);
 
 const gig = built.find((e) => e.url.endsWith("20be5daf-b5ae-4218-bedc-62c9639f454c"));
 assert.equal(gig?.lastModified, "2026-08-30");
