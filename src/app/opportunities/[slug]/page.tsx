@@ -4,6 +4,7 @@ import type { Opportunity } from "@/lib/types";
 import OpportunitiesFeed from "@/components/OpportunitiesFeed";
 import LocationListing from "@/components/LocationListing";
 import TrackEvent from "@/components/TrackEvent";
+import { loadActiveOpportunities } from "@/lib/load-opportunities";
 import { codeForSlug } from "@/lib/markets";
 import { getSeoMarket, stateSpec, type MarketSpec } from "@/lib/marketContent";
 
@@ -107,7 +108,7 @@ export default async function OpportunitySlugPage({
   if (spec) return <LocationListing spec={spec} />;
 
   // Otherwise a shared gig link (or an unknown slug → feed with nothing selected).
-  const opp = await getOpportunity(slug);
+  const [opp, opps] = await Promise.all([getOpportunity(slug), loadActiveOpportunities()]);
   return (
     <>
       {opp && (
@@ -125,7 +126,7 @@ export default async function OpportunitySlugPage({
           />
         </>
       )}
-      <OpportunitiesFeed initialSelectedId={slug} />
+      <OpportunitiesFeed initialOpps={opps} initialSelectedId={slug} now={Date.now()} />
     </>
   );
 }

@@ -133,16 +133,19 @@ export default function OpportunitiesFeed({
 
   const load = useCallback(async () => {
     setLoading(true);
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const { data } = await supabase
-      .from("opportunities")
-      .select("*")
-      .eq("status", "active")
-      .is("deleted_at", null)
-      .or(`expires_at.is.null,expires_at.gte.${todayStr}`)
-      .order("posted_at", { ascending: false });
-    setOpps(data ?? []);
-    setLoading(false);
+    try {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const { data } = await supabase
+        .from("opportunities")
+        .select("*")
+        .eq("status", "active")
+        .is("deleted_at", null)
+        .or(`expires_at.is.null,expires_at.gte.${todayStr}`)
+        .order("posted_at", { ascending: false });
+      setOpps(data ?? []);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   // Client-fetch the whole active set only when we weren't handed a scoped set.
@@ -179,17 +182,20 @@ export default function OpportunitiesFeed({
     if (refreshingRef.current) return;
     refreshingRef.current = true;
     setRefreshing(true);
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const { data } = await supabase
-      .from("opportunities")
-      .select("*")
-      .eq("status", "active")
-      .is("deleted_at", null)
-      .or(`expires_at.is.null,expires_at.gte.${todayStr}`)
-      .order("posted_at", { ascending: false });
-    setOpps(data ?? []);
-    refreshingRef.current = false;
-    setRefreshing(false);
+    try {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const { data } = await supabase
+        .from("opportunities")
+        .select("*")
+        .eq("status", "active")
+        .is("deleted_at", null)
+        .or(`expires_at.is.null,expires_at.gte.${todayStr}`)
+        .order("posted_at", { ascending: false });
+      setOpps(data ?? []);
+    } finally {
+      refreshingRef.current = false;
+      setRefreshing(false);
+    }
   }, []);
 
   // Auth + saved + profiles (all optional — logged-out users just browse).
