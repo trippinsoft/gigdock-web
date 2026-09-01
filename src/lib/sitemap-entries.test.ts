@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import {
   buildSitemapEntries,
+  renderSitemapXml,
   sitemapLastModified,
   SITEMAP_BASE,
   staticSitemapEntries,
@@ -18,7 +19,8 @@ assert.ok(staticUrls.includes(`${SITEMAP_BASE}/guides/how-to-get-background-acti
 
 assert.equal(sitemapLastModified(null), undefined);
 assert.equal(sitemapLastModified("not-a-date"), undefined);
-assert.ok(sitemapLastModified("2026-08-30T21:23:07.392875+00:00") instanceof Date);
+assert.equal(sitemapLastModified("2026-08-30T21:23:07.392875+00:00"), "2026-08-30");
+assert.equal(sitemapLastModified("2026-08-30T21:23:07Z"), "2026-08-30");
 
 const built = buildSitemapEntries([
   { id: "20be5daf-b5ae-4218-bedc-62c9639f454c", updated_at: "2026-08-30T21:23:07.392875+00:00", match_state: "GA" },
@@ -35,12 +37,20 @@ assert.ok(!urls.includes(`${SITEMAP_BASE}/opportunities/not-a-uuid`));
 assert.ok(!urls.includes(`${SITEMAP_BASE}/opportunities/madeup`));
 
 const gig = built.find((e) => e.url.endsWith("20be5daf-b5ae-4218-bedc-62c9639f454c"));
-assert.ok(gig?.lastModified instanceof Date);
+assert.equal(gig?.lastModified, "2026-08-30");
 
 const noLastmod = built.find((e) => e.url.endsWith("57e6f558-5268-409d-be56-2cb046aa5b9f"));
 assert.equal(noLastmod?.lastModified, undefined);
 
 const empty = buildSitemapEntries([]);
 assert.ok(empty.length >= staticSitemapEntries().length);
+
+const xml = renderSitemapXml(built);
+assert.match(xml, /^<\?xml version="1.0" encoding="UTF-8"\?>/);
+assert.match(xml, /xmlns="http:\/\/www.sitemaps.org\/schemas\/sitemap\/0.9"/);
+assert.match(xml, /<lastmod>2026-08-30<\/lastmod>/);
+assert.doesNotMatch(xml, /<lastmod>[^<]*T/);
+assert.doesNotMatch(xml, /\.392875/);
+assert.match(xml, /<loc>https:\/\/www\.gigdock\.co\/opportunities\/20be5daf-b5ae-4218-bedc-62c9639f454c<\/loc>/);
 
 console.log("sitemap-entries tests passed");
