@@ -1,10 +1,19 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getInsights, getPlan } from "@/lib/backoffice";
-import { money } from "@/lib/format";
-import { EarningsBars, AgingBars, type DonutSeg } from "@/components/app/charts";
-import { PartialReveal } from "@/components/app/pro";
+import { money, shortDate } from "@/lib/format";
+import { EarningsBars, AgingBars, PaidRing, type DonutSeg } from "@/components/app/charts";
+import { PartialReveal, ProBadge } from "@/components/app/pro";
 import InsightsPeriodNav from "@/components/app/InsightsPeriodNav";
+import {
+  careerPatterns,
+  fillYearTrend,
+  gigPaymentStatus,
+  cappedGigPaid,
+  periodCashLabel,
+  periodStatusLabel,
+} from "@/lib/insightsMetrics";
+import type { InsightsOverview } from "@/lib/backoffice-types";
 
 export const metadata: Metadata = {
   title: "Insights",
@@ -12,6 +21,7 @@ export const metadata: Metadata = {
 };
 
 type Mode = "month" | "year";
+type Detail = "gigs" | "payments" | "status" | null;
 
 function currentPeriod(mode: Mode): string {
   const n = new Date();
@@ -22,16 +32,22 @@ function bounds(mode: Mode, period: string) {
   const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   if (mode === "year") {
     const y = Number(period);
-    return { start: fmt(new Date(y, 0, 1)), end: fmt(new Date(y + 1, 0, 1)), bucket: "year" as const, label: period };
+    return { start: fmt(new Date(y, 0, 1)), end: fmt(new Date(y + 1, 0, 1)), bucket: "year" as const, label: period, year: y };
   }
   const [y, m] = period.split("-").map(Number);
-  return { start: fmt(new Date(y, m - 1, 1)), end: fmt(new Date(y, m, 1)), bucket: "month" as const, label: new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" }) };
+  return {
+    start: fmt(new Date(y, m - 1, 1)),
+    end: fmt(new Date(y, m, 1)),
+    bucket: "month" as const,
+    label: new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+    year: y,
+  };
 }
 
-function bucketLabel(dateStr: string, mode: Mode): string {
+function bucketLabel(dateStr: string): string {
   const [y, m, d] = dateStr.slice(0, 10).split("-").map(Number);
   const dt = new Date(y, (m ?? 1) - 1, d ?? 1);
-  return mode === "month" ? dt.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : dt.toLocaleDateString("en-US", { month: "short" });
+  return dt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 const AGING = [
@@ -41,24 +57,35 @@ const AGING = [
   { key: "60+", label: "60+ days", color: "#dc2626", lo: 61, hi: Infinity },
 ];
 
+function hrefFor(mode: Mode, period: string, detail?: Detail) {
+  const q = new URLSearchParams({ mode, p: period });
+  if (detail) q.set("detail", detail);
+  return `/insights?${q.toString()}`;
+}
+
 export default async function InsightsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string; p?: string }>;
+  searchParams: Promise<{ mode?: string; p?: string; detail?: string }>;
 }) {
   const sp = await searchParams;
-  const mode: Mode = sp.mode === "year" ? "year" : "month";
+  const mode: Mode = sp.mode === "month" ? "month" : "year";
   const current = currentPeriod(mode);
   const plan = await getPlan();
 
-  // Free plan is clamped to the current period (Complete History is Pro).
   const requested = sp.p && (mode === "year" ? /^\d{4}$/.test(sp.p) : /^\d{4}-\d{2}$/.test(sp.p)) ? sp.p : current;
   const period = plan === "pro" ? requested : current;
+  const detail: Detail = sp.detail === "gigs" || sp.detail === "payments" || sp.detail === "status" ? sp.detail : null;
 
-  const { start, end, bucket, label } = bounds(mode, period);
+  const { start, end, bucket, label, year } = bounds(mode, period);
   const data = await getInsights(start, end, bucket);
 
-  const chartData = (data?.trend ?? []).map((t) => ({ label: bucketLabel(t.date, mode), value: t.gross }));
+  const status = gigPaymentStatus(data);
+  const career = careerPatterns(data);
+  const chartData =
+    mode === "year"
+      ? fillYearTrend(data?.trend, year)
+      : (data?.trend ?? []).map((t) => ({ label: bucketLabel(t.date), value: t.gross }));
 
   const now = Date.now();
   const agingTotals = new Map<string, number>();
@@ -71,10 +98,11 @@ export default async function InsightsPage({
   const agingTotal = agingSegs.reduce((s, x) => s + x.value, 0);
   const over60Pct = agingTotal > 0 ? Math.round(((agingTotals.get("60+") ?? 0) / agingTotal) * 100) : 0;
 
-  const gross = data?.gross_earned ?? 0;
-  const net = data?.net_recorded ?? 0;
-  const paidGigs = data?.paid_gigs ?? 0;
-  const netGigs = data?.net_complete_gigs ?? 0;
+  const daysWorked = data?.days_worked ?? 0;
+  const gigsWorked = data?.gigs_worked ?? 0;
+  const paymentCount = data?.payment_count ?? 0;
+  const netComplete = data?.net_complete_payments ?? 0;
+  const empty = gigsWorked === 0 && paymentCount === 0;
 
   return (
     <div className="max-w-6xl">
@@ -83,76 +111,173 @@ export default async function InsightsPage({
         <InsightsPeriodNav mode={mode} period={period} current={current} plan={plan} />
       </div>
 
-      {!data || data.gigs_worked === 0 ? (
-        <div className="rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 p-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
-          No worked days recorded for {label}.
+      {empty ? (
+        <div className="rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 p-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
+          No worked days or payments recorded for {label}.
         </div>
       ) : (
         <>
-          {/* Financial hero */}
-          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 mb-4">
-            <div className="text-xs font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Earned · {label}</div>
-            <div className="mt-1 text-4xl font-extrabold text-zinc-900 dark:text-zinc-100">{money(data.gross_earned)}</div>
-            <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-              <span><span className="font-semibold text-green-600 dark:text-green-400">{money(data.received)}</span> <span className="text-zinc-500 dark:text-zinc-400">Received</span></span>
-              <span><span className={`font-semibold ${data.outstanding > 0 ? "text-amber-600 dark:text-amber-400" : "text-zinc-700 dark:text-zinc-200"}`}>{money(data.outstanding)}</span> <span className="text-zinc-500 dark:text-zinc-400">Outstanding</span></span>
-              <span className="text-zinc-500 dark:text-zinc-400">{data.days_worked} work {data.days_worked === 1 ? "day" : "days"} · {money(data.average_per_work_day)}/day</span>
-            </div>
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <Card>
+              <div className="text-sm font-medium text-zinc-700 dark:text-zinc-200">Earnings</div>
+              <div className="mt-1 text-4xl font-extrabold tracking-tight text-blue-600 dark:text-blue-400">
+                {money(status.grossEarned, true)}
+              </div>
+              <div className="mt-1 text-sm text-zinc-400 dark:text-zinc-500">Gross earned</div>
+            </Card>
 
-          {/* Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-4">
-            <Panel title="How are my earnings changing?" className="lg:col-span-3">
-              <div className="px-5 pb-5">
-                {chartData.length > 0 ? <EarningsBars data={chartData} /> : <p className="text-sm text-zinc-400 dark:text-zinc-500 py-8 text-center">Not enough data to chart yet.</p>}
+            <Card>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Work activity</div>
+              <div className="mt-3 grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-3xl font-extrabold text-zinc-900 dark:text-zinc-100">{daysWorked}</div>
+                  <div className="mt-0.5 text-sm text-zinc-400 dark:text-zinc-500">Days worked</div>
+                </div>
+                <Link href={hrefFor(mode, period, "gigs")} className="group min-w-0">
+                  <div className="text-3xl font-extrabold text-blue-600 dark:text-blue-400">{gigsWorked}</div>
+                  <div className="mt-0.5 text-sm text-blue-600 dark:text-blue-400 group-hover:underline">
+                    Gigs worked <Chevron />
+                  </div>
+                </Link>
               </div>
-            </Panel>
-            <Panel title="Where is my unpaid money?" className="lg:col-span-2">
-              <div className="px-5 pb-5">
-                {agingSegs.length > 0 ? (
-                  <>
-                    <div className="mb-3">
-                      <div className="text-xl font-bold text-amber-600 dark:text-amber-400">{money(agingTotal)}</div>
-                      <div className="text-xs text-zinc-400 dark:text-zinc-500">outstanding{over60Pct > 0 && <> · <span className="font-medium text-zinc-600 dark:text-zinc-300">{over60Pct}% for 60+ days</span></>}</div>
-                    </div>
-                    <AgingBars segments={agingSegs} />
-                  </>
-                ) : (
-                  <p className="text-sm text-zinc-400 dark:text-zinc-500 py-8 text-center">Nothing outstanding — you&rsquo;re all paid up.</p>
-                )}
-              </div>
-            </Panel>
-          </div>
+            </Card>
 
-          {/* Gross vs Net (honest) */}
-          <Panel title="Gross vs net" className="mb-4">
-            <div className="px-5 pb-5">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">Gross earned</div>
-                  <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{money(gross)}</div>
+            <Link href={hrefFor(mode, period, "payments")} className="block group">
+              <Card className="h-full transition-colors group-hover:border-zinc-300 dark:group-hover:border-zinc-700">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="text-sm font-medium text-zinc-700 dark:text-zinc-200">Payments received</div>
+                  <span className="text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-500"><Chevron /></span>
                 </div>
-                <div>
-                  <div className="text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">Net recorded</div>
-                  <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{money(net)}</div>
+                <div className="mt-3 grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-3xl font-extrabold text-blue-600 dark:text-blue-400">{money(data?.received ?? 0, true)}</div>
+                    <div className="mt-0.5 text-sm text-zinc-400 dark:text-zinc-500">Gross received</div>
+                  </div>
+                  <div>
+                    <div className="text-3xl font-extrabold text-zinc-900 dark:text-zinc-100">{money(data?.net_recorded ?? 0, true)}</div>
+                    <div className="mt-0.5 text-sm text-zinc-400 dark:text-zinc-500">Net received</div>
+                  </div>
                 </div>
+                <p className="mt-3 text-sm text-zinc-400 dark:text-zinc-500">
+                  {paymentCount} {paymentCount === 1 ? "payment" : "payments"} received in {label}
+                  {paymentCount > 0 && netComplete < paymentCount && (
+                    <> · Net recorded for {netComplete} of {paymentCount}</>
+                  )}
+                </p>
+                <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">{periodCashLabel(mode, label)}</p>
+              </Card>
+            </Link>
+
+            <Link href={hrefFor(mode, period, "status")} className="block group">
+              <Card className="h-full transition-colors group-hover:border-zinc-300 dark:group-hover:border-zinc-700">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="text-sm font-medium text-zinc-700 dark:text-zinc-200">Gig payment status</div>
+                  <span className="text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-500"><Chevron /></span>
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-3xl font-extrabold text-green-600 dark:text-green-400">{money(status.paid, true)}</div>
+                    <div className="mt-0.5 text-sm text-zinc-400 dark:text-zinc-500">Paid</div>
+                  </div>
+                  <PaidRing percent={status.percent} />
+                  <div className="min-w-0 text-right">
+                    <div className="text-3xl font-extrabold text-orange-500">{money(status.outstanding, true)}</div>
+                    <div className="mt-0.5 text-sm text-zinc-400 dark:text-zinc-500">Outstanding</div>
+                  </div>
+                </div>
+                <p className="mt-3 text-sm text-zinc-400 dark:text-zinc-500">{periodStatusLabel(mode, label)}</p>
+              </Card>
+            </Link>
+
+            <Card className="md:col-span-2">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <div>
+                  <div className="text-sm font-medium text-zinc-700 dark:text-zinc-200">Earnings trend</div>
+                  <div className="text-sm text-zinc-400 dark:text-zinc-500">Monthly gross earnings</div>
+                </div>
+                <ProBadge />
               </div>
-              {paidGigs > 0 && netGigs < paidGigs && (
-                <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500">Net recorded for {netGigs} of {paidGigs} paid {paidGigs === 1 ? "gig" : "gigs"} — we never estimate missing net.</p>
+              {chartData.some((d) => d.value > 0) ? (
+                <EarningsBars data={chartData} height={mode === "year" ? 140 : 160} />
+              ) : (
+                <p className="text-sm text-zinc-400 dark:text-zinc-500 py-8 text-center">No earnings to chart for {label}.</p>
               )}
-            </div>
-          </Panel>
+            </Card>
 
-          {/* Company / project — framed as questions */}
-          {(data.companies.length > 0 || data.projects.length > 0) && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6">
-              {data.companies.length > 0 && <Section title="Who am I earning the most from?"><Ranked rows={data.companies} /></Section>}
-              {data.projects.length > 0 && <Section title="Which projects earned the most?"><Ranked rows={data.projects} /></Section>}
-            </div>
+            <Card className="md:col-span-2">
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <div className="text-sm font-medium text-zinc-700 dark:text-zinc-200">Career patterns</div>
+                <ProBadge />
+              </div>
+              {gigsWorked === 0 ? (
+                <p className="text-sm text-zinc-400 dark:text-zinc-500">No work-date earnings in {label} to summarize.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  <div>
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Average per workday</div>
+                    <div className="mt-1 text-3xl font-extrabold text-zinc-900 dark:text-zinc-100">{money(career.averagePerWorkday, true)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Top company</div>
+                    <div className="mt-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                      {career.topCompany ? `${career.topCompany.name} · ${money(career.topCompany.gross, true)}` : "—"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Top project</div>
+                    <div className="mt-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                      {career.topProject ? `${career.topProject.name} · ${money(career.topProject.gross, true)}` : "—"}
+                    </div>
+                  </div>
+                </div>
+              )}
+              <p className="mt-4 text-xs text-zinc-400 dark:text-zinc-500">Advanced analysis included with Pro</p>
+            </Card>
+          </div>
+
+          {detail && (
+            <DetailPanel mode={mode} period={period} label={label} detail={detail} data={data} />
           )}
 
-          {/* Reports — entry to the Advanced Reports catalog */}
-          <Link href="/reports" className="mb-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-3 flex items-center justify-between gap-3 hover:border-blue-300 dark:hover:border-blue-800 transition-colors">
+          <Card className="mb-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Where is my unpaid money?</div>
+            <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500 mb-4">
+              Aging of currently outstanding earnings from {label} gigs — not cash received during {label}.
+            </p>
+            {agingSegs.length > 0 ? (
+              <>
+                <div className="mb-3">
+                  <div className="text-xl font-bold text-amber-600 dark:text-amber-400">{money(agingTotal)}</div>
+                  <div className="text-xs text-zinc-400 dark:text-zinc-500">
+                    outstanding{over60Pct > 0 && <> · <span className="font-medium text-zinc-600 dark:text-zinc-300">{over60Pct}% for 60+ days</span></>}
+                  </div>
+                </div>
+                <AgingBars segments={agingSegs} />
+              </>
+            ) : (
+              <p className="text-sm text-zinc-400 dark:text-zinc-500 py-4">Nothing outstanding on this gig cohort — you&rsquo;re all paid up.</p>
+            )}
+          </Card>
+
+          {(data?.companies.length || data?.projects.length) ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6">
+              {(data?.companies.length ?? 0) > 0 && (
+                <Section title="Who am I earning the most from?">
+                  <Ranked rows={data!.companies} />
+                </Section>
+              )}
+              {(data?.projects.length ?? 0) > 0 && (
+                <Section title="Which projects earned the most?">
+                  <Ranked rows={data!.projects} />
+                </Section>
+              )}
+            </div>
+          ) : null}
+
+          <Link
+            href="/reports"
+            className="mb-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-3 flex items-center justify-between gap-3 hover:border-blue-300 dark:hover:border-blue-800 transition-colors"
+          >
             <div>
               <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Advanced Reports</div>
               <div className="text-xs text-zinc-400 dark:text-zinc-500">Earnings, payments, gross vs net, company &amp; project — export to PDF or CSV.</div>
@@ -160,7 +285,6 @@ export default async function InsightsPage({
             <span className="shrink-0 text-sm font-medium text-blue-600 dark:text-blue-400">Open reports →</span>
           </Link>
 
-          {/* Complete history — one tasteful reveal */}
           <PartialReveal
             context="insights_history"
             plan={plan}
@@ -173,12 +297,19 @@ export default async function InsightsPage({
   );
 }
 
-function Panel({ title, className = "", children }: { title: string; className?: string; children: React.ReactNode }) {
+function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <section className={`rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 ${className}`}>
-      <div className="px-5 pt-4 pb-3"><h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{title}</h2></div>
+    <section className={`rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 ${className}`}>
       {children}
     </section>
+  );
+}
+
+function Chevron() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="inline-block align-[-1px]" aria-hidden>
+      <path d="m9 6 6 6-6 6" />
+    </svg>
   );
 }
 
@@ -204,9 +335,118 @@ function Ranked({ rows }: { rows: { id: string | null; name: string; gross: numb
           <div className="h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
             <div className="h-full rounded-full bg-blue-500/70" style={{ width: `${Math.round((r.gross / max) * 100)}%` }} />
           </div>
-          <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">{r.gig_count} {r.gig_count === 1 ? "gig" : "gigs"} · {r.days_worked} {r.days_worked === 1 ? "day" : "days"}</div>
+          <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
+            {r.gig_count} {r.gig_count === 1 ? "gig" : "gigs"} · {r.days_worked} {r.days_worked === 1 ? "day" : "days"}
+          </div>
         </div>
       ))}
     </div>
+  );
+}
+
+function DetailPanel({
+  mode,
+  period,
+  label,
+  detail,
+  data,
+}: {
+  mode: Mode;
+  period: string;
+  label: string;
+  detail: Exclude<Detail, null>;
+  data: InsightsOverview | null;
+}) {
+  const close = hrefFor(mode, period);
+  const title =
+    detail === "gigs" ? `Gigs worked in ${label}` :
+    detail === "payments" ? `Payments received in ${label}` :
+    `Payment status of ${label} gigs`;
+  const reportHref =
+    detail === "payments"
+      ? `/reports/payments?mode=${mode}&p=${period}`
+      : `/reports/gigs?mode=${mode}&p=${period}`;
+
+  return (
+    <section id="detail" className="mb-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
+      <div className="px-5 py-3 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{title}</h2>
+        <div className="flex items-center gap-3 text-sm">
+          <Link href={reportHref} className="text-blue-600 dark:text-blue-400 hover:underline">Open report</Link>
+          <Link href={close} className="text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200">Close</Link>
+        </div>
+      </div>
+      {detail === "payments" ? (
+        <PaymentRows payments={data?.payments ?? []} />
+      ) : (
+        <GigRows gigs={data?.gigs ?? []} showStatus={detail === "status"} />
+      )}
+    </section>
+  );
+}
+
+function GigRows({
+  gigs,
+  showStatus,
+}: {
+  gigs: InsightsOverview["gigs"];
+  showStatus: boolean;
+}) {
+  if (gigs.length === 0) {
+    return <p className="px-5 py-8 text-sm text-zinc-400 dark:text-zinc-500 text-center">No gigs in this period.</p>;
+  }
+  return (
+    <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+      {gigs.map((g) => {
+        const paid = cappedGigPaid(g);
+        return (
+          <li key={g.gig_id}>
+            <Link href={`/gigs/${g.gig_id}`} className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+              <div className="min-w-0">
+                <div className="font-medium text-zinc-800 dark:text-zinc-200 truncate">{g.title || "Untitled gig"}</div>
+                <div className="text-xs text-zinc-400 dark:text-zinc-500">
+                  {shortDate(g.first_worked_date)} – {shortDate(g.last_worked_date)} · {g.days_worked} {g.days_worked === 1 ? "day" : "days"}
+                </div>
+              </div>
+              {showStatus ? (
+                <div className="shrink-0 text-right text-sm">
+                  <div className="font-medium text-zinc-800 dark:text-zinc-200">{money(g.gross)}</div>
+                  <div className="text-xs">
+                    <span className="text-green-600 dark:text-green-400">{money(paid)} paid</span>
+                    {g.outstanding > 0 && <span className="text-orange-500"> · {money(g.outstanding)} due</span>}
+                  </div>
+                </div>
+              ) : (
+                <div className="shrink-0 text-sm font-medium text-zinc-800 dark:text-zinc-200">{money(g.gross)}</div>
+              )}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function PaymentRows({ payments }: { payments: NonNullable<InsightsOverview["payments"]> }) {
+  if (payments.length === 0) {
+    return <p className="px-5 py-8 text-sm text-zinc-400 dark:text-zinc-500 text-center">No payments received in this period.</p>;
+  }
+  return (
+    <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+      {payments.map((p, i) => (
+        <li key={`${p.pay_date}-${p.title}-${i}`} className="flex items-center justify-between gap-4 px-5 py-3">
+          <div className="min-w-0">
+            <div className="font-medium text-zinc-800 dark:text-zinc-200 truncate">{p.title || "Payment"}</div>
+            <div className="text-xs text-zinc-400 dark:text-zinc-500">{shortDate(p.pay_date)}</div>
+          </div>
+          <div className="shrink-0 text-right text-sm">
+            <div className="font-medium text-zinc-800 dark:text-zinc-200">{money(p.gross)}</div>
+            <div className="text-xs text-zinc-400 dark:text-zinc-500">
+              {p.net != null && p.net > 0 ? `Net ${money(p.net)}` : "Net not recorded"}
+            </div>
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }

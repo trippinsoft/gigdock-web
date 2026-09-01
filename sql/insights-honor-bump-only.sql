@@ -1,5 +1,7 @@
 -- Insights / reports: honor bump-only worked days.
 -- Applied 2026-08-31 (migration: insights_honor_bump_only).
+-- Additive 2026-09-01 (migration: insights_capped_cohort_paid):
+--   paid / paid_percent — work-date cohort, capped per gig at period earned.
 --
 -- load_insights_overview previously called calc_gig_date_gross_earned for
 -- every worked date and ignored gig_dates.base_pay_applies. Unchecking
@@ -15,6 +17,15 @@
 -- in the window, same rows as reports.payments). Do not sum net from
 -- worked-gig-scoped payments — that dropped nets for payments whose gig had
 -- no worked day in the window (e.g. a 2025 gig paid in 2026).
+--
+-- Two different money questions share this RPC and must not be mixed:
+--   received / payment_count / net_recorded
+--     → cash with pay_date in the window (Payments received)
+--   paid / outstanding
+--     → work-date gig cohort, then ALL payments on those gigs.
+--       paid per gig is capped at that gig's period earned so an overpayment
+--       cannot offset another gig. paid + outstanding = gross_earned.
+--       Period Earnings − Period Payments Received is not outstanding.
 
 create or replace function public.load_insights_overview(
   p_start_date date,
@@ -91,6 +102,7 @@ payments as (
 gig_rows as (
   select pg.*, coalesce(p.gross_paid, 0) gross_paid, coalesce(p.net_recorded, 0) net_recorded,
     coalesce(p.payment_count, 0) payment_count, coalesce(p.net_payment_count, 0) net_payment_count,
+    least(pg.period_gross, coalesce(p.gross_paid, 0)) as paid,
     greatest(pg.period_gross - coalesce(p.gross_paid, 0), 0) outstanding
   from period_gigs pg
   left join payments p on p.gig_id = pg.gig_id
@@ -167,6 +179,7 @@ totals as (
     count(*)::int gigs_worked,
     count(*) filter (where payment_count > 0)::int paid_gigs,
     count(*) filter (where payment_count > 0 and payment_count = net_payment_count)::int net_complete_gigs,
+    round(coalesce(sum(paid), 0), 2) paid,
     round(coalesce(sum(outstanding), 0), 2) outstanding,
     count(*) filter (where outstanding > 0)::int outstanding_gigs
   from gig_rows
@@ -184,6 +197,8 @@ select jsonb_build_object(
   'paid_gigs', t.paid_gigs,
   'net_complete_gigs', t.net_complete_gigs,
   'net_complete', t.paid_gigs > 0 and t.paid_gigs = t.net_complete_gigs,
+  'paid', t.paid,
+  'paid_percent', case when t.gross_earned > 0 then round((t.paid / t.gross_earned) * 100)::int else 0 end,
   'outstanding', t.outstanding,
   'outstanding_gigs', t.outstanding_gigs,
   'received', pt.received,
@@ -202,7 +217,9 @@ select jsonb_build_object(
       'gig_id', gig_id, 'title', title,
       'first_worked_date', first_worked_date, 'last_worked_date', last_worked_date,
       'days_worked', days_worked, 'gross', round(period_gross, 2),
-      'received', round(gross_paid, 2), 'outstanding', round(outstanding, 2)
+      'received', round(gross_paid, 2),
+      'paid', round(paid, 2),
+      'outstanding', round(outstanding, 2)
     ) order by first_worked_date desc, title)
     from gig_rows
   ), '[]'::jsonb),

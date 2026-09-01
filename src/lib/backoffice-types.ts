@@ -202,6 +202,10 @@ export interface InsightsOverview {
   // reports; declared optional because the web type predates the reports.
   net_complete_payments?: number;
   net_complete: boolean;
+  /** Work-date cohort paid, capped per gig at that gig's period earned.
+   *  Distinct from `received` (cash with pay_date in the window). */
+  paid?: number;
+  paid_percent?: number;
   outstanding: number;
   outstanding_gigs: number;
   received: number;
@@ -218,6 +222,7 @@ export interface InsightsOverview {
     days_worked: number;
     gross: number;
     received: number;
+    paid?: number;
     outstanding: number;
   }[];
   companies: { id: string | null; name: string; gross: number; gig_count: number; days_worked: number }[];

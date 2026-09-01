@@ -217,7 +217,8 @@ export async function getProjects() {
 
 /** Insights roll-up for a window (load_insights_overview). bucket: 'month'|'year'.
  *  Per-date gross honors base_pay_applies (bump-only days earn bumps only),
- *  matching calculate_gig_earned_amount. */
+ *  matching calculate_gig_earned_amount. `received` is cash with pay_date in
+ *  the window; `paid` is work-date cohort paid capped per gig. */
 export async function getInsights(
   start: string,
   end: string,

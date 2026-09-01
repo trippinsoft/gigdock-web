@@ -150,3 +150,32 @@ export function Donut({ segments, centerLabel, centerValue }: { segments: DonutS
     </div>
   );
 }
+
+/** Percent-paid ring used on Gig payment status. Green arc from 12 o'clock. */
+export function PaidRing({ percent, size = 72 }: { percent: number; size?: number }) {
+  const pct = Math.min(100, Math.max(0, Math.round(percent)));
+  const r = 16;
+  const c = 2 * Math.PI * r;
+  const dash = (pct / 100) * c;
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" className="shrink-0" role="img" aria-label={`${pct}% paid`}>
+      <circle cx="24" cy="24" r={r} fill="none" strokeWidth="5" className="stroke-zinc-200 dark:stroke-zinc-700" />
+      {pct > 0 && (
+        <circle
+          cx="24"
+          cy="24"
+          r={r}
+          fill="none"
+          stroke="#22c55e"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${c}`}
+          transform="rotate(-90 24 24)"
+        />
+      )}
+      <text x="24" y="25" textAnchor="middle" dominantBaseline="middle" className="fill-zinc-700 dark:fill-zinc-200" fontSize="9" fontWeight="700">
+        {pct}%
+      </text>
+    </svg>
+  );
+}
