@@ -1,15 +1,9 @@
+import type { MetadataRoute } from "next";
 import { createSupabasePublic } from "@/lib/supabase-public";
-import { buildSitemapEntries, renderSitemapXml, type SitemapOpp } from "@/lib/sitemap-entries";
+import { buildSitemapEntries, type SitemapOpp } from "@/lib/sitemap-entries";
 
-export const dynamic = "force-static";
 export const revalidate = 3600;
-export const runtime = "nodejs";
-
-const XML_HEADERS = {
-  "Content-Type": "application/xml; charset=utf-8",
-  "Cache-Control": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400",
-  "Access-Control-Allow-Origin": "*",
-};
+export const dynamic = "force-static";
 
 async function loadSitemapOpportunities(): Promise<SitemapOpp[]> {
   try {
@@ -37,8 +31,7 @@ async function loadSitemapOpportunities(): Promise<SitemapOpp[]> {
   }
 }
 
-export async function GET() {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const opps = await loadSitemapOpportunities();
-  const xml = renderSitemapXml(buildSitemapEntries(opps));
-  return new Response(xml, { status: 200, headers: XML_HEADERS });
+  return buildSitemapEntries(opps);
 }
