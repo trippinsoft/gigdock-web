@@ -13,10 +13,24 @@ export type SitemapOpp = {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export function sitemapLastModified(value: string | null | undefined): Date | undefined {
+/**
+ * Google Search Console rejects many valid W3C datetimes (microseconds,
+ * +00:00 offsets, etc.). Date-only lastmod is explicitly supported.
+ */
+export function sitemapLastModified(value: string | null | undefined): string | undefined {
   if (!value) return undefined;
   const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? undefined : d;
+  if (Number.isNaN(d.getTime())) return undefined;
+  return d.toISOString().slice(0, 10);
+}
+
+function xmlEscape(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }
 
 /** Core SEO URLs that must ship even if the opportunities query fails. */
@@ -79,4 +93,24 @@ export function buildSitemapEntries(opps: SitemapOpp[]): MetadataRoute.Sitemap {
   }
 
   return entries;
+}
+
+export function renderSitemapXml(entries: MetadataRoute.Sitemap): string {
+  const urls = entries
+    .map((entry) => {
+      const lastmod =
+        typeof entry.lastModified === "string" && /^\d{4}-\d{2}-\d{2}/.test(entry.lastModified)
+          ? entry.lastModified.slice(0, 10)
+          : entry.lastModified instanceof Date && !Number.isNaN(entry.lastModified.getTime())
+            ? entry.lastModified.toISOString().slice(0, 10)
+            : null;
+      const changefreq = entry.changeFrequency ? `\n    <changefreq>${entry.changeFrequency}</changefreq>` : "";
+      const priority =
+        typeof entry.priority === "number" ? `\n    <priority>${entry.priority}</priority>` : "";
+      const lastmodXml = lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : "";
+      return `  <url>\n    <loc>${xmlEscape(entry.url)}</loc>${lastmodXml}${changefreq}${priority}\n  </url>`;
+    })
+    .join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 }
