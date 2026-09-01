@@ -17,7 +17,7 @@ export const REPORT_GROUPS: { group: string; reports: { id: ReportId; title: str
     group: "Financial",
     reports: [
       { id: "earnings", title: "Earnings Summary", description: "Earnings, work activity, bumps and monthly totals" },
-      { id: "payments", title: "Payments", description: "Received payments and outstanding gigs" },
+      { id: "payments", title: "Payments", description: "Payments received in the selected period" },
       { id: "grossNet", title: "Gross & Net", description: "Recorded gross and net completeness" },
     ],
   },
@@ -142,7 +142,7 @@ export function buildReport(
   id: ReportId,
   data: InsightsOverview | null,
   docs: DocWithGig[],
-  now: number = Date.now()
+  _now: number = Date.now()
 ): BuiltReport {
   const grossEarned = data?.gross_earned ?? 0;
   const outstanding = data?.outstanding ?? 0;
@@ -154,56 +154,49 @@ export function buildReport(
       return {
         summary: [
           { label: "Gross earned", value: money(grossEarned) },
-          { label: "Recorded net", value: money(data?.net_recorded ?? recordedNet) },
+          { label: "Recorded net", value: money(recordedNet) },
           { label: "Work days", value: num(data?.days_worked) },
           { label: "Gigs worked", value: num(data?.gigs_worked) },
         ],
-        columns: ["Period", "Gross earnings"],
-        rows: (data?.trend ?? []).map((t) => [dateText(t.date), money(t.gross)]),
+        columns: ["Gig", "Dates", "Work days", "Gross"],
+        rows: (data?.gigs ?? []).map((g) => [
+          g.title || "Untitled gig",
+          `${dateText(g.first_worked_date)} – ${dateText(g.last_worked_date)}`,
+          g.days_worked || 0, money(g.gross),
+        ]),
         emptyText: "No records found for this period",
-        note: "Rows are monthly earned totals from worked days, not individual payments.",
+        note: "Each row is a gig with worked days in this period. Gross is earned on those days.",
       };
 
     case "payments": {
-      const receivedRows = payments.map((p) => [
-        p.title || "Payment", "Received", dateText(p.pay_date), money(p.gross),
-        isNetRecorded(p.net) ? `Net ${money(Number(p.net))}` : "Net not recorded",
-      ]);
-      const outstandingRows = (data?.outstanding_items ?? []).map((o) => {
-        const days = o.days_outstanding ?? (o.worked_date ? Math.max(0, Math.floor((now - new Date(o.worked_date + "T00:00:00").getTime()) / 864e5)) : null);
-        return [
-          o.title || "Untitled gig", "Outstanding",
-          days != null ? `${days} days` : "Payment date unavailable",
-          money(o.outstanding), o.company_name || "",
-        ];
-      });
       return {
         summary: [
-          { label: "Earned", value: money(grossEarned) },
-          { label: "Received", value: money(data?.received ?? received) },
-          { label: "Outstanding", value: money(outstanding) },
-          { label: "Payments received", value: num(paymentCount) },
+          { label: "Payments received", value: money(received) },
+          { label: "Payments", value: num(paymentCount) },
+          { label: "Recorded net", value: money(recordedNet) },
         ],
-        columns: ["Gig", "Status", "Date / age", "Amount", "Details"],
-        rows: [...receivedRows, ...outstandingRows],
+        columns: ["Gig", "Date", "Gross", "Net"],
+        rows: [...payments]
+          .sort((a, b) => (a.pay_date ?? "").localeCompare(b.pay_date ?? ""))
+          .map((p) => [p.title || "Payment", dateText(p.pay_date), money(p.gross), netCell(p.net)]),
         emptyText: "No records found for this period",
-        note: `${paymentCount} payment${paymentCount === 1 ? "" : "s"} in this period. Net of $0 is treated as not recorded.`,
+        note: `${paymentCount} payment${paymentCount === 1 ? "" : "s"} in this period. Gross sums to Payments received. Net of $0 is treated as not recorded.`,
       };
     }
 
     case "grossNet":
       return {
         summary: [
-          { label: "Gross", value: money(data?.received ?? received) },
-          { label: "Recorded net", value: money(data?.net_recorded ?? recordedNet) },
+          { label: "Gross paid", value: money(received) },
+          { label: "Recorded net", value: money(recordedNet) },
           { label: "Net completeness", value: missingNet ? `${missingNet} missing` : "Complete" },
         ],
-        columns: ["Date", "Gig", "Gross", "Recorded net"],
+        columns: ["Date", "Gig", "Gross paid", "Recorded net"],
         rows: [...payments]
           .sort((a, b) => (a.pay_date ?? "").localeCompare(b.pay_date ?? ""))
           .map((p) => [dateText(p.pay_date), p.title || "Payment", money(p.gross), netCell(p.net)]),
         emptyText: "No records found for this period",
-        note: `${paymentCount} payment${paymentCount === 1 ? "" : "s"} in this period · net recorded on ${netComplete}. Net of $0 is treated as not recorded.`,
+        note: `${paymentCount} payment${paymentCount === 1 ? "" : "s"} in this period · net recorded on ${netComplete}. Gross paid equals Payments received for the same period. Net of $0 is treated as not recorded.`,
       };
 
     case "gigs":
@@ -262,14 +255,14 @@ export function buildReport(
       return {
         summary: [
           { label: "Gross earnings", value: money(grossEarned) },
-          { label: "Recorded net", value: money(data?.net_recorded ?? recordedNet) },
+          { label: "Recorded net", value: money(recordedNet) },
           { label: "Gigs", value: num(data?.gigs_worked) },
           { label: "Work days", value: num(data?.days_worked) },
         ],
         columns: ["Area", "Recorded status", "Details"],
         rows: [
           ["Work summary", `${data?.gigs_worked || 0} gigs`, `${data?.days_worked || 0} work days · ${money(grossEarned)} gross`],
-          ["Payment summary", `${paymentCount} payments`, `${money(data?.received ?? received)} received · ${money(outstanding)} outstanding`],
+          ["Payment summary", `${paymentCount} payments`, `${money(received)} received · ${money(outstanding)} outstanding`],
           ["Net completeness", netStatus, `Net recorded for ${netComplete} of ${paymentCount} applicable payments`],
           ["Expenses", "No data", "No expenses recorded yet"],
           ["Mileage", "No data", "No mileage recorded"],

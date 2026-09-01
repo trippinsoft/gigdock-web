@@ -10,6 +10,11 @@
 -- gap were bump-only days counted as a full day/guarantee rate).
 --
 -- Same RPC is shared with mobile Insights and web reports.
+--
+-- net_recorded / net_complete_payments come from period_payment_rows (pay_date
+-- in the window, same rows as reports.payments). Do not sum net from
+-- worked-gig-scoped payments — that dropped nets for payments whose gig had
+-- no worked day in the window (e.g. a 2025 gig paid in 2026).
 
 create or replace function public.load_insights_overview(
   p_start_date date,
@@ -132,7 +137,9 @@ payment_trend as (
 ),
 payment_totals as (
   select round(coalesce(sum(gross_pay), 0), 2) received,
+    round(coalesce(sum(net_pay) filter (where coalesce(net_pay, 0) > 0), 0), 2) net_recorded,
     count(*)::int payment_count,
+    count(*) filter (where coalesce(net_pay, 0) > 0)::int net_complete_payments,
     count(distinct gig_id) filter (where gig_id is not null)::int paid_gigs
   from period_payment_rows
 ),
@@ -169,7 +176,8 @@ days as (
 )
 select jsonb_build_object(
   'gross_earned', t.gross_earned,
-  'net_recorded', t.net_recorded,
+  'net_recorded', pt.net_recorded,
+  'net_complete_payments', pt.net_complete_payments,
   'gigs_worked', t.gigs_worked,
   'days_worked', d.days_worked,
   'average_per_work_day', case when d.days_worked > 0 then round(t.gross_earned / d.days_worked, 2) else 0 end,

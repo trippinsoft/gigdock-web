@@ -139,7 +139,7 @@ function TaxReadyExperience({
   data: InsightsOverview | null;
   allDocs: Doc[];
 }) {
-  const { paymentCount, netComplete, missingNet } = paymentNetStats(data);
+  const { paymentCount, netComplete, missingNet, recordedNet } = paymentNetStats(data);
   const gigsWorked = data?.gigs_worked ?? 0;
   const yr = String(year);
   const taxDocs = taxDocumentsForYear(allDocs, year);
@@ -171,7 +171,7 @@ function TaxReadyExperience({
         <div className="mt-1 text-4xl font-extrabold text-blue-600 dark:text-blue-400">{money(data?.gross_earned)}</div>
         <div className="text-xs text-zinc-500 dark:text-zinc-400">Gross earnings recorded</div>
         <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-          <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{money(data?.net_recorded)}</div>
+          <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{money(recordedNet)}</div>
           <div className="text-xs text-zinc-500 dark:text-zinc-400">
             {missingNet === 0 && paymentCount > 0
               ? "Net recorded for every applicable payment"

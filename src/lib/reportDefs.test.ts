@@ -93,10 +93,11 @@ function fail(msg: string): never {
 {
   const r = buildReport("grossNet", YEAR_OVERVIEW, []);
   assert.equal(r.rows.length, 8, "Gross & Net year table lists every payment, not 2 monthly buckets");
+  assert.equal(r.summary[0].label, "Gross paid");
   assert.equal(r.summary[2].value, "5 missing");
   assert.equal(r.summary[0].value, money(2013));
   assert.equal(r.summary[1].value, money(900.76));
-  assert.deepEqual(r.columns, ["Date", "Gig", "Gross", "Recorded net"]);
+  assert.deepEqual(r.columns, ["Date", "Gig", "Gross paid", "Recorded net"]);
   const notRecorded = r.rows.filter((row) => row[3] === "Not recorded");
   assert.equal(notRecorded.length, 5);
   assert.ok(r.note?.includes("8 payments"));
@@ -121,18 +122,52 @@ function fail(msg: string): never {
 
 {
   const r = buildReport("payments", YEAR_OVERVIEW, []);
-  assert.equal(r.summary[3].value, "8");
-  const receivedRows = r.rows.filter((row) => row[1] === "Received");
-  assert.equal(receivedRows.length, 8);
-  assert.equal(receivedRows.filter((row) => row[4] === "Net not recorded").length, 5);
+  assert.equal(r.summary[0].label, "Payments received");
+  assert.equal(r.summary[0].value, money(2013));
+  assert.equal(r.summary[1].value, "8");
+  assert.equal(r.summary[2].value, money(900.76));
+  assert.deepEqual(r.columns, ["Gig", "Date", "Gross", "Net"]);
+  assert.equal(r.rows.length, 8, "Payments lists payment transactions only");
+  assert.equal(r.rows.filter((row) => row[3] === "Not recorded").length, 5);
+  assert.equal(r.summary.find((s) => s.label === "Earned"), undefined);
+  assert.equal(r.summary.find((s) => s.label === "Outstanding"), undefined);
 }
 
 {
   const r = buildReport("earnings", YEAR_OVERVIEW, []);
   assert.equal(r.summary[2].value, "20");
   assert.equal(r.summary[3].value, "6");
-  assert.equal(r.rows.length, 4, "earnings year table is monthly worked-day buckets");
-  assert.ok(r.note?.includes("monthly"));
+  assert.deepEqual(r.columns, ["Gig", "Dates", "Work days", "Gross"]);
+  assert.equal(r.rows.length, 6, "earnings lists every gig, not monthly buckets");
+  assert.ok(r.note?.includes("gig"));
+}
+
+{
+  // RPC rollups can disagree with the payment rows (worked-gig-scoped net).
+  // Summaries must follow the displayed payment records.
+  const mismatched: InsightsOverview = {
+    ...YEAR_OVERVIEW,
+    net_recorded: 475,
+    received: 9999,
+    net_complete_gigs: 1,
+  };
+  const gn = buildReport("grossNet", mismatched, []);
+  const pay = buildReport("payments", mismatched, []);
+  assert.equal(gn.summary[0].value, money(2013));
+  assert.equal(gn.summary[1].value, money(900.76));
+  assert.equal(gn.summary[2].value, "5 missing");
+  assert.equal(pay.summary[0].value, gn.summary[0].value, "Gross paid equals Payments received");
+  assert.equal(pay.summary[2].value, gn.summary[1].value, "Recorded net is the same payment-row sum");
+  const sorted = [...TESTER10_PAYMENTS].sort((a, b) => a.pay_date.localeCompare(b.pay_date));
+  assert.equal(gn.rows.length, sorted.length);
+  for (let i = 0; i < sorted.length; i++) {
+    assert.equal(gn.rows[i][2], money(sorted[i].gross), "gross belongs to this payment row");
+    assert.equal(
+      gn.rows[i][3],
+      sorted[i].net > 0 ? money(sorted[i].net) : "Not recorded",
+      "net belongs to the same payment row as gross"
+    );
+  }
 }
 
 {
