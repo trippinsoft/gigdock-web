@@ -131,25 +131,45 @@ export default function OpportunitiesFeed({
   const refreshingRef = useRef(false);
   const didDoActionRef = useRef(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
       const todayStr = new Date().toISOString().slice(0, 10);
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("opportunities")
         .select("*")
         .eq("status", "active")
         .is("deleted_at", null)
         .or(`expires_at.is.null,expires_at.gte.${todayStr}`)
         .order("posted_at", { ascending: false });
+      if (error) {
+        console.error("Failed to load opportunities:", error.message);
+        return;
+      }
       setOpps(data ?? []);
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
-  }, []);
+  }, []); // keep stable — createSupabaseBrowser() is called each render
 
-  // Client-fetch the whole active set only when we weren't handed a scoped set.
-  useEffect(() => { if (!seeded) load(); }, [load, seeded]);
+  // Location pages stay on the SSR-scoped set. The national feed is seeded so
+  // the count isn't stuck on "Loading...", then silently re-fetched so new
+  // ingest / expirations / role splits show up without a full reload.
+  useEffect(() => {
+    if (embedded) return;
+    load({ silent: seeded });
+    const t = setInterval(() => load({ silent: true }), 45_000);
+    return () => clearInterval(t);
+  }, [load, embedded, seeded]);
+
+  const seedStamp = initialOpps
+    ? `${initialOpps.length}:${initialOpps[0]?.id ?? ""}:${initialOpps[0]?.updated_at ?? ""}:${initialOpps[initialOpps.length - 1]?.id ?? ""}`
+    : "";
+  useEffect(() => {
+    if (embedded && initialOpps) setOpps(initialOpps);
+    // seedStamp captures identity; initialOpps is a new array every SSR render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [embedded, seedStamp]);
 
   // Initial scope from ?scope= (e.g. the old /saved route redirects here). Not
   // used embedded — a location page is always the "all in this market" view.
@@ -183,20 +203,16 @@ export default function OpportunitiesFeed({
     refreshingRef.current = true;
     setRefreshing(true);
     try {
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const { data } = await supabase
-        .from("opportunities")
-        .select("*")
-        .eq("status", "active")
-        .is("deleted_at", null)
-        .or(`expires_at.is.null,expires_at.gte.${todayStr}`)
-        .order("posted_at", { ascending: false });
-      setOpps(data ?? []);
+      if (embedded) {
+        router.refresh();
+        return;
+      }
+      await load({ silent: true });
     } finally {
       refreshingRef.current = false;
       setRefreshing(false);
     }
-  }, []);
+  }, [embedded, load, router]);
 
   // Auth + saved + profiles (all optional — logged-out users just browse).
   useEffect(() => {
@@ -537,10 +553,10 @@ export default function OpportunitiesFeed({
 
   // Pull-to-refresh from the list itself: drag down from the top of the list.
   // Native non-passive listener so preventDefault() beats the browser gesture.
-  // Pull-to-refresh is a page gesture and would re-fetch the whole (unscoped)
-  // set — skip it entirely when embedded / seeded.
+  // Pull-to-refresh is a page gesture. Embedded location pages refresh via
+  // router.refresh() so they keep their market scope instead of loading
+  // the national feed.
   useEffect(() => {
-    if (embedded || seeded) return;
     const el = listRef.current;
     if (!el) return;
     let startY = 0;
@@ -584,7 +600,7 @@ export default function OpportunitiesFeed({
       el.removeEventListener("touchend", onEnd);
       el.removeEventListener("touchcancel", onEnd);
     };
-  }, [refresh]);
+  }, [refresh, embedded]);
 
   function saveButton(id: string) {
     const isSaved = savedIds.has(id);

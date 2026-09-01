@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { track } from "@/lib/analytics";
 import type { Opportunity } from "@/lib/types";
 import { fitTierColor, type GigFitResult } from "@/lib/gigfit";
+import { rolesOf } from "@/lib/roles";
 
 // Join an array of tags into a readable string; return null if empty.
 function joinTags(v: unknown): string | null {
@@ -332,6 +333,7 @@ export default function OpportunityCard({
   const applyHref = getApplyHref(opp);
   const applyIsEmail = !!applyHref && /^mailto:/i.test(applyHref);
   const fresh = freshness(opp);
+  const namedRoles = rolesOf(opp);
 
   return (
     <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg ${dense ? "p-4 space-y-3" : "p-4 sm:p-6 space-y-4 sm:space-y-5"}`}>
@@ -423,6 +425,32 @@ export default function OpportunityCard({
       )}
 
       {opp.pay_bumps && <Section title="Bumps" dense={dense}>{opp.pay_bumps}</Section>}
+
+      {namedRoles.length > 1 && (
+        <div>
+          <h4 className={`${dense ? "text-sm" : "text-base"} font-bold text-zinc-900 dark:text-zinc-100`}>
+            {namedRoles.length} roles
+          </h4>
+          <ul className={`${dense ? "mt-1.5 text-sm" : "mt-2 text-[15px] sm:text-base"} space-y-1.5 text-zinc-700 dark:text-zinc-300`}>
+            {namedRoles.map((role) => {
+              const bits = [
+                joinTags(role.casting_specs?.gender),
+                role.casting_specs?.age_min != null || role.casting_specs?.age_max != null
+                  ? `${role.casting_specs?.age_min ?? "any"}–${role.casting_specs?.age_max ?? "any"}`
+                  : null,
+              ].filter(Boolean);
+              return (
+                <li key={role.role_key || role.label}>
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">{role.label}</span>
+                  {bits.length > 0 && (
+                    <span className="text-zinc-500 dark:text-zinc-400"> · {bits.join(" · ")}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       {opp.requirements && <Section title="Requirements" dense={dense}>{opp.requirements}</Section>}
 

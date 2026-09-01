@@ -34,6 +34,22 @@ const listed = inferRolesFromRequirements(
 assert.ok(listed);
 assert.equal(listed.length, 4);
 
+const knoxville = inferRolesFromRequirements(
+  "Multiple roles: MELISSA (White female, brown hair, 20-30yo, comfortable with scripted violence and murder content); BILLY (White male, late 40s to early 50s, brown hair, comfortable with murder content); JOHN (White male, late 60s-70s, comfortable lying on ground and with scripted violence/murder content); DETECTIVE 1 (White male, 35-50, clean cut, physically fit, comfortable portraying law enforcement); CSI (Male, 30s, physically fit, comfortable with murder content)."
+);
+assert.ok(knoxville);
+assert.equal(knoxville.length, 5);
+assert.deepEqual(knoxville.map((r) => r.label), ["MELISSA", "BILLY", "JOHN", "DETECTIVE 1", "CSI"]);
+assert.equal(
+  rolesOf({
+    title: "CASTING CALL: Knoxville True Crime Recreation Series",
+    requirements:
+      "Multiple roles: MELISSA (White female, brown hair, 20-30yo); BILLY (White male, late 40s); JOHN (White male, late 60s-70s); DETECTIVE 1 (White male, 35-50); CSI (Male, 30s).",
+    roles: knoxville,
+  }).length,
+  5
+);
+
 assert.equal(
   rolesOf({ title: "Looky Loos", role_key: "looky loos", casting_specs: {} }).length,
   1

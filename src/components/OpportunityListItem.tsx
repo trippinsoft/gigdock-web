@@ -2,6 +2,7 @@
 
 import type { Opportunity } from "@/lib/types";
 import { fitTierColor, type GigFitResult } from "@/lib/gigfit";
+import { rolesOf } from "@/lib/roles";
 
 const FIT_CLASS: Record<string, string> = {
   green: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
@@ -86,6 +87,7 @@ export default function OpportunityListItem({
   const fresh = freshnessBadge(opp, nowMs);
   const posted = relativeTime(opp.posted_at, nowMs);
   const shoot = shortDate(opp.work_date);
+  const roleN = rolesOf(opp).length;
 
   const className = `block w-full text-left rounded-lg border transition-colors ${dense ? "p-3" : "p-4"} ${
     selected
@@ -182,6 +184,11 @@ export default function OpportunityListItem({
         {fit && (
           <span className={`${dense ? "text-xs" : "text-[13px]"} px-2 py-0.5 rounded font-medium ${FIT_CLASS[fitTierColor(fit.tier)]}`}>
             {fit.tier === "strong" ? "★ " : ""}{fit.label}
+          </span>
+        )}
+        {roleN > 1 && (
+          <span className={`${dense ? "text-xs" : "text-[13px]"} px-2 py-0.5 rounded font-medium bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400`}>
+            {roleN} roles
           </span>
         )}
         {fresh && (
