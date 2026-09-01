@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { matchingRolesForFilters, type RoleBearing } from "@/lib/roles";
 
 export type WorkDateRange = "all" | "today" | "week" | "two-weeks" | "month";
 export type DatePostedRange = "any" | "today" | "3days" | "week";
@@ -485,14 +486,13 @@ export default function FilterChips({
   );
 }
 
-type FilterableOpp = {
+type FilterableOpp = RoleBearing & {
   location: string | null;
   work_date: string | null;
   posted_at: string;
   source: string | null;
   pay_min?: number | null;
   pay_rate?: string | null;
-  casting_specs?: { gender?: unknown; union_status?: unknown; work_type?: unknown } | null;
 };
 
 // Hourly gigs aren't comparable to a flat dollar threshold ($30/hr adds up over
@@ -540,23 +540,11 @@ export function applyFilters<T extends FilterableOpp>(items: T[], filters: Filte
     if (postedCutoff !== null && new Date(item.posted_at).getTime() < postedCutoff) return false;
     if (sourceSet && (!item.source || !sourceSet.has(item.source))) return false;
 
-    const specs = item.casting_specs ?? {};
-    // Gender / union are ELIGIBILITY filters: a gig with no stated value is open
-    // to everyone, so it stays visible. Only an explicit, conflicting value hides it.
-    if (filters.gender) {
-      const arr = Array.isArray(specs.gender) ? (specs.gender as string[]) : [];
-      const open = arr.length === 0; // no gender stated = open to all
-      if (!open && !arr.map(canonGender).includes(filters.gender)) return false;
-    }
-    if (filters.union) {
-      const u = typeof specs.union_status === "string" ? canonUnion(specs.union_status) : "";
-      const open = u === "" || u === "either"; // unspecified or "either" = open
-      if (!open && u !== filters.union) return false;
-    }
-    // Work type is a CATEGORY, not eligibility — stay strict (exact match only).
-    if (filters.workType) {
-      const wt = typeof specs.work_type === "string" ? specs.work_type.toLowerCase() : "";
-      if (wt !== filters.workType) return false;
+    // Gender / union / work type apply per named role so a 6-role post can
+    // stay visible with a smaller role count. Same eligibility rules as before:
+    // unspecified gender/union is open; work type is a strict category.
+    if (filters.gender || filters.union || filters.workType) {
+      if (matchingRolesForFilters(item, filters).length === 0) return false;
     }
     if (filters.payMin != null && !HOURLY_RE.test(item.pay_rate ?? "")) {
       if (item.pay_min == null || item.pay_min < filters.payMin) return false;

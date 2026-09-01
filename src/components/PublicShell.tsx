@@ -11,7 +11,6 @@ const NAV = [
   { href: "/gigfit", label: "GigFit" },
   { href: "/guides", label: "Guides" },
   { href: "/app", label: "Get the app" },
-  { href: "/profile", label: "Profile" },
 ];
 
 
@@ -22,9 +21,9 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   const [menuOpen, setMenuOpen] = useState(false);
   const supabase = createSupabaseBrowser();
 
-  // Profile only makes sense once signed in — hide it for logged-out visitors
-  // (and while auth state is still resolving, to avoid a flash then removal).
-  const nav = NAV.filter((n) => n.href !== "/profile" || signedIn === true);
+  // Profile lives inside the signed-in app shell (not the public chrome), so the
+  // public nav is the same for everyone.
+  const nav = NAV;
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setSignedIn(!!data.user));
@@ -69,6 +68,16 @@ export default function PublicShell({ children }: { children: React.ReactNode })
 
             {/* Desktop nav */}
             <nav className="hidden sm:flex items-center gap-2">
+              {/* Signed-in users reach these content pages from inside the app;
+                  give them a clear way back to the workspace. */}
+              {signedIn === true && (
+                <Link
+                  href="/today"
+                  className="mr-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-950/70 transition-colors"
+                >
+                  ← Dashboard
+                </Link>
+              )}
               {nav.map((n) => {
                 const active = pathname.startsWith(n.href);
                 return (
@@ -142,6 +151,15 @@ export default function PublicShell({ children }: { children: React.ReactNode })
           <>
             <div className="sm:hidden relative z-30 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
               <nav className="px-4 py-2 flex flex-col gap-0.5">
+                {signedIn === true && (
+                  <Link
+                    href="/today"
+                    onClick={() => setMenuOpen(false)}
+                    className="mb-1 px-3 py-2.5 rounded-lg text-base font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-950/70 transition-colors"
+                  >
+                    ← Dashboard
+                  </Link>
+                )}
                 {nav.map((n) => {
                   const active = pathname.startsWith(n.href);
                   return (

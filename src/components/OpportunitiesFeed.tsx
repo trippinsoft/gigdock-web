@@ -14,8 +14,10 @@ import FilterChips, {
   applyFilters,
   activeFilterCount,
   extractState,
+  stateLabel,
   type Filters,
 } from "@/components/FilterChips";
+import { formatPostRoleCount, matchingRolesForFilters } from "@/lib/roles";
 import {
   describeProfile,
   fieldsSet,
@@ -54,6 +56,7 @@ export default function OpportunitiesFeed({
   initialOpps,
   initialSelectedOpp,
   embedded = false,
+  bareChrome = false,
   scopeLabel,
   now,
 }: {
@@ -68,6 +71,10 @@ export default function OpportunitiesFeed({
   /** Presentation mode only: flow layout for embedding inside a content page
    *  (location pages). The cards, detail and actions are identical either way. */
   embedded?: boolean;
+  /** Render the full-viewport feed WITHOUT wrapping it in PublicShell — the
+   *  caller supplies the chrome (e.g. the authenticated AppShell for signed-in
+   *  users). Ignored when embedded. */
+  bareChrome?: boolean;
   /** e.g. "Atlanta" — used only for scoped empty-state / count copy. */
   scopeLabel?: string;
   /** Stable render-time clock (from the server on SSR-seeded pages) so the
@@ -308,6 +315,11 @@ export default function OpportunitiesFeed({
     return sorted;
   }, [opps, scopedOpps, scope, filters, debouncedSearch, sort, profileHasCriteria, fitById]);
 
+  const visibleRoleCount = useMemo(
+    () => visible.reduce((n, o) => n + matchingRolesForFilters(o, filters).length, 0),
+    [visible, filters]
+  );
+
   useEffect(() => {
     if (visible.length === 0) {
       // Keep the shared-link card mounted while the full feed is still loading
@@ -400,11 +412,11 @@ export default function OpportunitiesFeed({
     setTimeout(() => setSheetMounted(false), 300);
   }, []);
 
-  // Selecting a card: on desktop the detail shows in the right pane, so just set
-  // the selection. The mobile bottom-sheet locks page scroll while open, so it
-  // must ONLY open on mobile — opening it on desktop would freeze scrolling on
-  // the flow-layout (embedded) location pages, where the list scrolls with the
-  // page body rather than in its own container.
+  // Selecting a card: desktop shows the detail in the right pane, so just set the
+  // selection. The mobile bottom-sheet locks page scroll while open, so it must
+  // ONLY open on mobile — opening it on desktop would freeze scrolling both on
+  // the logged-out window-level feed and on flow-layout (embedded) location
+  // pages, where the list scrolls with the page body rather than its own container.
   const selectOpportunity = useCallback((id: string) => {
     if (typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches) {
       setSelectedId(id);
@@ -436,6 +448,13 @@ export default function OpportunitiesFeed({
     setFiltersOpen(false); setFDragY(0); fDragYRef.current = 0; setFDragging(false);
     setTimeout(() => setFiltersMounted(false), 300);
   }, []);
+
+  useEffect(() => {
+    if (!filtersMounted) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeFilters(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [filtersMounted, closeFilters]);
 
   useEffect(() => {
     if (!sheetMounted && !filtersMounted) return;
@@ -615,49 +634,74 @@ export default function OpportunitiesFeed({
 
   const filterCount = activeFilterCount(filters);
   const gigfitOn = !!gigfitProfileId;
+  const renderFilterChrome = () => (
+    <div className="flex items-center justify-between px-4 pb-3 border-b border-zinc-200 dark:border-zinc-800">
+      <button type="button" onClick={closeFilters} className="text-2xl leading-none text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 -ml-1 px-1" aria-label="Close">×</button>
+      <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Filters</h3>
+      {filterCount > 0 ? (
+        <button type="button" onClick={() => setFilters(EMPTY_FILTERS)} className="text-sm text-blue-600 dark:text-blue-400">Clear all</button>
+      ) : (
+        <span className="w-6" />
+      )}
+    </div>
+  );
+  const renderFilterFields = () => (
+    <FilterChips filters={filters} onChange={setFilters} availableStates={availableStates} availableSources={availableSources} layout="stacked" showEligibleOnly={profileHasCriteria} />
+  );
+  const renderFilterApply = () => (
+    <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 shrink-0">
+      <button type="button" onClick={closeFilters} className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
+        Show {formatPostRoleCount(visible.length, visibleRoleCount)}
+      </button>
+    </div>
+  );
 
-  // Scope + GigFit selects — reused inline (desktop) and on the 2nd row (mobile).
-  // The Saved/Applied scope tabs are a personal-feed concept; a location page is
-  // always the "all in this market" view, so we hide them when embedded.
-  const scopeSelect = embedded ? null : (
+  // Region quick-select (the rest of the criteria live in the Filters sheet).
+  const regionSelect = embedded ? null : (
     <select
-      value={scope}
-      onChange={(e) => setScope(e.target.value as "all" | "saved" | "applied")}
-      aria-label="Show"
-      className={`h-10 px-2.5 rounded-lg border shrink-0 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-        scope === "all"
-          ? "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100"
-          : "bg-blue-600 border-blue-600 text-white"
-      }`}
+      value={filters.state ?? ""}
+      onChange={(e) => setFilters({ ...filters, state: e.target.value || null })}
+      aria-label="Region"
+      className="hidden sm:block h-10 px-2.5 rounded-lg border shrink-0 text-sm bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
-      <option value="all">All</option>
-      <option value="saved">{`Saved${savedIds.size ? ` (${savedIds.size})` : ""}`}</option>
-      <option value="applied">{`Applied${appliedIds.size ? ` (${appliedIds.size})` : ""}`}</option>
+      <option value="">All regions</option>
+      {availableStates.map((c) => <option key={c} value={c}>{stateLabel(c)}</option>)}
     </select>
   );
-  // GigFit control. Signed-in users with a profile get the on/off + profile
-  // picker. Everyone else (logged out, or no profile yet) gets a CTA that leads
-  // to the GigFit explainer (anon) or profile setup (signed in) — GigFit is one
-  // of the strongest reasons to create an account, so it stays visible.
-  const gigfitControl = profiles.length > 0 ? (
+
+  // View tabs = personal lists only (All / Saved / Applied). GigFit is a SEPARATE
+  // concept (below) — it evaluates matches, it is not a browse filter.
+  const scopeTab = (v: "all" | "saved" | "applied", label: string) => (
+    <button
+      type="button"
+      onClick={() => setScope(v)}
+      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${scope === v ? "bg-blue-600 text-white" : "text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
+    >
+      {label}
+    </button>
+  );
+  const viewTabs = embedded ? null : (
+    <div className="flex items-center gap-1 rounded-lg border border-zinc-200 dark:border-zinc-800 p-0.5 bg-white dark:bg-zinc-900 shrink-0 overflow-x-auto">
+      {scopeTab("all", "All")}
+      {scopeTab("saved", `Saved${savedIds.size ? ` ${savedIds.size}` : ""}`)}
+      {scopeTab("applied", `Applied${appliedIds.size ? ` ${appliedIds.size}` : ""}`)}
+    </div>
+  );
+
+  // Selectable GigFit profile — matching is recalculated against the chosen
+  // person. Not a passive indicator.
+  const gigfitControl = embedded ? null : profiles.length > 0 ? (
     <select
       value={gigfitProfileId ?? ""}
       onChange={(e) => setGigfitProfileId(e.target.value || null)}
-      className={`text-sm h-10 px-2.5 rounded-lg border shrink-0 transition-colors ${
-        gigfitOn ? "bg-blue-600 border-blue-600 text-white" : "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
-      }`}
+      aria-label="GigFit profile"
+      className={`text-sm h-9 px-2.5 rounded-lg border shrink-0 transition-colors ${gigfitOn ? "border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100" : "border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"}`}
     >
       <option value="">GigFit: Off</option>
       {profiles.map((p) => <option key={p.id} value={p.id}>GigFit: {p.label}</option>)}
     </select>
   ) : (
-    <Link
-      href={userId ? "/profile" : "/gigfit"}
-      title="See which opportunities match your profile"
-      className="inline-flex items-center gap-1.5 h-10 px-3 rounded-lg border border-blue-300 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-sm font-medium shrink-0 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
-    >
-      ✨ GigFit
-    </Link>
+    <Link href={userId ? "/profile" : "/gigfit"} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-blue-300 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-sm font-medium shrink-0 hover:bg-blue-50 dark:hover:bg-blue-900/30">✨ GigFit</Link>
   );
 
   // Presentation-only layout switch. Embedded = flow layout (for a location page):
@@ -666,85 +710,73 @@ export default function OpportunitiesFeed({
   const shown = embedded ? visible.slice(0, EMBED_CAP) : visible;
   const moreCount = embedded ? Math.max(0, visible.length - EMBED_CAP) : 0;
   const rowCls = embedded ? "flex flex-col md:flex-row mt-4 gap-6 items-start" : "flex-1 flex min-h-0 mt-4 gap-6";
-  // The list is capped at ~1/3 of the workspace so the detail pane keeps ~2/3,
-  // on every screen wide enough to show both (md+). Below md it's full width.
-  const listColCls = embedded ? "w-full md:w-1/3 md:shrink-0" : "w-full md:w-1/3 md:shrink-0 flex flex-col min-h-0";
+  // Embedded (location pages): list is ~1/3 so the detail pane keeps ~2/3.
+  // App feed: list matches My Gigs / Payments (MasterDetailLayout w-[23rem]).
+  const listColCls = embedded
+    ? "w-full md:w-1/3 md:shrink-0"
+    : "w-full md:w-[23rem] md:shrink-0 flex flex-col min-h-0";
   const listScrollCls = embedded ? "pb-2" : "flex-1 min-h-0 overflow-y-auto overscroll-y-contain pr-1 pb-4";
   const detailColCls = embedded
     ? "hidden md:block flex-1 min-w-0 sticky top-20 self-start max-h-[calc(100dvh-6rem)] overflow-y-auto"
     : "hidden md:block flex-1 min-w-0 overflow-y-auto";
 
   const content = (
-    <div className={embedded ? "" : "flex flex-col h-[calc(100dvh-6.5rem)]"}>
-        {/* Toolbar */}
+    <div className={embedded ? "" : `flex flex-col h-[calc(100dvh-6.5rem)]${bareChrome ? " lg:h-[calc(100dvh-3rem)]" : ""}`}>
+        {/* Toolbar — compact: search · region · Filters·N · sort, then view tabs */}
         <div className="space-y-2 pb-3 border-b border-zinc-200 dark:border-zinc-800">
-          {/* Row 1: search + sort (+ scope & GigFit inline on desktop) */}
           <div className="flex gap-2 items-center">
-            <div className="relative flex-1 min-w-[150px] md:flex-none md:w-96">
+            <div className="relative flex-1 min-w-[130px]">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" /></svg>
               <input
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search..."
+                placeholder="Search opportunities..."
                 className="w-full h-10 pl-9 pr-3 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortKey)}
-              className="h-10 px-2.5 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-            {/* Desktop: scope + GigFit sit next to sort */}
-            <div className="hidden md:flex gap-2 items-center">
-              {scopeSelect}
-              {gigfitControl}
-            </div>
-          </div>
-
-          {/* Row 2 (mobile only): filters + scope + gigfit */}
-          <div className="flex flex-wrap gap-2 items-center md:hidden">
+            {regionSelect}
             <button
               type="button"
               onClick={openFilters}
               className="inline-flex items-center gap-1.5 text-sm h-10 px-3 rounded-lg border bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 shrink-0"
             >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M7 12h10M11 18h2" /></svg>
               Filters
               {filterCount > 0 && (
                 <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 text-xs font-medium bg-blue-600 text-white rounded-full">{filterCount}</span>
               )}
             </button>
-            {scopeSelect}
-            {gigfitControl}
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              className="hidden sm:block h-10 px-2.5 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
           </div>
 
-          {selectedProfile && (
-            <div className="text-sm text-zinc-600 dark:text-zinc-400">
-              {fieldsSet(selectedProfile).length === 0 ? (
-                <span>
-                  <Link href="/profile" className="text-blue-600 dark:text-blue-400 underline underline-offset-2">Set up your profile</Link>
-                  {" "}to see your matches.
-                </span>
-              ) : (
-                <>Matching on: <span className="text-zinc-900 dark:text-zinc-100 font-medium">{describeProfile(selectedProfile).join(" · ")}</span></>
-              )}
+          {(viewTabs || gigfitControl) && (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              {viewTabs}
+              {gigfitControl}
             </div>
           )}
 
-          <div className="hidden md:block">
-            <FilterChips
-              filters={filters}
-              onChange={setFilters}
-              availableStates={availableStates}
-              availableSources={availableSources}
-              showEligibleOnly={profileHasCriteria}
-            />
-          </div>
+          {selectedProfile && (
+            fieldsSet(selectedProfile).length === 0 ? (
+              <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                <Link href="/profile" className="text-blue-600 dark:text-blue-400 underline underline-offset-2">Set up your profile</Link> to see your matches.
+              </div>
+            ) : (
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                Matching: <span className="text-zinc-700 dark:text-zinc-300">{describeProfile(selectedProfile).join(" · ")}</span>
+              </div>
+            )
+          )}
 
           <div className="text-sm text-zinc-500 dark:text-zinc-400">
-            {loading ? "Loading..." : `${visible.length} ${visible.length === 1 ? "opportunity" : "opportunities"}`}
+            {loading ? "Loading..." : formatPostRoleCount(visible.length, visibleRoleCount)}
           </div>
         </div>
 
@@ -810,9 +842,12 @@ export default function OpportunitiesFeed({
           </div>
         </div>
 
-        {/* Mobile filter sheet */}
+        {/* Filter UI — same FilterChips / applyFilters as main. Phase 4 hid the
+            always-on desktop chips behind a toolbar button but left this sheet
+            as md:hidden, so desktop (and the signed-in app shell) clicks did
+            nothing. Mobile keeps the bottom sheet; md+ gets a centered dialog. */}
         {filtersMounted && (
-          <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true">
+          <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Filters">
             <div
               className={`absolute inset-0 bg-black/50 ${fDragging ? "" : "transition-opacity duration-300"}`}
               style={{ opacity: filtersOpen ? Math.max(0, 1 - fDragY / 400) : 0 }}
@@ -820,29 +855,24 @@ export default function OpportunitiesFeed({
             />
             <div
               ref={fSheetRef}
-              className={`absolute inset-x-0 bottom-0 max-h-[85vh] bg-white dark:bg-zinc-900 rounded-t-2xl shadow-2xl flex flex-col ${fDragging ? "" : "transition-transform duration-300 ease-out"}`}
+              className={`md:hidden absolute inset-x-0 bottom-0 max-h-[85vh] bg-white dark:bg-zinc-900 rounded-t-2xl shadow-2xl flex flex-col ${fDragging ? "" : "transition-transform duration-300 ease-out"}`}
               style={{ transform: filtersOpen ? `translateY(${fDragY}px)` : "translateY(100%)" }}
             >
               <div ref={fHeaderRef} className="shrink-0 touch-none select-none">
                 <div className="flex justify-center pt-2.5 pb-1"><div className="h-1.5 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" /></div>
-                <div className="flex items-center justify-between px-4 pb-3 border-b border-zinc-200 dark:border-zinc-800">
-                  <button type="button" onClick={closeFilters} className="text-2xl leading-none text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 -ml-1 px-1" aria-label="Close">×</button>
-                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Filters</h3>
-                  {filterCount > 0 ? (
-                    <button type="button" onClick={() => setFilters(EMPTY_FILTERS)} className="text-sm text-blue-600 dark:text-blue-400">Clear all</button>
-                  ) : (
-                    <span className="w-6" />
-                  )}
-                </div>
+                {renderFilterChrome()}
               </div>
               <div ref={fContentRef} className="flex-1 overflow-y-auto overscroll-none px-4">
-                <FilterChips filters={filters} onChange={setFilters} availableStates={availableStates} availableSources={availableSources} layout="stacked" showEligibleOnly={profileHasCriteria} />
+                {renderFilterFields()}
               </div>
-              <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 shrink-0">
-                <button type="button" onClick={closeFilters} className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
-                  Show {visible.length} {visible.length === 1 ? "result" : "results"}
-                </button>
-              </div>
+              {renderFilterApply()}
+            </div>
+            <div
+              className={`hidden md:flex absolute left-1/2 top-[12%] w-full max-w-lg max-h-[min(80vh,40rem)] -translate-x-1/2 flex-col bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl transition-opacity duration-200 ${filtersOpen ? "opacity-100" : "opacity-0"}`}
+            >
+              <div className="shrink-0 pt-4">{renderFilterChrome()}</div>
+              <div className="flex-1 overflow-y-auto overscroll-none px-4">{renderFilterFields()}</div>
+              {renderFilterApply()}
             </div>
           </div>
         )}
@@ -876,5 +906,6 @@ export default function OpportunitiesFeed({
       </div>
   );
 
-  return embedded ? content : <PublicShell>{content}</PublicShell>;
+  if (embedded || bareChrome) return content;
+  return <PublicShell>{content}</PublicShell>;
 }
