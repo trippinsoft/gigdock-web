@@ -45,6 +45,11 @@ export type MarketSpec = {
    *  AND enough recurring inventory. Prevents thin/doorway pages while we build the
    *  capability for many markets. Flip to true when a market is genuinely ready. */
   indexable?: boolean;
+  /** Show in the "Popular markets" section on the locations hub — an intentional
+   *  curation flag, not automatic. Kept separate from `indexable` so a page can be
+   *  indexed for SEO without being featured, and vice versa. Live-inventory
+   *  filtering still applies on top of this. */
+  featured?: boolean;
   content: MarketContent;
 };
 
@@ -129,6 +134,52 @@ const ATLANTA_CONTENT: MarketContent = {
   ],
 };
 
+// Cities that make up the Chicago production market (metro + film-relevant suburbs).
+const CHICAGO_CITIES = [
+  "Chicago", "Evanston", "Oak Park", "Cicero", "Skokie", "Berwyn", "Forest Park",
+  "Wilmette", "Winnetka", "Glenview", "Northbrook", "Highland Park",
+  "Naperville", "Aurora", "Elgin", "Joliet", "Waukegan", "Schaumburg",
+  "Rosemont", "Des Plaines", "Park Ridge", "Elmhurst", "Lombard", "Downers Grove",
+  "Wheaton", "Hinsdale", "Oak Brook", "Lake Forest", "Bolingbrook", "Homewood",
+  "Blue Island", "Chicago Heights", "Melrose Park", "River Forest", "Lansing",
+  "Calumet City", "Harvey", "Hammond",
+];
+
+const CHICAGO_CONTENT: MarketContent = {
+  tagline: "Background Acting Jobs, Extras & Film/TV Casting",
+  intro:
+    "Chicago is a top U.S. production market — background actors, extras, stand-ins, and photo doubles are booked across Chicagoland every week. GigDock gathers current Chicago casting calls from casting companies and sources into one searchable feed, updated throughout the day.",
+  about: [
+    "Illinois's film tax credit and a deep bench of local crew and studios make Chicago a year-round hub for television, features, and commercials. Long-running series shoot here (Chicago Fire, Chicago P.D., Chicago Med, The Chi), alongside features, streamers, and one of the country's largest commercial-production markets.",
+    "Cinespace Chicago Film Studios in the West Side is the anchor stage complex; productions also work on location across the city, the North Shore (Evanston, Wilmette, Winnetka, Highland Park), the western suburbs (Oak Park, Naperville, Elmhurst), and out to Aurora, Elgin, and Joliet. Casting companies serving Chicagoland — 4 Star Casting, Extraordinary Casting, Joan Philo Casting and others — feed a steady pipeline of paid background and extras work.",
+    "You don't have to live inside city limits — most calls list a report location and how far you'd need to self-travel. Cook County plus DuPage, Lake, Kane, and Will counties all fall inside the working Chicago market.",
+  ],
+  payNote: "$100–$188 for a 10-hour day",
+  hubs: ["Chicago", "Evanston", "Oak Park", "Naperville", "Aurora", "Elgin", "Joliet"],
+  faqs: [
+    {
+      q: "What's filming in Chicago right now?",
+      a: "It changes constantly — Chicago hosts long-running network series (Chicago Fire, P.D., Med, The Chi), features, streaming originals, and a heavy commercial market. Rather than tracking each production, watch the live GigDock feed above: every current Chicago-area casting call from the sources we cover is aggregated in one place.",
+    },
+    {
+      q: "Is casting work in Chicago union or non-union?",
+      a: "Both. A large share of Chicago background work is non-union and open to newcomers; SAG-AFTRA (Chicago local) covers union productions at higher rates. GigDock shows union status on each listing so you can filter for what fits you.",
+    },
+    {
+      q: "Do I have to live in Chicago to do background work here?",
+      a: "No. The Chicago market spans Cook County plus DuPage, Lake, Kane and Will counties — Evanston, Oak Park, Naperville, Aurora, Elgin, Joliet, and the North Shore are all inside the working market. Each casting call lists its report location and, often, how far you'd need to self-travel.",
+    },
+    {
+      q: "How do I get background acting work in Chicago?",
+      a: "Most Chicago background roles are cast through open calls that anyone can respond to — no agent or experience required to start. Watch the current listings above, filter to what fits you, and follow each call's apply instructions (usually an email or a submission link). Setting up a profile lets GigFit flag which calls match your look, so you spend time on the ones worth applying to.",
+    },
+    {
+      q: "How much do background actors and extras get paid in Chicago?",
+      a: "Chicago background and extras work is typically quoted as a rate for a set number of guaranteed hours — commonly $100–$188 for a 10-hour day for non-union work, with SAG-AFTRA productions paying more. Many calls add \"bumps\" for wardrobe, a personal vehicle, or special skills. Each listing above shows its stated rate.",
+    },
+  ],
+};
+
 const SEO_MARKETS: Record<string, MarketSpec> = {
   "atlanta-ga": {
     slug: "atlanta-ga",
@@ -138,7 +189,19 @@ const SEO_MARKETS: Record<string, MarketSpec> = {
     cities: ATLANTA_CITIES,
     terms: ["atlanta"],
     indexable: true,
+    featured: true,
     content: ATLANTA_CONTENT,
+  },
+  "chicago-il": {
+    slug: "chicago-il",
+    kind: "market",
+    name: "Chicago",
+    stateCode: "IL",
+    cities: CHICAGO_CITIES,
+    terms: ["chicago", "chicagoland"],
+    indexable: true,
+    featured: true,
+    content: CHICAGO_CONTENT,
   },
 
   // ---- Curated market registry (capability built now; indexed only when ready) ----
@@ -154,6 +217,7 @@ const SEO_MARKETS: Record<string, MarketSpec> = {
     cities: ["Nashville", "Franklin", "Murfreesboro", "Hendersonville", "Brentwood", "Gallatin", "Columbia", "Clarksville"],
     terms: ["nashville", "middle tennessee"],
     indexable: false,
+    featured: true,
     content: genericMarket("Nashville", "Tennessee"),
   },
   "los-angeles-ca": {
@@ -164,6 +228,9 @@ const SEO_MARKETS: Record<string, MarketSpec> = {
     cities: ["Los Angeles", "Burbank", "Hollywood", "Santa Clarita", "Long Beach", "Pasadena", "Culver City", "Santa Monica", "Glendale", "Valencia"],
     terms: ["los angeles", "l.a.", "greater los angeles", "socal", "southern california"],
     indexable: false,
+    // Kept in the registry (page still renders, still reachable via California)
+    // but intentionally not featured on the locations hub while inventory is thin.
+    featured: false,
     content: genericMarket("Los Angeles", "California"),
   },
   "new-york-ny": {
@@ -174,6 +241,7 @@ const SEO_MARKETS: Record<string, MarketSpec> = {
     cities: ["New York", "Brooklyn", "Queens", "Bronx", "Staten Island", "Manhattan", "Yonkers", "Long Island City"],
     terms: ["new york", "nyc", "new york city", "tri-state"],
     indexable: false,
+    featured: true,
     content: genericMarket("New York", "New York"),
   },
 };
@@ -222,11 +290,20 @@ export function seoMarketSlugs(): string[] {
   return Object.keys(SEO_MARKETS);
 }
 
-/** All curated market specs — the "Popular markets" tier on the locations hub.
- *  Whether each one is CLICKABLE/shown is decided by live inventory at render
- *  time; indexability (SEO) is a separate concern handled by indexableMarketSlugs. */
+/** All curated market specs — the full registry. Some of these are featured on
+ *  the locations hub (`featured: true`); the rest are capability-built stubs
+ *  whose pages resolve but are not promoted. Live-inventory filtering happens
+ *  on top of this at the render site. */
 export function curatedMarkets(): MarketSpec[] {
   return Object.values(SEO_MARKETS);
+}
+
+/** The subset intentionally promoted in the locations hub's Popular markets
+ *  section. A market's card only appears if it also has live inventory
+ *  (count > 0) at render time — this is the "stable/configurable featured
+ *  list" separate from the automatic count-driven sort. */
+export function featuredMarkets(): MarketSpec[] {
+  return Object.values(SEO_MARKETS).filter((m) => m.featured);
 }
 
 /** Curated markets that sit within a given state (e.g. GA -> Atlanta). Drives the

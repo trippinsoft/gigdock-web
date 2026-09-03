@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import PublicShell from "@/components/PublicShell";
 import { stateName, stateSlug } from "@/lib/markets";
-import { curatedMarkets, belongsToMarket, type MarketSpec } from "@/lib/marketContent";
+import { curatedMarkets, featuredMarkets, belongsToMarket, type MarketSpec } from "@/lib/marketContent";
 
 export const revalidate = 3600;
 
@@ -38,14 +38,21 @@ function marketCount(spec: MarketSpec, rows: Row[]): number {
 export default async function LocationsHub() {
   const rows = await getInventory();
 
-  // Curated markets that actually have inventory right now → clickable cards.
-  const markets = curatedMarkets()
+  // Popular markets = the intentionally-featured registry entries that also have
+  // live inventory right now. `featured` is the curation flag (stable across
+  // deploys); inventory decides whether a featured market is clickable today.
+  const markets = featuredMarkets()
     .map((spec) => ({ spec, count: marketCount(spec, rows) }))
     .filter((m) => m.count > 0)
     .sort((a, b) => b.count - a.count || a.spec.name.localeCompare(b.spec.name));
 
-  // Curated markets we're building toward but have no inventory yet → "coming soon".
-  const soon = curatedMarkets().filter((spec) => marketCount(spec, rows) === 0);
+  // "Coming soon" = every non-featured curated market plus any featured market
+  // temporarily out of inventory. Non-featured markets that DO have inventory
+  // (e.g. LA when it has a stray active opp) are still reachable via the state
+  // page and their own /opportunities/<slug> URL; we just don't spotlight them.
+  const featuredSlugs = new Set(markets.map((m) => m.spec.slug));
+  const soon = curatedMarkets()
+    .filter((spec) => !featuredSlugs.has(spec.slug) && marketCount(spec, rows) === 0);
 
   // Every state with active inventory (not a hand-picked few) → complete catch-all.
   const stateCounts = new Map<string, number>();
