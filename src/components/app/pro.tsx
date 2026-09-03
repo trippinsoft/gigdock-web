@@ -34,7 +34,7 @@ function useImpression(context: ProContextTag, when: boolean) {
   useEffect(() => {
     if (when && !fired.current) {
       fired.current = true;
-      trackPro("pro_preview_impression", context);
+      trackPro("pro_feature_impression", context);
     }
   }, [when, context]);
 }
@@ -43,7 +43,7 @@ function ProCta({ context, children }: { context: ProContextTag; children: React
   return (
     <Link
       href={`/pro?from=${context}`}
-      onClick={() => trackPro("pro_preview_clicked", context)}
+      onClick={() => trackPro("pro_feature_tapped", context)}
       className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 dark:text-blue-300 hover:underline"
     >
       {children}
@@ -141,7 +141,7 @@ export function ProLock({
   return (
     <Link
       href={`/pro?from=${context}`}
-      onClick={() => trackPro("locked_feature_attempted", context)}
+      onClick={() => trackPro("locked_feature_attempt", context)}
       className="inline-flex items-center gap-1.5 text-sm text-zinc-400 dark:text-zinc-500 hover:text-blue-700 dark:hover:text-blue-300"
     >
       <LockIcon /> {label} <ProBadge />

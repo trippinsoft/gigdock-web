@@ -24,8 +24,8 @@ function ProLanding() {
   const [notified, setNotified] = useState(false);
 
   useEffect(() => {
-    trackPro("paywall_opened", from);
-    trackPro("pricing_viewed", from);
+    trackPro("paywall_open", from);
+    trackPro("pricing_view", from);
   }, [from]);
 
   if (isPro) {
@@ -39,7 +39,7 @@ function ProLanding() {
   }
 
   function upgrade() {
-    trackPro("checkout_initiated", from, { tier: selected });
+    trackPro("checkout_start", from, { tier: selected });
     if (selected === "founding") trackPro("founding_offer_selected", from);
     setNotified(true);
   }

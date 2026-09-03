@@ -9,6 +9,7 @@
 // Rendered only for Pro users; free users get a ProLock in its place.
 
 import { useState } from "react";
+import { track } from "@/lib/analytics";
 
 export type ReportTable = {
   heading?: string;
@@ -98,8 +99,9 @@ function printHtml(data: ReportData): string {
 </body></html>`;
 }
 
-export default function ReportExport({ data }: { data: ReportData }) {
+export default function ReportExport({ data, reportId }: { data: ReportData; reportId?: string }) {
   const [busy, setBusy] = useState(false);
+  const analyticsProps = { report: reportId ?? slug(data.title), period: data.periodLabel };
 
   function exportCsv() {
     const blob = new Blob([toCsv(data)], { type: "text/csv;charset=utf-8" });
@@ -111,6 +113,10 @@ export default function ReportExport({ data }: { data: ReportData }) {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+    // Mirror mobile: fire the format-specific export event and the shared event.
+    track("report_export_csv", analyticsProps);
+    track("report_shared", { ...analyticsProps, format: "csv" });
+    if (reportId === "taxReady") track("tax_ready_report_exported", { format: "csv" });
   }
 
   function exportPdf() {
@@ -129,6 +135,9 @@ export default function ReportExport({ data }: { data: ReportData }) {
       w.print();
       setBusy(false);
     }, 250);
+    track("report_export_pdf", analyticsProps);
+    track("report_shared", { ...analyticsProps, format: "pdf" });
+    if (reportId === "taxReady") track("tax_ready_report_exported", { format: "pdf" });
   }
 
   return (

@@ -9,6 +9,8 @@ import {
 import { EarningsBars } from "@/components/app/charts";
 import { ProBadge } from "@/components/app/pro";
 import ReportExport, { type ReportData } from "@/components/app/ReportExport";
+import TrackEvent from "@/components/TrackEvent";
+import ExplorePro from "@/components/app/ExplorePro";
 
 export const metadata: Metadata = {
   title: "Report",
@@ -83,6 +85,17 @@ export default async function ReportDetailPage({
 
   return (
     <div className="max-w-4xl">
+      {/* Pro users see the real report (report_generated); free users see the
+          preview (report_preview_open + the Pro reveal). Mirrors mobile's
+          ReportDetailScreen instrumentation. */}
+      {isPro ? (
+        <TrackEvent event="report_generated" props={{ report: id, period: label }} />
+      ) : (
+        <>
+          <TrackEvent event="report_preview_open" props={{ report_type: id }} />
+          <TrackEvent event="report_pro_reveal_view" props={{ report_type: id }} />
+        </>
+      )}
       {/* Header */}
       <div className="mb-4">
         <Link href="/reports" className="inline-flex items-center gap-1 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200">
@@ -109,7 +122,7 @@ export default async function ReportDetailPage({
           {built.note && <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">{built.note}</p>}
           <div className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-3">
             <div className="text-sm text-zinc-600 dark:text-zinc-400">Export this report</div>
-            <ReportExport data={reportData} />
+            <ReportExport data={reportData} reportId={id} />
           </div>
         </>
       ) : (
@@ -261,9 +274,9 @@ function FreePreview({
         <ProBadge />
         <h3 className="mt-2 text-base font-semibold text-zinc-900 dark:text-zinc-100">{meta.preview.title}</h3>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300 max-w-md mx-auto">{meta.preview.copy}</p>
-        <Link href="/pro?from=report_export" className="mt-4 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">
+        <ExplorePro href="/pro?from=report_export" event="report_pro_cta_tap" props={{ report_type: id }}>
           Explore Pro →
-        </Link>
+        </ExplorePro>
       </div>
     </div>
   );

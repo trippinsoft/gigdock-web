@@ -10,6 +10,9 @@ import {
   taxDocumentsLibraryHref,
 } from "@/lib/documentTypes";
 import type { DocumentRow, InsightsOverview } from "@/lib/backoffice-types";
+import TrackEvent from "@/components/TrackEvent";
+import TrackedLink from "@/components/app/TrackedLink";
+import ExplorePro from "@/components/app/ExplorePro";
 
 export const metadata: Metadata = {
   title: "Tax Ready",
@@ -52,6 +55,10 @@ function LockedSplash({
   const { count, breakdown, recordedLine } = taxDocCopy(taxDocs);
   return (
     <div className="max-w-2xl">
+      {/* Free users still hit /tax-ready — fire tax_ready_open plus the Pro
+          impression that matches mobile's locked-splash behavior. */}
+      <TrackEvent event="tax_ready_open" props={{ year, plan: "free" }} />
+      <TrackEvent event="pro_feature_impression" props={{ context: "tax_prep" }} />
       <h1 className="flex items-center gap-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-6">Tax Ready <ProBadge /></h1>
       <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 text-center">
         <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
@@ -77,9 +84,14 @@ function LockedSplash({
         </div>
 
         <p className="mt-4 text-xs text-zinc-400 dark:text-zinc-500">{DISCLAIMER}</p>
-        <Link href="/pro?from=tax_prep" className="mt-5 inline-flex items-center gap-1.5 px-6 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">
+        <ExplorePro
+          href="/pro?from=tax_prep"
+          event="pro_feature_tapped"
+          props={{ context: "tax_prep" }}
+          className="mt-5 inline-flex items-center gap-1.5 px-6 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold"
+        >
           Explore Pro →
-        </Link>
+        </ExplorePro>
       </div>
     </div>
   );
@@ -87,7 +99,7 @@ function LockedSplash({
 
 /* ── checklist row ────────────────────────────────────────────────────────── */
 type Status = "Looks Good" | "Needs Attention" | "Recorded" | "No Data";
-function ChecklistRow({ label, status, desc, action }: { label: string; status: Status; desc: string; action?: { label: string; href: string } }) {
+function ChecklistRow({ label, status, desc, action }: { label: string; status: Status; desc: string; action?: { label: string; href: string; event?: string; props?: Record<string, unknown> } }) {
   const tone =
     status === "Looks Good" ? "text-green-600 dark:text-green-400"
       : status === "Needs Attention" ? "text-amber-600 dark:text-amber-400"
@@ -111,7 +123,11 @@ function ChecklistRow({ label, status, desc, action }: { label: string; status: 
       </div>
       <div className="shrink-0 text-right">
         <div className={`text-xs font-semibold ${tone}`}>{status}</div>
-        {action && <Link href={action.href} className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">{action.label}</Link>}
+        {action && (
+          action.event
+            ? <TrackedLink href={action.href} event={action.event} props={action.props} className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">{action.label}</TrackedLink>
+            : <Link href={action.href} className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">{action.label}</Link>
+        )}
       </div>
     </div>
   );
@@ -152,15 +168,17 @@ function TaxReadyExperience({
 
   return (
     <div className="max-w-2xl">
+      {/* mobile parity: tax_ready_open fires once per year view. */}
+      <TrackEvent event="tax_ready_open" props={{ year }} />
       <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
         <h1 className="flex items-center gap-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">Tax Ready <ProBadge /></h1>
         <div className="flex items-center gap-1">
-          <Link href={prev} className="h-7 w-7 grid place-items-center rounded-md text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800" aria-label="Previous year"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg></Link>
+          <TrackedLink href={prev} event="tax_year_selected" props={{ year: year - 1 }} className="h-7 w-7 grid place-items-center rounded-md text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800" ariaLabel="Previous year"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg></TrackedLink>
           <span className="min-w-[3.5rem] text-center text-sm font-semibold text-zinc-900 dark:text-zinc-100">{year}</span>
           {year >= thisYear ? (
             <span className="h-7 w-7 grid place-items-center rounded-md text-zinc-300 dark:text-zinc-700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg></span>
           ) : (
-            <Link href={next} className="h-7 w-7 grid place-items-center rounded-md text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800" aria-label="Next year"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg></Link>
+            <TrackedLink href={next} event="tax_year_selected" props={{ year: year + 1 }} className="h-7 w-7 grid place-items-center rounded-md text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800" ariaLabel="Next year"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg></TrackedLink>
           )}
         </div>
       </div>
@@ -187,17 +205,17 @@ function TaxReadyExperience({
 
       {/* Tax-time records */}
       <Card title="Tax-time records" subtitle={DISCLAIMER}>
-        <Link href={taxCount ? reviewDocsHref : "/documents"} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
+        <TrackedLink href={taxCount ? reviewDocsHref : "/documents"} event="tax_ready_item_reviewed" props={{ item: "documents" }} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
           <div>
             <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Tax documents</div>
             <div className="text-xs text-zinc-500 dark:text-zinc-400">{recordedLine}</div>
           </div>
           <svg className="text-zinc-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-        </Link>
-        <Link href={`/insights?mode=year&p=${yr}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
+        </TrackedLink>
+        <TrackedLink href={`/insights?mode=year&p=${yr}`} event="tax_ready_item_reviewed" props={{ item: "income_reports" }} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
           <div><div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Income reports</div><div className="text-xs text-zinc-500 dark:text-zinc-400">Earnings, payments, and company records</div></div>
           <svg className="text-zinc-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-        </Link>
+        </TrackedLink>
       </Card>
 
       {/* Checklist */}
@@ -211,7 +229,7 @@ function TaxReadyExperience({
           label="Payments"
           status={missingNet > 0 ? "Needs Attention" : paymentCount > 0 ? "Looks Good" : "No Data"}
           desc={missingNet > 0 ? `Net amounts missing from ${missingNet} applicable ${missingNet === 1 ? "payment" : "payments"}` : `${paymentCount} payments recorded`}
-          action={missingNet > 0 ? { label: "Review Payments", href: "/payments" } : undefined}
+          action={missingNet > 0 ? { label: "Review Payments", href: "/payments", event: "tax_ready_item_reviewed", props: { item: "payments" } } : undefined}
         />
         <ChecklistRow label="Expenses" status="No Data" desc="No expenses recorded yet" />
         <ChecklistRow label="Mileage" status="No Data" desc="No mileage recorded" />
@@ -222,15 +240,15 @@ function TaxReadyExperience({
             ? recordedLine
             : `No tax documents recorded. Add tax-related documents you want to keep with your ${yr} records.`}
           action={taxCount
-            ? { label: "Review Documents", href: reviewDocsHref }
-            : { label: "Add Document", href: "/documents" }}
+            ? { label: "Review Documents", href: reviewDocsHref, event: "tax_ready_item_reviewed", props: { item: "documents" } }
+            : { label: "Add Document", href: "/documents", event: "tax_ready_item_reviewed", props: { item: "add_document" } }}
         />
       </Card>
 
       {/* Generate report */}
-      <Link href={`/reports/taxReady?mode=year&p=${yr}`} className="block w-full text-center px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold mb-4">
+      <TrackedLink href={`/reports/taxReady?mode=year&p=${yr}`} event="tax_ready_report_generated" props={{ year }} className="block w-full text-center px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold mb-4">
         Generate Tax Ready Report
-      </Link>
+      </TrackedLink>
 
       {/* Report exports */}
       <Card title="Report exports" subtitle="PDF and CSV files from your Tax Ready Report">

@@ -42,7 +42,7 @@ export default function InsightsPeriodNav({
 
   function go(nextMode: "month" | "year", y: number, m?: number) {
     if (!isPro && y < currentYear) {
-      trackPro("locked_feature_attempted", "insights_history");
+      trackPro("locked_feature_attempt", "insights_history");
       router.push("/pro?from=insights_history");
       return;
     }
