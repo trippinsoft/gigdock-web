@@ -13,6 +13,8 @@ import {
 import { GIG_MODES, PAY_TYPES } from "@/lib/gigVocab";
 import EntitySelect from "@/components/EntitySelect";
 import type { PayType } from "@/lib/pay";
+import { track } from "@/lib/analytics";
+import { trackProduct } from "@/lib/productEvents";
 
 type Company = { id: string; name: string; kind: string };
 type Project = { id: string; title: string };
@@ -64,11 +66,20 @@ export default function GigEditor({
     setSaving(true);
     // Null out pay fields that don't apply to the chosen pay type.
     const cleaned = cleanPayFields(f);
+    const wasDraft = isDraft;
     const res = await saveGig(gigId, cleaned);
     setSaving(false);
     if (!res.ok) {
       setError(res.error);
       return;
+    }
+    // Funnel: first save from draft → new gig; subsequent saves are edits.
+    if (wasDraft) {
+      track("gig_created", { gig_id: gigId, pay_type: cleaned.pay_type ?? null });
+      trackProduct("gigManagementAction", { gig_id: gigId, action: "gig_created" });
+    } else {
+      track("gig_updated", { gig_id: gigId });
+      trackProduct("gigManagementAction", { gig_id: gigId, action: "gig_updated" });
     }
     setSavedTick(true);
     setTimeout(() => setSavedTick(false), 1800);
@@ -85,6 +96,8 @@ export default function GigEditor({
       setError(res.error);
       return;
     }
+    track("gig_deleted", { gig_id: gigId });
+    trackProduct("gigManagementAction", { gig_id: gigId, action: "gig_deleted" });
     router.push("/gigs");
     router.refresh();
   }

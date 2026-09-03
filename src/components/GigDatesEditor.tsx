@@ -3,6 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { saveGigDate, deleteGigDate, type GigDateFields } from "@/lib/backoffice-actions";
+import { track } from "@/lib/analytics";
+import { trackProduct } from "@/lib/productEvents";
+
+const BOOKED_LIKE = new Set(["booked", "worked", "paid"]);
 import { DAY_STATUSES } from "@/lib/gigVocab";
 import { dayGrossEarned, type PayType } from "@/lib/pay";
 import { money, shortDate } from "@/lib/format";
@@ -100,12 +104,26 @@ export default function GigDatesEditor({
       base_pay_applies: draft.base_pay_applies,
       notes: draft.notes.trim() || null,
     };
+    const isNew = !draft.id;
     const res = await saveGigDate(fields);
     setBusy(false);
     if (!res.ok) {
       setError(res.error);
       return;
     }
+    // Mobile-parity: Gig Booked when a booked date is first created; Booked
+    // Gig Management Started when editing a booked/worked/paid date; plus the
+    // umbrella Gig Management Action.
+    if (isNew && fields.status_for_day === "booked") {
+      trackProduct("gigBooked", { gig_id: gigId, source: "gig_dates_editor" });
+    } else if (!isNew && BOOKED_LIKE.has(fields.status_for_day)) {
+      trackProduct("bookedGigManagementStarted", { gig_id: gigId, status: fields.status_for_day });
+    }
+    trackProduct("gigManagementAction", {
+      gig_id: gigId,
+      action: isNew ? "gig_date_added" : "gig_date_updated",
+      status: fields.status_for_day,
+    });
     setEditing(null);
     router.refresh();
   }
@@ -119,6 +137,8 @@ export default function GigDatesEditor({
       setError(res.error);
       return;
     }
+    track("gig_date_deleted", { gig_id: gigId, gig_date_id: id });
+    trackProduct("gigManagementAction", { gig_id: gigId, action: "gig_date_deleted" });
     setEditing(null);
     router.refresh();
   }

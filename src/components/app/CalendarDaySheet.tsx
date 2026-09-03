@@ -12,6 +12,9 @@ import {
   patchCalendarDay,
 } from "@/lib/backoffice-actions";
 import { track } from "@/lib/analytics";
+import { trackProduct } from "@/lib/productEvents";
+
+const BOOKED_LIKE = new Set(["booked", "worked", "paid"]);
 import { money, shortDate } from "@/lib/format";
 import type { CalendarDate } from "@/lib/backoffice-types";
 
@@ -177,6 +180,7 @@ function GigDaySheet({
     if (next === status || busy) return;
     setBusy(true);
     setError(null);
+    const from = status;
     const res = await patchCalendarDay({ gigDateId: row.id, gigId, status_for_day: next });
     setBusy(false);
     if (!res.ok || !res.data) {
@@ -184,6 +188,12 @@ function GigDaySheet({
       return;
     }
     applyPatch(res.data);
+    // Mobile-parity: transition to Booked fires Gig Booked; every status
+    // change also fires Gig Management Action for the umbrella funnel.
+    if (next === "booked") {
+      trackProduct("gigBooked", { gig_id: gigId, gig_date_id: row.id, source: "calendar_day_sheet", from_status: from });
+    }
+    trackProduct("gigManagementAction", { gig_id: gigId, gig_date_id: row.id, action: "status_change", from: from, to: next });
     router.refresh();
   }
 
@@ -200,6 +210,12 @@ function GigDaySheet({
     }
     applyPatch(res.data);
     track("hours_entered_on_day", { gig_id: gigId, gig_date_id: row.id, hours_total: value });
+    // Editing hours on a booked/worked/paid day is the "started managing a
+    // booked gig" signal in mobile's funnel.
+    if (BOOKED_LIKE.has(status)) {
+      trackProduct("bookedGigManagementStarted", { gig_id: gigId, gig_date_id: row.id, status, field: "hours_total" });
+    }
+    trackProduct("gigManagementAction", { gig_id: gigId, gig_date_id: row.id, action: "hours_edited", status });
     router.refresh();
   }
 

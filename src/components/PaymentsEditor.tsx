@@ -5,6 +5,8 @@ import { useState } from "react";
 import { savePayment, deletePayment, type PaymentFields } from "@/lib/backoffice-actions";
 import { PAYMENT_METHODS } from "@/lib/gigVocab";
 import { money, shortDate } from "@/lib/format";
+import { track } from "@/lib/analytics";
+import { trackProduct } from "@/lib/productEvents";
 
 export type RawPayment = {
   id: string;
@@ -72,11 +74,21 @@ export default function PaymentsEditor({ gigId, initial }: { gigId: string; init
       payment_method: draft.payment_method || null,
       notes: draft.notes.trim() || null,
     };
+    const isEdit = !!draft.id;
     const res = await savePayment(fields);
     setBusy(false);
     if (!res.ok) {
       setError(res.error);
       return;
+    }
+    // Mobile-parity: fire the Gig Management Action reporting event, plus a
+    // web-specific snake_case for direct funnel analysis.
+    if (isEdit) {
+      track("payment_updated", { gig_id: gigId });
+      trackProduct("gigManagementAction", { gig_id: gigId, action: "payment_updated" });
+    } else {
+      track("payment_added", { gig_id: gigId });
+      trackProduct("gigManagementAction", { gig_id: gigId, action: "payment_added" });
     }
     setEditing(null);
     router.refresh();
@@ -91,6 +103,8 @@ export default function PaymentsEditor({ gigId, initial }: { gigId: string; init
       setError(res.error);
       return;
     }
+    track("payment_deleted", { gig_id: gigId, payment_id: id });
+    trackProduct("gigManagementAction", { gig_id: gigId, action: "payment_deleted" });
     setEditing(null);
     router.refresh();
   }
