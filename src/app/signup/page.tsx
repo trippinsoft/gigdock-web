@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import PublicShell from "@/components/PublicShell";
+import { trackProduct } from "@/lib/productEvents";
 
 type Intent = "save" | "applied" | "gigfit" | "default";
 
@@ -98,14 +99,19 @@ function SignupForm() {
       return;
     }
 
+    // Supabase signup succeeded — this is the funnel event, whether a session
+    // is issued immediately (auto-confirm) or after email confirmation. Matches
+    // the mobile funnel definition of Account Created.
+    trackProduct("accountCreated", { intent, completion_source: "web_signup" });
+
     // If the project auto-confirms, we get a session now — continue the task.
     if (data.session) {
       router.push(completionPath);
       router.refresh();
       return;
     }
-    // Otherwise email confirmation is required; the confirm link returns them to
-    // completionPath, so the task still finishes after they confirm.
+    // Otherwise email confirmation is required; the confirm link returns them
+    // to completionPath, so the task still finishes after they confirm.
     setCheckEmail(true);
     setLoading(false);
   }

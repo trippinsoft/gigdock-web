@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { track } from "@/lib/analytics";
+import { trackProduct } from "@/lib/productEvents";
 import type { Opportunity } from "@/lib/types";
 import { fitTierColor, type GigFitResult } from "@/lib/gigfit";
 
@@ -474,7 +474,10 @@ export default function OpportunityCard({
               if (hideAdminMeta) {
                 let host: string | undefined;
                 try { host = applyIsEmail ? undefined : new URL(applyHref).host; } catch { /* mailto/other */ }
-                track("opportunity_applied", {
+                // The outbound handoff itself (reporting event only, no
+                // web-compat alias). The auto-mark-applied that follows fires
+                // "Opportunity Marked Applied" + opportunity_applied.
+                trackProduct("opportunityApplyOpened", {
                   opportunity_id: opp.id,
                   production_name: opp.production_name,
                   market: opp.match_state,

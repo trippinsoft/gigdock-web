@@ -32,14 +32,18 @@ export function initAmplitude(): void {
   });
 }
 
-/** Fire a product event. Always tagged platform:"web" for cross-surface splits. */
+/** Fire a product event. Always tagged platform:"web" for cross-surface splits;
+ *  `environment` (production/preview/development) is added to match the mobile
+ *  app's schema so Amplitude reports can slice both surfaces consistently. */
 export function track(event: string, props: Record<string, unknown> = {}): void {
   if (!KEY || typeof window === "undefined") return;
+  const environment =
+    process.env.NEXT_PUBLIC_VERCEL_ENV || process.env.NODE_ENV || "UNKNOWN";
   // Drop null/undefined so Amplitude property lists stay clean.
   const clean = Object.fromEntries(
     Object.entries(props).filter(([, v]) => v !== null && v !== undefined && v !== "")
   );
-  amplitude.track(event, { platform: "web", ...clean });
+  amplitude.track(event, { environment, platform: "web", ...clean });
 }
 
 /** Tie web events to the same Supabase user id the app uses, when signed in. */

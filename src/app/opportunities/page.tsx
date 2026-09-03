@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import OpportunitiesFeed from "@/components/OpportunitiesFeed";
+import TrackEvent from "@/components/TrackEvent";
 
 export const metadata: Metadata = {
   title: "Browse Film & TV Casting Calls & Opportunities",
@@ -16,5 +17,10 @@ export const metadata: Metadata = {
 };
 
 export default function OpportunitiesPage() {
-  return <OpportunitiesFeed />;
+  return (
+    <>
+      <TrackEvent reporting="opportunitiesViewed" props={{ surface: "opportunities" }} />
+      <OpportunitiesFeed />
+    </>
+  );
 }

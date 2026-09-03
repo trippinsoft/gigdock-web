@@ -1,5 +1,13 @@
 # GigDock analytics event dictionary
 
+**Canonical source of truth is the mobile app's** `docs/analytics-funnel.md` in
+the `gigvault` repo. The web mirrors those event names — both the reporting
+PascalCase names ("Opportunity Saved") and the snake_case web-compat aliases
+mobile also emits ("opportunity_saved") — so a single Amplitude funnel covers
+web + iOS + Android. On the web the constants live in
+`src/lib/productEvents.ts`; import `trackProduct(key, props)` — it fires the
+reporting event and any web-compat alias mobile also emits.
+
 One Amplitude project receives events from **both** surfaces — the website
 (`gigdock-web`) and the mobile app (`gigvault`, built in Draftbit) — so the whole
 funnel lives in one place: discover on the web → track in the app.

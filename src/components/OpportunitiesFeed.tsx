@@ -23,7 +23,7 @@ import {
   type GigFitRow,
   type PerformerProfile,
 } from "@/lib/gigfit";
-import { track } from "@/lib/analytics";
+import { trackProduct } from "@/lib/productEvents";
 
 type SortKey = "recent" | "shoot-date" | "apply-by";
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
@@ -336,12 +336,15 @@ export default function OpportunitiesFeed({
   /* ---------- save ---------- */
   async function toggleSave(id: string) {
     if (!userId) {
-      track("opportunity_saved", { opportunity_id: id, signed_in: false });
+      // Intent signal: the user tapped Save before signing up. Fires the
+      // Saved event so the pre-signup intent shows up in the funnel; the
+      // sign-up flow completes the actual save after auth.
+      trackProduct("opportunitySaved", { opportunity_id: id, signed_in: false });
       router.push(`/signup?intent=save&opportunity=${id}`);
       return;
     }
     const isSaved = savedIds.has(id);
-    track(isSaved ? "opportunity_unsaved" : "opportunity_saved", { opportunity_id: id, signed_in: true });
+    trackProduct(isSaved ? "opportunityUnsaved" : "opportunitySaved", { opportunity_id: id, signed_in: true });
     setSavedIds((prev) => {
       const next = new Set(prev);
       if (isSaved) next.delete(id); else next.add(id);
@@ -357,12 +360,12 @@ export default function OpportunitiesFeed({
   /* ---------- applied (mirrors the mobile app's applied_opportunities) ---------- */
   async function toggleApplied(id: string) {
     if (!userId) {
-      track("opportunity_applied", { opportunity_id: id, method: "manual", signed_in: false });
+      trackProduct("opportunityMarkedApplied", { opportunity_id: id, method: "manual", signed_in: false });
       router.push(`/signup?intent=applied&opportunity=${id}`);
       return;
     }
     const isApplied = appliedIds.has(id);
-    track(isApplied ? "opportunity_unapplied" : "opportunity_applied", {
+    trackProduct(isApplied ? "opportunityUnmarkedApplied" : "opportunityMarkedApplied", {
       opportunity_id: id, method: "manual", signed_in: true,
     });
     setAppliedIds((prev) => {
@@ -388,6 +391,9 @@ export default function OpportunitiesFeed({
       { user_id: userId, opportunity_id: id, method },
       { onConflict: "user_id,opportunity_id", ignoreDuplicates: true }
     );
+    // Mirrors mobile: "Opportunity Apply Opened" fires from the outbound click
+    // and "Opportunity Marked Applied" fires when the DB row is written.
+    trackProduct("opportunityMarkedApplied", { opportunity_id: id, method, signed_in: true });
   }
 
   /* ---------- detail sheet ---------- */
@@ -789,7 +795,7 @@ export default function OpportunitiesFeed({
               ) : (
                 <div className="space-y-3">
                   {shown.map((opp) => (
-                    <OpportunityListItem key={opp.id} opp={opp} selected={opp.id === selectedId} href={`/opportunities/${opp.id}`} now={now} onSelect={() => { track("opportunity_viewed", { opportunity_id: opp.id, production_name: opp.production_name, market: opp.match_state, source: opp.source, pay_min: opp.pay_min, surface: embedded ? "location" : "feed" }); selectOpportunity(opp.id); }} fit={fitById.get(opp.id) ?? null} saved={savedIds.has(opp.id)} onToggleSave={() => toggleSave(opp.id)} />
+                    <OpportunityListItem key={opp.id} opp={opp} selected={opp.id === selectedId} href={`/opportunities/${opp.id}`} now={now} onSelect={() => { trackProduct("opportunityViewed", { opportunity_id: opp.id, production_name: opp.production_name, market: opp.match_state, source: opp.source, pay_min: opp.pay_min, surface: embedded ? "location" : "feed" }); selectOpportunity(opp.id); }} fit={fitById.get(opp.id) ?? null} saved={savedIds.has(opp.id)} onToggleSave={() => toggleSave(opp.id)} />
                   ))}
                   {moreCount > 0 && (
                     <Link href="/opportunities" className="block text-center py-3 text-sm font-semibold text-blue-600 hover:underline dark:text-blue-400">

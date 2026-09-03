@@ -11,6 +11,7 @@ import {
   type PerformerProfile,
   type ProfileFieldKey,
 } from "@/lib/gigfit";
+import { trackProduct, gigFitCriteriaCount } from "@/lib/productEvents";
 
 // Major production markets first — most users pick one of these.
 const TOP_MARKETS = ["GA", "CA", "NY", "NM", "IL", "LA", "TX", "NC", "NV", "FL", "ON", "BC"];
@@ -236,17 +237,28 @@ export default function ProfilePage() {
       is_default: true,
     };
 
+    let saveError: unknown = null;
     if (profileId) {
-      await supabase.from("performer_profiles").update(payload).eq("id", profileId);
+      const { error } = await supabase.from("performer_profiles").update(payload).eq("id", profileId);
+      saveError = error;
     } else {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("performer_profiles")
         .insert(payload)
         .select()
         .single();
+      saveError = error;
       if (data) setProfileId((data as PerformerProfile).id);
     }
     setSaving(false);
+    if (!saveError) {
+      // Funnel event: the profile was saved. criteria_count matches mobile's
+      // five active GigFit inputs (markets, gender, ethnicity, DOB, union).
+      trackProduct("gigFitPreferencesCompleted", {
+        criteria_count: gigFitCriteriaCount(payload),
+        completion_source: profileId ? "casting_profile_edit" : "casting_profile_create",
+      });
+    }
     setSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
   }
 

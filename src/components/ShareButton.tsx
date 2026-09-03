@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { track } from "@/lib/analytics";
+import { trackProduct } from "@/lib/productEvents";
 
 /**
  * Share menu with explicit channels (Copy link · Email · Text · WhatsApp), like
@@ -39,7 +39,7 @@ export default function ShareButton({
   const whatsapp = `https://wa.me/?text=${encodeURIComponent(body)}`;
 
   function shared(method: string) {
-    track("opportunity_shared", { opportunity_id: id, method });
+    trackProduct("opportunityShared", { opportunity_id: id, method });
   }
 
   async function copy() {
