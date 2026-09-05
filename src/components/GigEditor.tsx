@@ -220,7 +220,7 @@ export default function GigEditor({
               <Field label="Overtime multiplier">
                 <input type="number" step="0.1" placeholder="1.5" value={f.ot_multiplier ?? ""} onChange={(e) => set("ot_multiplier", num(e.target.value))} className={inputCls} />
               </Field>
-              <Field label="Bump rate ($/hr, optional)">
+              <Field label="Additional pay rate ($/hr, optional)">
                 <input type="number" step="0.01" value={f.bump_rate ?? ""} onChange={(e) => set("bump_rate", num(e.target.value))} className={inputCls} />
               </Field>
             </>

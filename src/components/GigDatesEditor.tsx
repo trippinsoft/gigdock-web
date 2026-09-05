@@ -193,7 +193,7 @@ function DayRow({ d, payModel, onEdit }: { d: RawDay; payModel: PayModel; onEdit
         <div className="text-xs text-zinc-400 dark:text-zinc-500">
           {d.status_for_day ?? "worked"}
           {d.hours_total != null && <> · {Number(d.hours_total)} hrs</>}
-          {d.bumps ? <> · {money(Number(d.bumps))} bumps</> : null}
+          {d.bumps ? <> · {money(Number(d.bumps))} additional pay</> : null}
         </div>
       </div>
       {gross != null && <div className="shrink-0 text-sm font-medium text-zinc-700 dark:text-zinc-300">{money(gross)}</div>}
@@ -243,7 +243,7 @@ function DayForm({
         <Field label="Overtime (hrs)">
           <input type="number" step="0.25" value={draft.overtime_hours} onChange={(e) => set("overtime_hours", e.target.value)} className={inp} />
         </Field>
-        <Field label="Bumps ($)">
+        <Field label="Additional pay ($)">
           <input type="number" step="0.01" value={draft.bumps} onChange={(e) => set("bumps", e.target.value)} className={inp} />
         </Field>
       </div>

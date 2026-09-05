@@ -127,6 +127,21 @@ export default async function GigWorkspacePage({
   );
 }
 
+/* ── labels ────────────────────────────────────────────────────────────────── */
+
+// Additional-pay type labels — customer-facing. Keeps familiar background
+// terminology on the individual type (Car bump, Wardrobe bump…) while the
+// umbrella feature name is "Additional Pay". Mirrors the mobile app; stored
+// bump_type values (car / wardrobe / gas / props / other) are unchanged.
+function bumpTypeLabel(rawType: string): string {
+  const t = (rawType ?? "").trim().toLowerCase();
+  if (!t) return "Additional pay";
+  if (t === "other") return "Other additional pay";
+  if (t === "wardrobe / fitting" || t === "wardrobe/fitting") return "Wardrobe / fitting bump";
+  const head = t.charAt(0).toUpperCase() + t.slice(1);
+  return `${head} bump`;
+}
+
 /* ── panels ────────────────────────────────────────────────────────────────── */
 
 function OverviewPanel({ gig, dates, bumps }: { gig: GigWithNames; dates: GigDateWithEarnings[]; bumps: { gig_date_id: string; bump_type: string; amount: number }[] }) {
@@ -174,11 +189,11 @@ function OverviewPanel({ gig, dates, bumps }: { gig: GigWithNames; dates: GigDat
         )}
         {bumps.length > 0 && (
           <>
-            <SubTitle className="mt-3">Bumps</SubTitle>
+            <SubTitle className="mt-3">Additional Pay</SubTitle>
             <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
               {bumps.map((b, i) => (
                 <div key={i} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                  <span className="text-zinc-700 dark:text-zinc-200 capitalize">{b.bump_type}</span>
+                  <span className="text-zinc-700 dark:text-zinc-200">{bumpTypeLabel(b.bump_type)}</span>
                   <span className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
                     {dateById.get(b.gig_date_id) && <span>{shortDate(dateById.get(b.gig_date_id)!)}</span>}
                     <span className="font-medium text-zinc-700 dark:text-zinc-200">{money(Number(b.amount))}</span>
@@ -270,7 +285,7 @@ function Row({ label, value }: { label: string; value: string | null | undefined
 
 function DayRow({ d, bumps }: { d: GigDateWithEarnings; bumps: { type: string; amount: number }[] }) {
   const gross = d.gross_earned_calc ?? 0;
-  const bumpLabel = bumps.length ? "Base + " + bumps.map((b) => b.type).join(", ") : null;
+  const bumpLabel = bumps.length ? "Base + " + bumps.map((b) => bumpTypeLabel(b.type)).join(", ") : null;
   return (
     <div className="flex items-center justify-between gap-4 px-4 py-3">
       <div className="min-w-0">

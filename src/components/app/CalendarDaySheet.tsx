@@ -302,7 +302,7 @@ function GigDaySheet({
 
         {bumps > 0 && (
           <Link href={`/gigs/${gigId}/edit`} className="mt-2 flex items-center justify-between rounded-lg border border-zinc-200 dark:border-zinc-800 px-3 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
-            <span className="text-zinc-700 dark:text-zinc-200">Bumps</span>
+            <span className="text-zinc-700 dark:text-zinc-200">Additional Pay</span>
             <span className="font-medium text-zinc-900 dark:text-zinc-100">{money(bumps)}</span>
           </Link>
         )}

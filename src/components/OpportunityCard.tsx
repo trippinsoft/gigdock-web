@@ -424,7 +424,7 @@ export default function OpportunityCard({
         </div>
       )}
 
-      {opp.pay_bumps && <Section title="Bumps" dense={dense}>{opp.pay_bumps}</Section>}
+      {opp.pay_bumps && <Section title="Additional Pay" dense={dense}>{opp.pay_bumps}</Section>}
 
       {namedRoles.length > 1 && (
         <div>

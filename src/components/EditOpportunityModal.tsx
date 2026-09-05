@@ -14,7 +14,7 @@ const FIELDS: {
   { key: "location", label: "Location", type: "text" },
   { key: "work_date", label: "Work Date", type: "text" },
   { key: "pay_rate", label: "Pay Rate", type: "text" },
-  { key: "pay_bumps", label: "Pay Bumps", type: "text" },
+  { key: "pay_bumps", label: "Additional pay", type: "text" },
   { key: "requirements", label: "Requirements", type: "textarea" },
   { key: "apply_by", label: "Apply By", type: "date" },
   { key: "application_info", label: "Application Info", type: "textarea" },

@@ -16,7 +16,7 @@ export const REPORT_GROUPS: { group: string; reports: { id: ReportId; title: str
   {
     group: "Financial",
     reports: [
-      { id: "earnings", title: "Earnings Summary", description: "Earnings, work activity, bumps and monthly totals" },
+      { id: "earnings", title: "Earnings Summary", description: "Earnings, work activity, additional pay and monthly totals" },
       { id: "payments", title: "Payments", description: "Payments received in the selected period" },
       { id: "grossNet", title: "Gross & Net", description: "Recorded gross and net completeness" },
     ],
