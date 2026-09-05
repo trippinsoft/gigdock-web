@@ -113,14 +113,12 @@ export default async function TodayPage() {
         <div className="mb-4">
           <Panel title={nextUp.next === todayStr ? "Today" : "Next up"}>
             <div className="px-5 pb-5 flex gap-4">
-              <span className="shrink-0 h-20 w-20 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                {nextUp.g.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
+              {nextUp.g.image_url && (
+                <span className="shrink-0 h-20 w-20 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={nextUp.g.image_url} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-zinc-300 dark:text-zinc-600"><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" /></svg>
-                )}
-              </span>
+                </span>
+              )}
               <div className="min-w-0">
                 {companyOf(nextUp.g) && <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{companyOf(nextUp.g)}</div>}
                 <div className="text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-tight">{nextUp.g.title || "Untitled gig"}</div>
@@ -181,14 +179,12 @@ export default async function TodayPage() {
             <div className="pb-2">
               {upcoming.map(({ g, next }) => (
                 <Link key={g.id} href={`/gigs/${g.id}`} className="flex items-center gap-3 px-5 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
-                  <span className="shrink-0 h-9 w-9 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                    {g.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
+                  {g.image_url && (
+                    <span className="shrink-0 h-9 w-9 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={g.image_url} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="text-zinc-300 dark:text-zinc-600"><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" /></svg>
-                    )}
-                  </span>
+                    </span>
+                  )}
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">{g.title || "Untitled gig"}</div>
                     <div className="text-xs text-zinc-400 dark:text-zinc-500 truncate">{shortDateNoYear(next)}{g.location ? ` · ${g.location}` : ""}</div>
