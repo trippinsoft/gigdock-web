@@ -219,8 +219,8 @@ export default async function TodayPage() {
 
       {/* Opportunities — GigFit-personalized when the user has a profile */}
       {(opps.length > 0 || gigfitOn) && (
-        <div>
-          <div className="flex items-baseline justify-between mb-2">
+        <div className="mt-8">
+          <div className="flex items-baseline justify-between mb-3">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Opportunities for you</h2>
             <Link href="/opportunities" className="text-xs font-medium text-blue-600 dark:text-blue-400">View all →</Link>
           </div>
