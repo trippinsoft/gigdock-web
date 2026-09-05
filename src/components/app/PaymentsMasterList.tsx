@@ -26,8 +26,10 @@ function amountFor(g: FilteredGig, view: View): number {
   const earned = g.earned_total ?? 0;
   const paid = g.total_paid ?? 0;
   if (view === "outstanding") return g.remaining ?? Math.max(earned - paid, 0);
-  if (view === "received") return paid;
-  return earned;
+  // Payments-first framing: both "received" and "all" report cash received per
+  // gig. "All" widens the row set to include gigs with no payments yet — their
+  // row shows $0 received, not gig earnings.
+  return paid;
 }
 
 function inView(g: FilteredGig, view: View): boolean {
@@ -131,7 +133,7 @@ export default function PaymentsMasterList({ gigs }: { gigs: GigRowData[] }) {
             {visible.map((g) => {
               const active = pathname === `/payments/${g.id}`;
               const amt = amountFor(g, view);
-              const valueCls = view === "received" ? "text-green-600 dark:text-green-400" : view === "outstanding" ? "text-amber-600 dark:text-amber-400" : "text-zinc-900 dark:text-zinc-100";
+              const valueCls = view === "outstanding" ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400";
               const days = view === "outstanding" ? daysOutstanding(g) : null;
               return (
                 <MasterRow
