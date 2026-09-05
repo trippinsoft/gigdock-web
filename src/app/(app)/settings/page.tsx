@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { getSessionUser, getPlan } from "@/lib/backoffice";
+import { getSessionUser } from "@/lib/backoffice";
+import { getSubscription } from "@/lib/subscription";
 import SettingsPanel from "@/components/app/SettingsPanel";
 
 export const metadata: Metadata = {
@@ -8,7 +9,6 @@ export const metadata: Metadata = {
 };
 
 export default async function SettingsPage() {
-  const user = await getSessionUser();
-  const plan = await getPlan();
-  return <SettingsPanel email={user?.email ?? null} plan={plan} />;
+  const [user, subscription] = await Promise.all([getSessionUser(), getSubscription()]);
+  return <SettingsPanel email={user?.email ?? null} subscription={subscription} />;
 }

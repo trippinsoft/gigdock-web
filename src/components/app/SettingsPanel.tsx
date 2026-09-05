@@ -8,6 +8,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import McpTokens from "@/components/app/McpTokens";
+import PlanPanel from "@/components/app/PlanPanel";
+import type { Subscription } from "@/lib/subscription-types";
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -43,10 +45,10 @@ function NavRow({ href, label, hint }: { href: string; label: string; hint: stri
 
 export default function SettingsPanel({
   email,
-  plan,
+  subscription,
 }: {
   email: string | null;
-  plan: "free" | "pro";
+  subscription: Subscription;
 }) {
   const router = useRouter();
   const supabase = createSupabaseBrowser();
@@ -64,19 +66,11 @@ export default function SettingsPanel({
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Account and app preferences.</p>
       </header>
 
+      <PlanPanel subscription={subscription} />
+
       <Card title="Account">
         <Row label="Email">
           <span className="truncate">{email ?? "—"}</span>
-        </Row>
-        <Row label="Plan">
-          {plan === "pro" ? (
-            <span className="font-semibold">GigDock Pro <span className="text-green-600 dark:text-green-400">✓</span></span>
-          ) : (
-            <span className="inline-flex items-center gap-2">
-              <span className="font-semibold">GigDock</span>
-              <Link href="/pro?from=settings" className="font-medium text-blue-700 dark:text-blue-300 hover:underline">Explore Pro →</Link>
-            </span>
-          )}
         </Row>
       </Card>
 
