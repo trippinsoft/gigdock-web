@@ -1,29 +1,39 @@
 "use client";
 
-// Settings → Plan. Renders one of four states from a Subscription summary:
-//   • Free                    → GigDock + Upgrade CTA
-//   • Pro (active, renewing)  → GigDock Pro + price + Renews [date] + Manage
-//   • Pro (renewal canceled)  → GigDock Pro + Renewal canceled + Pro through
-//                               [date] + Keep GigDock Pro (resubscribe path)
-//   • Pro (complimentary)     → GigDock Pro + note (Complimentary during beta)
+// Settings → Plan. Renders one of five states from a Subscription summary:
+//   • Free                       → GigDock + Upgrade CTA
+//   • Pro (active renewing)      → GigDock Pro + price + Renews [date] +
+//                                  Manage subscription (provider portal).
+//   • Pro (renewal canceled)     → GigDock Pro + Renewal canceled + Pro
+//                                  through [date] + Keep GigDock Pro
+//                                  (routes to the provider portal so the
+//                                  user can reverse without waiting).
+//   • Pro (complimentary)        → GigDock Pro + note (Complimentary during
+//                                  beta / admin / partner / promo). No
+//                                  Cancel or Keep — non-user-managed grants
+//                                  don't offer user-managed cancellation.
+//   • Pro (unmanaged provider)   → GigDock Pro + support-fallback line. No
+//                                  Cancel or Keep — we don't wire portals
+//                                  we can't actually route to.
 //
-// Manage subscription and Keep GigDock Pro route to the correct provider:
-//   • web    → Stripe customer portal (server action lands with billing).
+// Provider portals (mobile + web share the same normalization):
+//   • web    → /account/billing (Stripe customer portal lands here later)
 //   • apple  → https://apps.apple.com/account/subscriptions
 //   • google → https://play.google.com/store/account/subscriptions
-//   • other  → read-only info line ("Managed by …").
 //
-// Real self-service billing is not connected yet (see CLAUDE.md — checkout is
-// intentionally off). Until it is, the web-provider Manage/Keep buttons open a
-// small in-page notice pointing at support. When billing goes live, only the
-// two `onWebManage` / `onWebResubscribe` handlers need to switch from the
-// notice to a real portal redirect.
+// The panel never mutates entitlements. Cancel/resume happens in the provider
+// portal; the billing webhook syncs state back to the entitlements row.
 
-import { useState } from "react";
 import Link from "next/link";
 import { trackPro } from "@/lib/monetization";
-import { providerLabel, type Subscription, type SubscriptionProvider } from "@/lib/subscription-types";
+import {
+  isUserManaged,
+  providerLabel,
+  type Subscription,
+  type SubscriptionProvider,
+} from "@/lib/subscription-types";
 
+const WEB_BILLING_PATH = "/account/billing";
 const APPLE_URL = "https://apps.apple.com/account/subscriptions";
 const GOOGLE_URL = "https://play.google.com/store/account/subscriptions";
 
@@ -32,18 +42,22 @@ function longDate(iso: string): string {
   return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
 
-/** Provider name in the "Managed by …" line. */
-function billedThroughLabel(p: SubscriptionProvider): string {
+function billingHomeLabel(p: SubscriptionProvider): string {
   if (p === "apple") return "Managed through Apple";
   if (p === "google") return "Managed through Google Play";
   if (p === "web") return "Managed on the web";
-  if (p === "beta" || p === "admin" || p === "partner" || p === "promo") return "";
   return providerLabel(p) ? `Managed by ${providerLabel(p)}` : "";
 }
 
-export default function PlanPanel({ subscription }: { subscription: Subscription }) {
-  const [notice, setNotice] = useState<string | null>(null);
+/** Where Manage/Keep buttons should send the user, per provider. */
+function providerPortal(p: SubscriptionProvider): { kind: "internal" | "external"; href: string } | null {
+  if (p === "web") return { kind: "internal", href: WEB_BILLING_PATH };
+  if (p === "apple") return { kind: "external", href: APPLE_URL };
+  if (p === "google") return { kind: "external", href: GOOGLE_URL };
+  return null;
+}
 
+export default function PlanPanel({ subscription }: { subscription: Subscription }) {
   if (subscription.kind === "free") {
     return (
       <Card>
@@ -65,29 +79,8 @@ export default function PlanPanel({ subscription }: { subscription: Subscription
   }
 
   const { state, provider, renewsAt, endsAt, priceLabel, note } = subscription;
-  const showManage = provider === "web" || provider === "apple" || provider === "google";
-  const secondary = billedThroughLabel(provider);
-
-  function openWebPortal(kind: "manage" | "resubscribe") {
-    if (kind === "resubscribe") trackPro("subscription_reactivated", "account");
-    setNotice(
-      "Self-service billing management arrives when GigDock Pro launches with paid subscriptions. In the meantime, email gigdocksupport@gmail.com and we'll take care of it."
-    );
-  }
-
-  function manageAction() {
-    if (provider === "web") return { onClick: () => openWebPortal("manage"), label: "Manage subscription" } as const;
-    if (provider === "apple") return { href: APPLE_URL, label: "Manage in Apple" } as const;
-    if (provider === "google") return { href: GOOGLE_URL, label: "Manage in Google Play" } as const;
-    return null;
-  }
-
-  function keepAction() {
-    if (provider === "web") return { onClick: () => openWebPortal("resubscribe"), label: "Keep GigDock Pro" } as const;
-    if (provider === "apple") return { href: APPLE_URL, label: "Manage in Apple" } as const;
-    if (provider === "google") return { href: GOOGLE_URL, label: "Manage in Google Play" } as const;
-    return null;
-  }
+  const portal = providerPortal(provider);
+  const secondary = billingHomeLabel(provider);
 
   return (
     <Card>
@@ -100,7 +93,7 @@ export default function PlanPanel({ subscription }: { subscription: Subscription
         {state === "active_renewing" && (
           <>
             <div className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
-              {priceLabel ? <>{priceLabel}</> : <>Your subscription is active.</>}
+              {priceLabel ? priceLabel : "Your subscription is active."}
             </div>
             {renewsAt && (
               <div className="text-sm text-zinc-500 dark:text-zinc-400">Renews {longDate(renewsAt)}</div>
@@ -129,27 +122,32 @@ export default function PlanPanel({ subscription }: { subscription: Subscription
           </>
         )}
 
-        {secondary && state !== "complimentary" && (
+        {state === "unmanaged" && (
+          <>
+            <div className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">Your subscription is active.</div>
+            <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+              This subscription isn&rsquo;t managed from within GigDock. If you need to make changes, email{" "}
+              <a href="mailto:gigdocksupport@gmail.com" className="text-blue-600 dark:text-blue-400 hover:underline">
+                gigdocksupport@gmail.com
+              </a>
+              .
+            </p>
+          </>
+        )}
+
+        {secondary && state !== "complimentary" && state !== "unmanaged" && (
           <div className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">{secondary}</div>
         )}
 
-        {showManage && (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            {state === "active_canceling" && (
-              <ActionButton {...keepAction()!} primary />
-            )}
-            {state === "active_renewing" && (
-              <ActionButton {...manageAction()!} />
-            )}
+        {isUserManaged(provider) && portal && state === "active_renewing" && (
+          <div className="mt-3">
+            <PortalLink portal={portal} label="Manage subscription" />
           </div>
         )}
 
-        {notice && (
-          <div
-            role="status"
-            className="mt-3 rounded-lg border border-blue-200 dark:border-blue-900/40 bg-blue-50/70 dark:bg-blue-950/20 px-3 py-2 text-sm text-blue-800 dark:text-blue-200"
-          >
-            {notice}
+        {isUserManaged(provider) && portal && state === "active_canceling" && (
+          <div className="mt-3">
+            <PortalLink portal={portal} label="Keep GigDock Pro" primary />
           </div>
         )}
       </div>
@@ -157,25 +155,29 @@ export default function PlanPanel({ subscription }: { subscription: Subscription
   );
 }
 
-function ActionButton(
-  props:
-    | { onClick: () => void; label: string; primary?: boolean }
-    | { href: string; label: string; primary?: boolean }
-) {
-  const cls = props.primary
+function PortalLink({
+  portal,
+  label,
+  primary,
+}: {
+  portal: { kind: "internal" | "external"; href: string };
+  label: string;
+  primary?: boolean;
+}) {
+  const cls = primary
     ? "inline-flex items-center h-9 px-3 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors"
     : "inline-flex items-center h-9 px-3 rounded-lg text-sm font-medium border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors";
-  if ("href" in props) {
+  if (portal.kind === "external") {
     return (
-      <a href={props.href} target="_blank" rel="noopener noreferrer" className={cls}>
-        {props.label}
+      <a href={portal.href} target="_blank" rel="noopener noreferrer" className={cls}>
+        {label}
       </a>
     );
   }
   return (
-    <button onClick={props.onClick} className={cls}>
-      {props.label}
-    </button>
+    <Link href={portal.href} className={cls}>
+      {label}
+    </Link>
   );
 }
 

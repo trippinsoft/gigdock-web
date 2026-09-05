@@ -1,46 +1,72 @@
-// Subscription/plan summary for the Settings → Plan panel.
+// Server-side loader for the Settings → Plan panel.
+//
+// Reads the signed-in user's own `entitlements` row through the authenticated
+// Supabase client (RLS scopes select to auth.uid()). Column set and current-
+// entitlement rules match Draftbit mobile's utils/useEntitlement.js so both
+// apps share one contract:
+//
+//   product ∈ ('pro','premium')          — legacy 'premium' is the same product
+//   status  ∈ ('active','trialing')      — cancel-pending stays 'active', not
+//                                          'canceled'; renewal-off is driven by
+//                                          cancel_at_period_end (bool)
+//   current_period_end null OR > now()   — evergreen (comp) OR still paid
 //
 // Feature gating still goes through has_active_entitlement / getPlan(). This
-// helper adds the presentation-only detail the Plan panel needs: source
-// (web/Apple/Google/complimentary), renewal date, cancel-at-period-end state,
-// and price label.
-//
-// Backed by the get_active_pro_entitlement RPC (SECURITY DEFINER). If that RPC
-// is not deployed yet — or fails — we fall back to getPlan() so the panel
-// still renders the correct Free vs Pro state, just without the extra detail.
+// loader adds presentation-only detail (renewal date, provider, cancel state,
+// price label). It never mutates entitlements — the billing webhook remains
+// authoritative for lifecycle changes.
 
 import { cache } from "react";
 import { createSupabaseServer } from "@/lib/supabase-server";
-import { getPlan } from "@/lib/backoffice";
 import { PRICING } from "@/lib/pricing";
-import type { Subscription, SubscriptionProvider } from "@/lib/subscription-types";
+import {
+  isComplimentary,
+  isUserManaged,
+  normalizeProvider,
+  type EntitlementRow,
+  type Subscription,
+} from "@/lib/subscription-types";
 
-export type { Subscription, SubscriptionProvider } from "@/lib/subscription-types";
-export { providerLabel } from "@/lib/subscription-types";
+export type {
+  Subscription,
+  SubscriptionProvider,
+  EntitlementRow,
+} from "@/lib/subscription-types";
+export {
+  providerLabel,
+  normalizeProvider,
+  isUserManaged,
+  isComplimentary,
+} from "@/lib/subscription-types";
 
-function normProvider(raw: unknown): SubscriptionProvider {
-  const v = String(raw ?? "").toLowerCase();
-  if (v === "web" || v === "stripe") return "web";
-  if (v === "apple" || v === "app_store" || v === "appstore") return "apple";
-  if (v === "google" || v === "play" || v === "google_play") return "google";
-  if (v === "beta") return "beta";
-  if (v === "admin") return "admin";
-  if (v === "partner") return "partner";
-  if (v === "promo" || v === "promotion") return "promo";
-  return "unknown";
-}
+const CANONICAL_COLUMNS =
+  "id,user_id,product,provider,status,current_period_end,cancel_at_period_end,canceled_at,price_id,plan_interval,started_at,metadata,updated_at";
 
-function priceLabelFrom(metadata: Record<string, unknown>): string | null {
-  if (typeof metadata.price_label === "string") return metadata.price_label;
-  const tier = metadata.tier;
-  if (tier === "annual") return `${PRICING.annual.label}${PRICING.annual.period}`;
-  if (tier === "monthly") return `${PRICING.monthly.label}${PRICING.monthly.period}`;
-  if (tier === "founding") return `${PRICING.founding.label}${PRICING.founding.period} · Founding member`;
+function priceLabelFrom(row: EntitlementRow): string | null {
+  const metadata = (row.metadata ?? {}) as Record<string, unknown>;
+  if (typeof metadata.price_label === "string" && metadata.price_label.trim()) {
+    return metadata.price_label;
+  }
+  // Prefer the structured plan_interval column, then a legacy metadata.tier.
+  const interval = String(row.plan_interval ?? metadata.tier ?? "").toLowerCase();
+  if (interval === "annual" || interval === "year" || interval === "yearly") {
+    return `${PRICING.annual.label}${PRICING.annual.period}`;
+  }
+  if (interval === "monthly" || interval === "month") {
+    return `${PRICING.monthly.label}${PRICING.monthly.period}`;
+  }
+  if (interval === "founding") {
+    return `${PRICING.founding.label}${PRICING.founding.period} · Founding member`;
+  }
   return null;
 }
 
-function noteFor(provider: SubscriptionProvider, metadata: Record<string, unknown>): string | null {
-  if (typeof metadata.note === "string" && metadata.note.trim()) return metadata.note as string;
+function noteFor(provider: string, metadata: Record<string, unknown>): string | null {
+  if (typeof metadata.note === "string" && metadata.note.trim()) return metadata.note;
+  const partner = metadata.partner_name ?? metadata.partner;
+  if (typeof partner === "string" && partner.trim()) {
+    return `Included through ${partner}`;
+  }
   switch (provider) {
     case "beta":    return "Complimentary during beta";
     case "admin":   return "Complimentary — admin grant";
@@ -50,21 +76,17 @@ function noteFor(provider: SubscriptionProvider, metadata: Record<string, unknow
   }
 }
 
-type EntitlementRow = {
-  product: string;
-  provider: string | null;
-  status: string;
-  current_period_end: string | null;
-  external_ref: string | null;
-  metadata: Record<string, unknown> | null;
-};
+function isCurrent(row: EntitlementRow): boolean {
+  if (row.status !== "active" && row.status !== "trialing") return false;
+  if (!row.current_period_end) return true;
+  return new Date(row.current_period_end).getTime() > Date.now();
+}
 
 function summarize(row: EntitlementRow): Subscription {
-  const provider = normProvider(row.provider);
-  const complimentary = provider === "beta" || provider === "admin" || provider === "partner" || provider === "promo";
-  const metadata = row.metadata ?? {};
+  const provider = normalizeProvider(row.provider);
+  const metadata = (row.metadata ?? {}) as Record<string, unknown>;
 
-  if (complimentary) {
+  if (isComplimentary(provider)) {
     return {
       kind: "pro",
       state: "complimentary",
@@ -76,20 +98,28 @@ function summarize(row: EntitlementRow): Subscription {
     };
   }
 
-  // Cancel-at-period-end: Stripe leaves status='canceled' with a future
-  // current_period_end during the cancel-pending window; some flows instead
-  // keep status='active' and flag metadata.cancel_at_period_end.
-  const canceling =
-    row.status === "canceled" || metadata.cancel_at_period_end === true;
+  if (!isUserManaged(provider)) {
+    // Grants Pro through an unrecognized provider — feature access stands, but
+    // we don't offer Cancel/Keep controls we can't back with a real portal.
+    return {
+      kind: "pro",
+      state: "unmanaged",
+      provider,
+      renewsAt: null,
+      endsAt: row.current_period_end,
+      priceLabel: priceLabelFrom(row),
+      note: null,
+    };
+  }
 
-  if (canceling && row.current_period_end) {
+  if (row.cancel_at_period_end === true && row.current_period_end) {
     return {
       kind: "pro",
       state: "active_canceling",
       provider,
       renewsAt: null,
       endsAt: row.current_period_end,
-      priceLabel: priceLabelFrom(metadata),
+      priceLabel: priceLabelFrom(row),
       note: null,
     };
   }
@@ -100,7 +130,7 @@ function summarize(row: EntitlementRow): Subscription {
     provider,
     renewsAt: row.current_period_end,
     endsAt: null,
-    priceLabel: priceLabelFrom(metadata),
+    priceLabel: priceLabelFrom(row),
     note: null,
   };
 }
@@ -108,26 +138,22 @@ function summarize(row: EntitlementRow): Subscription {
 export const getSubscription = cache(async (): Promise<Subscription> => {
   try {
     const supabase = await createSupabaseServer();
-    const { data, error } = await supabase.rpc("get_active_pro_entitlement");
-    if (!error && data) return summarize(data as EntitlementRow);
-    if (!error && data === null) return { kind: "free" };
-    // fall through on rpc missing / error
+    // RLS scopes the select to auth.uid(); we don't need to filter by user_id.
+    // Pushing the current-entitlement rules into the query mirrors mobile.
+    const nowIso = new Date().toISOString();
+    const { data, error } = await supabase
+      .from("entitlements")
+      .select(CANONICAL_COLUMNS)
+      .in("product", ["pro", "premium"])
+      .in("status", ["active", "trialing"])
+      .or(`current_period_end.is.null,current_period_end.gt.${nowIso}`)
+      .order("updated_at", { ascending: false });
+    if (error || !data || data.length === 0) return { kind: "free" };
+    // Guard against clock skew — re-check isCurrent client-side.
+    const row = (data as EntitlementRow[]).find(isCurrent);
+    if (!row) return { kind: "free" };
+    return summarize(row);
   } catch {
-    // fall through
+    return { kind: "free" };
   }
-  // Fallback so the panel still shows the right Free/Pro state.
-  const plan = await getPlan();
-  if (plan === "pro") {
-    return {
-      kind: "pro",
-      state: "active_renewing",
-      provider: "unknown",
-      renewsAt: null,
-      endsAt: null,
-      priceLabel: null,
-      note: null,
-    };
-  }
-  return { kind: "free" };
 });
-
