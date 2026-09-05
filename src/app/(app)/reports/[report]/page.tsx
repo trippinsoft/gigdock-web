@@ -9,6 +9,7 @@ import {
 import { EarningsBars } from "@/components/app/charts";
 import { ProBadge } from "@/components/app/pro";
 import ReportExport, { type ReportData } from "@/components/app/ReportExport";
+import ReportTable from "@/components/app/ReportTable";
 import TrackEvent from "@/components/TrackEvent";
 import ExplorePro from "@/components/app/ExplorePro";
 
@@ -182,33 +183,6 @@ function SummaryCards({ summary }: { summary: { label: string; value: string }[]
   );
 }
 
-function ReportTable({ columns, rows }: { columns: string[]; rows: (string | number)[][] }) {
-  return (
-    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-zinc-100 dark:border-zinc-800">
-              {columns.map((c, i) => (
-                <th key={c} className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500 ${i === 0 ? "text-left" : "text-right"}`}>{c}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-            {rows.map((r, ri) => (
-              <tr key={ri}>
-                {r.map((c, ci) => (
-                  <td key={ci} className={`px-4 py-2.5 ${ci === 0 ? "text-left font-medium text-zinc-800 dark:text-zinc-200" : "text-right text-zinc-600 dark:text-zinc-300"}`}>{c}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 function EmptyCard({ text }: { text: string }) {
   return (
     <div className="rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 p-10 text-center text-sm text-zinc-500 dark:text-zinc-400">{text}</div>
@@ -262,7 +236,7 @@ function FreePreview({
 
         {meta.previewKind === "list" && (
           built.rows.length > 0 ? (
-            <ReportTable columns={built.columns} rows={built.rows.slice(0, meta.previewRows ?? 3)} />
+            <ReportTable columns={built.columns} rows={built.rows.slice(0, meta.previewRows ?? 3)} sortable={false} />
           ) : (
             <p className="text-sm text-zinc-400 dark:text-zinc-500 py-6 text-center">No records found for this period</p>
           )
