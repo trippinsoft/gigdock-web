@@ -8,8 +8,9 @@ import {
 } from "@/lib/reportDefs";
 import { EarningsBars } from "@/components/app/charts";
 import { ProBadge } from "@/components/app/pro";
-import ReportExport, { type ReportData } from "@/components/app/ReportExport";
+import { type ReportData } from "@/components/app/ReportExport";
 import ReportTable from "@/components/app/ReportTable";
+import ReportBody from "@/components/app/ReportBody";
 import TrackEvent from "@/components/TrackEvent";
 import ExplorePro from "@/components/app/ExplorePro";
 
@@ -114,18 +115,17 @@ export default async function ReportDetailPage({
 
       {/* Body */}
       {isPro ? (
-        <>
-          {hasRows ? (
-            <ReportTable columns={built.columns} rows={built.rows} />
-          ) : (
-            <EmptyCard text={built.emptyText} />
-          )}
-          {built.note && <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">{built.note}</p>}
-          <div className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-3">
-            <div className="text-sm text-zinc-600 dark:text-zinc-400">Export this report</div>
-            <ReportExport data={reportData} reportId={id} />
-          </div>
-        </>
+        hasRows ? (
+          <ReportBody
+            columns={built.columns}
+            rows={built.rows}
+            note={built.note}
+            reportData={reportData}
+            reportId={id}
+          />
+        ) : (
+          <EmptyCard text={built.emptyText} />
+        )
       ) : (
         <FreePreview id={id} meta={meta} built={built} data={data} mode={mode} />
       )}

@@ -3,8 +3,11 @@
 // Sortable table for Advanced Reports. Cells arrive from buildReport()
 // pre-formatted as strings ($1,234.56 · 9/5/2026 · "Not recorded") or as
 // numbers, so sort parses each cell into a comparable value and falls back to
-// a case-insensitive string compare. Sort is display-only — export/PDF still
-// uses the original row order supplied by the caller.
+// a case-insensitive string compare.
+//
+// Table state can be controlled (parent supplies sortCol/dir/onHeaderClick) or
+// uncontrolled (managed here). Controlled mode is what ReportBody uses so the
+// export button and the table stay in lockstep.
 
 import { useMemo, useState } from "react";
 
@@ -14,16 +17,12 @@ function parseCell(cell: Cell): number | string {
   if (typeof cell === "number") return cell;
   const s = cell.trim();
   if (!s || s === "—" || s === "Not recorded") return Number.NEGATIVE_INFINITY;
-  // Money: $1,234.56 or -$1,234.56.
   const money = s.match(/^(-?)\$([\d,]+(?:\.\d+)?)$/);
   if (money) return parseFloat(money[2].replace(/,/g, "")) * (money[1] === "-" ? -1 : 1);
-  // Date range "9/1/2026 – 9/5/2026" — sort by earliest date.
   const range = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s*[–-]\s*\d{1,2}\/\d{1,2}\/\d{4}$/);
   if (range) return new Date(Number(range[3]), Number(range[1]) - 1, Number(range[2])).getTime();
-  // Single date "9/5/2026".
   const date = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (date) return new Date(Number(date[3]), Number(date[1]) - 1, Number(date[2])).getTime();
-  // Plain formatted numbers: "12" or "1,234" or "1,234.5".
   if (/^-?[\d,]+(?:\.\d+)?$/.test(s)) return parseFloat(s.replace(/,/g, ""));
   return s.toLowerCase();
 }
@@ -32,45 +31,71 @@ function compareCells(a: Cell, b: Cell): number {
   const va = parseCell(a);
   const vb = parseCell(b);
   if (typeof va === "number" && typeof vb === "number") return va - vb;
-  if (typeof va === "number") return 1;   // strings sort after numbers
+  if (typeof va === "number") return 1;
   if (typeof vb === "number") return -1;
   return va.localeCompare(vb);
 }
 
-type Dir = "asc" | "desc";
+export type Dir = "asc" | "desc";
+
+/** Sort a copy of rows by column with a stable fallback on original index. */
+export function sortRows(rows: Cell[][], sortCol: number | null, dir: Dir): Cell[][] {
+  if (sortCol == null) return rows;
+  const indexed = rows.map((r, i) => ({ r, i }));
+  indexed.sort((a, b) => {
+    const c = compareCells(a.r[sortCol], b.r[sortCol]);
+    return (dir === "asc" ? c : -c) || a.i - b.i;
+  });
+  return indexed.map((x) => x.r);
+}
+
+/** Default direction when a header is first clicked. */
+export function defaultDirFor(col: number): Dir {
+  // Label column reads A–Z first; numeric/right-aligned columns read largest-first.
+  return col === 0 ? "asc" : "desc";
+}
+
+type ControlledProps = {
+  sortCol: number | null;
+  dir: Dir;
+  onHeaderClick: (col: number) => void;
+};
 
 export default function ReportTable({
   columns,
   rows,
   sortable = true,
+  controlled,
 }: {
   columns: string[];
   rows: Cell[][];
   sortable?: boolean;
+  controlled?: ControlledProps;
 }) {
-  const [sortCol, setSortCol] = useState<number | null>(null);
-  const [dir, setDir] = useState<Dir>("asc");
+  const [uSortCol, setUSortCol] = useState<number | null>(null);
+  const [uDir, setUDir] = useState<Dir>("asc");
 
-  const sortedRows = useMemo(() => {
-    if (!sortable || sortCol == null) return rows;
-    const indexed = rows.map((r, i) => ({ r, i }));
-    indexed.sort((a, b) => {
-      const c = compareCells(a.r[sortCol], b.r[sortCol]);
-      return (dir === "asc" ? c : -c) || a.i - b.i;
-    });
-    return indexed.map((x) => x.r);
-  }, [rows, sortCol, dir, sortable]);
+  const sortCol = controlled ? controlled.sortCol : uSortCol;
+  const dir = controlled ? controlled.dir : uDir;
+
+  const displayRows = useMemo(() => {
+    if (!sortable) return rows;
+    // Parent controls sort, so it also owns the sorted list (avoids double work).
+    return controlled ? rows : sortRows(rows, sortCol, dir);
+  }, [rows, sortCol, dir, sortable, controlled]);
 
   const handleHeaderClick = (i: number) => {
     if (!sortable) return;
-    if (sortCol !== i) {
-      setSortCol(i);
-      // Numeric/right-aligned columns default to descending (largest first);
-      // the label column defaults to ascending (A–Z).
-      setDir(i === 0 ? "asc" : "desc");
+    if (controlled) {
+      controlled.onHeaderClick(i);
       return;
     }
-    setDir(dir === "asc" ? "desc" : "asc");
+    if (uSortCol !== i) {
+      setUSortCol(i);
+      setUDir(defaultDirFor(i));
+      return;
+    }
+    setUDir(uDir === "asc" ? "desc" : "asc");
   };
 
   return (
@@ -112,7 +137,7 @@ export default function ReportTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-            {sortedRows.map((r, ri) => (
+            {displayRows.map((r, ri) => (
               <tr key={ri}>
                 {r.map((c, ci) => (
                   <td
