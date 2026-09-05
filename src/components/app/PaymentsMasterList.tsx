@@ -76,7 +76,9 @@ export default function PaymentsMasterList({ gigs }: { gigs: GigRowData[] }) {
     });
   }, [gigs, view, q, sort]);
 
-  const total = useMemo(() => visible.reduce((s, g) => s + amountFor(g, view), 0), [visible, view]);
+  // Mobile parity: the header amount is fixed to received across all gigs and
+  // does not change with the selected segment — the segment only filters rows.
+  const receivedTotal = useMemo(() => gigs.reduce((s, g) => s + (g.total_paid ?? 0), 0), [gigs]);
 
   const didAuto = useRef(false);
   useEffect(() => {
@@ -93,7 +95,9 @@ export default function PaymentsMasterList({ gigs }: { gigs: GigRowData[] }) {
       <div className="sticky top-14 lg:top-0 z-10 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 pt-4 pb-3">
         <div className="flex items-baseline justify-between mb-3">
           <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Payments</h1>
-          <span className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">{money(total)}</span>
+          <span className="text-sm text-zinc-500 dark:text-zinc-400">
+            Received <span className="font-semibold text-zinc-900 dark:text-zinc-100">{money(receivedTotal)}</span>
+          </span>
         </div>
         <div className="flex items-center gap-1 rounded-lg border border-zinc-200 dark:border-zinc-800 p-0.5 mb-2.5">
           {VIEWS.map((v) => (
