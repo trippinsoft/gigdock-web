@@ -12,6 +12,7 @@ import {
   getSessionUser,
 } from "@/lib/backoffice";
 import AdditionalPayLauncher from "@/components/app/AdditionalPayLauncher";
+import DayStatusPill from "@/components/app/DayStatusPill";
 import { additionalPayTypeLabel } from "@/lib/additionalPayLabels";
 import type {
   GigDateWithEarnings,
@@ -179,7 +180,9 @@ function OverviewPanel({ gig, dates, bumps, gigId, userId, bumpsOnlyDateIds }: {
                     {bumpsOnlyDateIds.has(d.gig_date_id) && <AdditionalPayOnlyPill />}
                   </span>
                   <span className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
-                    <span>{statusLabel(d.status_for_day) ?? "—"}</span>
+                    {d.status_for_day
+                      ? <DayStatusPill status={d.status_for_day} size="xs" />
+                      : <span>—</span>}
                     {d.hours_total != null && <span>{Number(d.hours_total)} hrs</span>}
                     <span className="font-medium text-zinc-700 dark:text-zinc-200">{money(d.gross_earned_calc ?? 0)}</span>
                   </span>
@@ -319,11 +322,11 @@ function DayRow({ d, bumps, bumpsOnly }: { d: GigDateWithEarnings; bumps: { type
       <div className="min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium text-zinc-800 dark:text-zinc-200">{shortDate(d.date)}</span>
+          <DayStatusPill status={d.status_for_day} size="xs" />
           {bumpsOnly && <AdditionalPayOnlyPill />}
         </div>
         <div className="text-xs text-zinc-400 dark:text-zinc-500">
           {d.hours_total != null && <>{Number(d.hours_total)} hrs</>}
-          {d.status_for_day && <> · {d.status_for_day}</>}
           {bumpLabel && <> · {bumpLabel}</>}
         </div>
       </div>

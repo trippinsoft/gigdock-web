@@ -17,6 +17,16 @@ import { trackProduct } from "@/lib/productEvents";
 const BOOKED_LIKE = new Set(["booked", "worked", "paid"]);
 import { money, shortDate } from "@/lib/format";
 import type { CalendarDate } from "@/lib/backoffice-types";
+import DayStatusPill from "@/components/app/DayStatusPill";
+
+// Mobile calendar status colors — same hex values used in the shared
+// DayStatusPill, applied here as the active segment background so the
+// day-options control reads with the same amber/green as the phone.
+const CHIP_ACTIVE_CLS: Record<string, string> = {
+  availability_checked: "bg-[#fcd34d] text-zinc-900 dark:bg-[#c99b3b] dark:text-zinc-950 shadow-sm",
+  booked: "bg-[#fcd34d] text-zinc-900 dark:bg-[#c99b3b] dark:text-zinc-950 shadow-sm",
+  worked: "bg-[#8dca4a] text-zinc-900 dark:bg-[#5e9f16] dark:text-white shadow-sm",
+};
 
 const DAY_CHIPS: { code: string; label: string }[] = [
   { code: "availability_checked", label: "Avail Ck" },
@@ -107,7 +117,9 @@ function GigPicker({ gigs, onPick }: { gigs: CalendarDate[]; onPick: (id: string
             className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
           >
             <div className="font-medium text-zinc-900 dark:text-zinc-100">{g.gig?.title || "Untitled gig"}</div>
-            <div className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">{chipLabel(g.status_for_day)}</div>
+            <div className="mt-1">
+              <DayStatusPill status={g.status_for_day} size="xs" />
+            </div>
           </button>
         ))}
       </div>
@@ -269,7 +281,7 @@ function GigDaySheet({
               onClick={() => saveStatus(c.code)}
               className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium ${
                 status === c.code
-                  ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm"
+                  ? CHIP_ACTIVE_CLS[c.code] ?? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm"
                   : "text-zinc-500 dark:text-zinc-400"
               }`}
             >
@@ -361,10 +373,6 @@ function PayRing({ pct }: { pct: number }) {
       </text>
     </svg>
   );
-}
-
-function chipLabel(code: string | null | undefined) {
-  return DAY_CHIPS.find((c) => c.code === code)?.label ?? code ?? "—";
 }
 
 function ActionRow({
