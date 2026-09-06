@@ -230,7 +230,7 @@ export default function AdditionalPayEditor({
       closeForm();
       await load();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Additional pay could not be saved.";
+      const msg = err instanceof Error ? err.message : "The additional pay could not be saved.";
       setError(msg);
     } finally {
       setSaving(false);
@@ -242,25 +242,25 @@ export default function AdditionalPayEditor({
     const payTreatmentChanged =
       selectedDate && selectedDate.base_pay_applies !== !noRegularPay;
 
-    // Moving a bump off a bumps-only date whose only entry it is: force a
-    // pick so the original date doesn't silently re-add regular pay.
+    // Moving a bump off an additional-pay-only date whose only entry it is:
+    // force a pick so the original date doesn't silently re-add regular pay.
     if (editing && editing.gig_date_id !== gigDateId) {
       const originalDateEntries = bumps.filter((b) => b.gig_date_id === editing.gig_date_id);
       const originalDate = dates.find((d) => d.id === editing.gig_date_id);
       if (originalDateEntries.length === 1 && originalDate?.base_pay_applies === false) {
         setConfirmation({
-          title: "What should happen to the original date?",
+          title: "What Should Happen to the Original Date?",
           message:
-            "This is the last additional-pay entry on an additional-pay-only date. Choose explicitly so regular earnings aren't added by surprise.",
+            "This is the last additional pay item on an additional-pay-only date. Choose explicitly so regular earnings are not added by surprise.",
           actions: [
             { label: "Cancel" },
             {
-              label: "Remove entry & date",
+              label: "Remove Pay & Date",
               kind: "destructive",
               onClick: () => runSave("remove_date"),
             },
             {
-              label: "Make regular workday",
+              label: "Make Regular Workday",
               kind: "primary",
               onClick: () => runSave("regular_day"),
             },
@@ -273,14 +273,14 @@ export default function AdditionalPayEditor({
     // Toggling pay treatment on a WORKED date changes gross earned.
     if (payTreatmentChanged && selectedDate?.status_for_day === "worked") {
       setConfirmation({
-        title: noRegularPay ? "Remove regular pay?" : "Make this a regular workday?",
+        title: noRegularPay ? "Remove Regular Pay?" : "Make This a Regular Workday?",
         message: noRegularPay
-          ? "Gross earned will decrease. Only additional pay on this worked date will count as earnings."
-          : "Gross earned will increase because regular gig pay will apply to this worked date.",
+          ? "Gross Earned will decrease. Only additional pay on this worked date will count as earnings."
+          : "Gross Earned will increase because regular gig pay will apply to this worked date.",
         actions: [
           { label: "Cancel" },
           {
-            label: noRegularPay ? "Remove regular pay" : "Apply regular pay",
+            label: noRegularPay ? "Remove Regular Pay" : "Apply Regular Pay",
             kind: "primary",
             onClick: () => runSave(),
           },
@@ -316,7 +316,7 @@ export default function AdditionalPayEditor({
       closeForm();
       await load();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Additional pay could not be removed.";
+      const msg = err instanceof Error ? err.message : "The additional pay could not be deleted.";
       setError(msg);
     } finally {
       setSaving(false);
@@ -329,18 +329,18 @@ export default function AdditionalPayEditor({
     if (dateEntries.length === 1 && bumpDate?.base_pay_applies === false) {
       setPendingDelete(null);
       setConfirmation({
-        title: "Remove the last entry?",
+        title: "Remove the Last Additional Pay Item?",
         message:
-          "This is an additional-pay-only date. Choose explicitly so deleting the entry doesn't unexpectedly add regular earnings.",
+          "This is an additional-pay-only date. Choose explicitly so deleting the item does not unexpectedly add regular earnings.",
         actions: [
           { label: "Cancel" },
           {
-            label: "Remove entry & date",
+            label: "Remove Pay & Date",
             kind: "destructive",
             onClick: () => runDelete(bump, "remove_date"),
           },
           {
-            label: "Make regular workday",
+            label: "Make Regular Workday",
             kind: "primary",
             onClick: () => runDelete(bump, "regular_day"),
           },
@@ -468,7 +468,7 @@ export default function AdditionalPayEditor({
       {/* Delete confirm */}
       {pendingDelete && (
         <ConfirmDialog
-          title="Delete additional pay?"
+          title="Delete Additional Pay?"
           message={`This removes ${additionalPayTypeLabel(pendingDelete.bump_type)} · ${money(Number(pendingDelete.amount))} from this gig date.`}
           onCancel={() => setPendingDelete(null)}
           onConfirm={() => requestDelete(pendingDelete)}
@@ -587,7 +587,7 @@ function FormBody({
         <span className="min-w-0">
           <span className="block text-sm font-semibold text-zinc-800 dark:text-zinc-100">No regular pay for this date</span>
           <span className="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-400">
-            Use this for fittings or other dates where you&rsquo;re only paid the additional-pay amount.
+            Use this for fittings or other dates where you&rsquo;re only paid the additional pay amount.
           </span>
         </span>
         <span
@@ -605,7 +605,7 @@ function FormBody({
 
       {showBumpsOnlyHint && (
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Additional-pay-only date — regular gig pay does not apply.
+          Additional pay only — regular gig pay does not apply.
         </p>
       )}
 
@@ -617,7 +617,7 @@ function FormBody({
         disabled={saving}
         className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 px-4 py-2.5 text-sm font-semibold text-white transition-colors"
       >
-        {saving ? "Saving…" : editing ? "Save Changes" : "Add Additional Pay"}
+        {saving ? "Saving…" : "Save Additional Pay"}
       </button>
 
       {onDelete && (
@@ -647,7 +647,7 @@ function ListBody({
   if (bumps.length === 0) {
     return (
       <div className="py-8 text-center">
-        <p className="text-base font-semibold text-zinc-800 dark:text-zinc-100">No additional pay yet</p>
+        <p className="text-base font-semibold text-zinc-800 dark:text-zinc-100">No additional pay added</p>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
           {dates.length === 0
             ? "Book or work a day for this gig first, then add extra pay to it."
@@ -676,7 +676,7 @@ function ListBody({
               <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{longDate(date)}</span>
               {bumpsOnly && (
                 <span className="rounded bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-700 dark:text-blue-300">
-                  Additional pay only
+                  Additional Pay Only
                 </span>
               )}
             </div>
@@ -714,7 +714,7 @@ function EmptyEligibleDates() {
     <div className="py-8 text-center">
       <p className="text-base font-semibold text-zinc-800 dark:text-zinc-100">No booked or worked days to choose</p>
       <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-        Additional pay attaches to a booked or worked date for this gig. Add a date first.
+        Additional pay is associated with a booked or worked date for this gig.
       </p>
     </div>
   );
