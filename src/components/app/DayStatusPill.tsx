@@ -20,19 +20,23 @@ const STATUS_LABELS: Record<string, string> = {
   unavailable: "Unavailable",
 };
 
-type Tone = "booked" | "worked" | "unavailable" | "neutral";
+type Tone = "availability" | "booked" | "worked" | "unavailable" | "neutral";
 
 function toneFor(code: string | null | undefined): Tone {
   if (!code) return "neutral";
   const c = code.toLowerCase();
-  if (c === "booked" || c.startsWith("availability")) return "booked";
+  if (c.startsWith("availability")) return "availability";
+  if (c === "booked") return "booked";
   if (c === "worked" || c === "paid") return "worked";
   if (c === "unavailable") return "unavailable";
   return "neutral";
 }
 
 const TONE_CLASSES: Record<Tone, string> = {
-  // Amber that matches the mobile calendar's booked/availability-check fill.
+  // Amber outline — availability-check reads the same way on the calendar
+  // chips: colored border, no fill.
+  availability: "border border-[#fcd34d] text-[#a26200] dark:border-[#c99b3b] dark:text-[#f5c66a]",
+  // Solid amber for booked — matches the mobile calendar fill.
   booked: "bg-[#fcd34d] text-zinc-900 dark:bg-[#c99b3b] dark:text-zinc-950",
   // Green that matches the mobile calendar's paid/worked marker.
   worked: "bg-[#8dca4a] text-zinc-900 dark:bg-[#5e9f16] dark:text-white",
