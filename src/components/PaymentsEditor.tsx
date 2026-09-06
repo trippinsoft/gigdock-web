@@ -23,7 +23,6 @@ type Draft = {
   pay_date: string;
   gross_pay: string;
   net_pay: string;
-  hours_paid: string;
   payment_method: string;
   notes: string;
 };
@@ -36,7 +35,6 @@ function toDraft(p: RawPayment): Draft {
     pay_date: p.pay_date.slice(0, 10),
     gross_pay: p.gross_pay != null ? String(p.gross_pay) : "",
     net_pay: p.net_pay != null ? String(p.net_pay) : "",
-    hours_paid: p.hours_paid != null ? String(p.hours_paid) : "",
     payment_method: p.payment_method ?? "",
     notes: p.notes ?? "",
   };
@@ -46,7 +44,6 @@ const blank = (): Draft => ({
   pay_date: todayStr(),
   gross_pay: "",
   net_pay: "",
-  hours_paid: "",
   payment_method: "",
   notes: "",
 });
@@ -64,13 +61,14 @@ export default function PaymentsEditor({ gigId, initial }: { gigId: string; init
       return;
     }
     setBusy(true);
+    // hours_paid intentionally omitted — the editor no longer captures it, so
+    // any existing DB value is preserved rather than cleared on update.
     const fields: PaymentFields = {
       id: draft.id,
       gig_id: gigId,
       pay_date: draft.pay_date,
       gross_pay: numOrNull(draft.gross_pay),
       net_pay: numOrNull(draft.net_pay),
-      hours_paid: numOrNull(draft.hours_paid),
       payment_method: draft.payment_method || null,
       notes: draft.notes.trim() || null,
     };
@@ -136,7 +134,6 @@ export default function PaymentsEditor({ gigId, initial }: { gigId: string; init
                   <div className="font-medium text-zinc-800 dark:text-zinc-200">{shortDate(p.pay_date)}</div>
                   <div className="text-xs text-zinc-400 dark:text-zinc-500">
                     {p.payment_method ?? "Payment"}
-                    {p.hours_paid != null && <> · {Number(p.hours_paid)} hrs</>}
                   </div>
                 </div>
                 <div className="shrink-0 font-medium text-green-600 dark:text-green-400">{money(p.gross_pay)}</div>
@@ -172,7 +169,7 @@ function PaymentForm({
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setDraft({ ...draft, [k]: v });
   return (
     <div className="px-4 py-4 bg-zinc-50/60 dark:bg-zinc-950/40">
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Field label="Paid on">
           <input type="date" value={draft.pay_date} onChange={(e) => set("pay_date", e.target.value)} className={inp} />
         </Field>
@@ -181,9 +178,6 @@ function PaymentForm({
         </Field>
         <Field label="Net ($)">
           <input type="number" step="0.01" value={draft.net_pay} onChange={(e) => set("net_pay", e.target.value)} className={inp} />
-        </Field>
-        <Field label="Hours paid">
-          <input type="number" step="0.25" value={draft.hours_paid} onChange={(e) => set("hours_paid", e.target.value)} className={inp} />
         </Field>
         <Field label="Method">
           <select value={draft.payment_method} onChange={(e) => set("payment_method", e.target.value)} className={inp}>

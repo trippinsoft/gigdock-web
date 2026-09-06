@@ -452,7 +452,9 @@ export interface PaymentFields {
   pay_date: string;
   gross_pay: number | null;
   net_pay: number | null;
-  hours_paid: number | null;
+  /** Optional. The web editor no longer captures this — omit to preserve
+   *  any existing DB value on update rather than clearing it. */
+  hours_paid?: number | null;
   payment_method: string | null;
   notes: string | null;
 }
@@ -460,15 +462,15 @@ export interface PaymentFields {
 export async function savePayment(f: PaymentFields): Promise<ActionResult> {
   try {
     const { supabase, user } = await client();
-    const row = {
+    const row: Record<string, unknown> = {
       gig_id: f.gig_id,
       pay_date: f.pay_date,
       gross_pay: f.gross_pay,
       net_pay: f.net_pay,
-      hours_paid: f.hours_paid,
       payment_method: f.payment_method,
       notes: f.notes,
     };
+    if (f.hours_paid !== undefined) row.hours_paid = f.hours_paid;
     if (f.id) {
       const { error } = await supabase.from("gig_payments").update(row).eq("id", f.id);
       if (error) throw error;
