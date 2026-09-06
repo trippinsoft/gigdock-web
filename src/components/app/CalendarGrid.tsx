@@ -102,7 +102,7 @@ export default function CalendarGrid({
                   </div>
                   <div className="mt-1 flex flex-col gap-0.5">
                     {gigs.slice(0, 3).map((g) => (
-                      <span key={g.id} className="block truncate text-[11px] leading-tight px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300">{g.gig?.title ?? "Gig"}</span>
+                      <GigChip key={g.id} gig={g} />
                     ))}
                     {gigs.length > 3 && <span className="text-[10px] text-zinc-400 dark:text-zinc-500 px-1">+{gigs.length - 3} more</span>}
                   </div>
@@ -124,5 +124,65 @@ export default function CalendarGrid({
         />
       )}
     </div>
+  );
+}
+
+// Month-grid gig chip. Mirrors the mobile calendar's day-status color language
+// so you can scan an entire month at a glance:
+//   • Availability check → amber outline, no fill.
+//   • Booked             → solid amber.
+//   • Worked / paid      → green outline with a green fill from the left,
+//                          sized to the gig's received_percent (0–100). Fully
+//                          paid reads as a solid green pill.
+// Hex values are the same the phone uses (themes/palettes.js and the
+// GigVaultCalendar overrides).
+function GigChip({ gig }: { gig: CalendarDate }) {
+  const status = (gig.status_for_day ?? "").toLowerCase();
+  const title = gig.gig?.title ?? "Gig";
+
+  if (status === "availability_checked" || status.startsWith("availability")) {
+    return (
+      <span
+        title={`Availability check — ${title}`}
+        className="block truncate text-[11px] leading-tight px-1 py-0.5 rounded border border-[#fcd34d] text-[#a26200] dark:border-[#c99b3b] dark:text-[#f5c66a]"
+      >
+        {title}
+      </span>
+    );
+  }
+
+  if (status === "booked") {
+    return (
+      <span
+        title={`Booked — ${title}`}
+        className="block truncate text-[11px] leading-tight px-1 py-0.5 rounded bg-[#fcd34d] text-zinc-900 dark:bg-[#c99b3b] dark:text-zinc-950"
+      >
+        {title}
+      </span>
+    );
+  }
+
+  if (status === "worked" || status === "paid") {
+    const rawPct = gig.received_percent;
+    const pct = Math.max(0, Math.min(100, Math.round(Number(rawPct ?? 0))));
+    // Progressive fill from the left with a hard color stop.
+    const light = `linear-gradient(to right, #8dca4a 0%, #8dca4a ${pct}%, transparent ${pct}%, transparent 100%)`;
+    const label = status === "paid" ? `Paid — ${title}` : pct > 0 ? `Worked · ${pct}% received — ${title}` : `Worked — ${title}`;
+    return (
+      <span
+        title={label}
+        style={{ backgroundImage: light }}
+        className="block truncate text-[11px] leading-tight px-1 py-0.5 rounded border border-[#8dca4a] text-zinc-900 dark:border-[#5e9f16] dark:text-white"
+      >
+        {title}
+      </span>
+    );
+  }
+
+  // Fallback for anything else (unknown status). Keeps the old muted blue.
+  return (
+    <span className="block truncate text-[11px] leading-tight px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300">
+      {title}
+    </span>
   );
 }

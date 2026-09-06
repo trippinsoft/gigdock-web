@@ -10,6 +10,7 @@ const BOOKED_LIKE = new Set(["booked", "worked", "paid"]);
 import { DAY_STATUSES } from "@/lib/gigVocab";
 import { dayGrossEarned, type PayType } from "@/lib/pay";
 import { money, shortDate } from "@/lib/format";
+import DayStatusPill from "@/components/app/DayStatusPill";
 
 export type RawDay = {
   id: string;
@@ -146,7 +147,7 @@ export default function GigDatesEditor({
   return (
     <section className="mb-6">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Worked days</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Gig dates</h2>
         {!editing && (
           <button
             onClick={() => setEditing(blank())}
@@ -189,11 +190,13 @@ function DayRow({ d, payModel, onEdit }: { d: RawDay; payModel: PayModel; onEdit
   return (
     <button onClick={onEdit} className="w-full text-left flex items-center justify-between gap-4 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
       <div className="min-w-0">
-        <div className="font-medium text-zinc-800 dark:text-zinc-200">{shortDate(d.date)}</div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-medium text-zinc-800 dark:text-zinc-200">{shortDate(d.date)}</span>
+          <DayStatusPill status={d.status_for_day ?? "worked"} size="xs" />
+        </div>
         <div className="text-xs text-zinc-400 dark:text-zinc-500">
-          {d.status_for_day ?? "worked"}
-          {d.hours_total != null && <> · {Number(d.hours_total)} hrs</>}
-          {d.bumps ? <> · {money(Number(d.bumps))} additional pay</> : null}
+          {d.hours_total != null && <>{Number(d.hours_total)} hrs</>}
+          {d.bumps ? <>{d.hours_total != null ? " · " : ""}{money(Number(d.bumps))} additional pay</> : null}
         </div>
       </div>
       {gross != null && <div className="shrink-0 text-sm font-medium text-zinc-700 dark:text-zinc-300">{money(gross)}</div>}
