@@ -177,33 +177,31 @@ function OverviewPanel({ gig, dates, bumps, gigId, userId }: { gig: GigWithNames
             </div>
           </>
         )}
-        {bumps.length > 0 ? (
+        {userId && (
           <>
             <div className="mt-3 mb-1.5 flex items-center justify-between">
               <div className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Additional Pay</div>
-              {userId && <AdditionalPayLauncher gigId={gigId} userId={userId} variant="manage" />}
+              <AdditionalPayLauncher gigId={gigId} userId={userId} variant={bumps.length > 0 ? "manage" : "add"} />
             </div>
-            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
-              {bumps.map((b, i) => (
-                <div key={i} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                  <span className="text-zinc-700 dark:text-zinc-200">{additionalPayTypeLabel(b.bump_type)}</span>
-                  <span className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
-                    {dateById.get(b.gig_date_id) && <span>{shortDate(dateById.get(b.gig_date_id)!)}</span>}
-                    <span className="font-medium text-zinc-700 dark:text-zinc-200">{money(Number(b.amount))}</span>
-                  </span>
-                </div>
-              ))}
-            </div>
+            {bumps.length > 0 ? (
+              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
+                {bumps.map((b, i) => (
+                  <div key={i} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                    <span className="text-zinc-700 dark:text-zinc-200">{additionalPayTypeLabel(b.bump_type)}</span>
+                    <span className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
+                      {dateById.get(b.gig_date_id) && <span>{shortDate(dateById.get(b.gig_date_id)!)}</span>}
+                      <span className="font-medium text-zinc-700 dark:text-zinc-200">{money(Number(b.amount))}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">
+                No additional pay added yet.
+              </div>
+            )}
           </>
-        ) : userId && dates.length > 0 ? (
-          <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 px-4 py-3">
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-zinc-800 dark:text-zinc-100">Additional Pay</div>
-              <div className="text-xs text-zinc-500 dark:text-zinc-400">Add extra pay to a booked or worked date.</div>
-            </div>
-            <AdditionalPayLauncher gigId={gigId} userId={userId} variant="add" />
-          </div>
-        ) : null}
+        )}
       </div>
     </div>
   );
