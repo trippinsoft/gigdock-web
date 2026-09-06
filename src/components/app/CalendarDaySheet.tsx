@@ -25,8 +25,10 @@ import DayStatusPill from "@/components/app/DayStatusPill";
 // day-options control reads with the same amber/green as the phone.
 const CHIP_ACTIVE_CLS: Record<string, string> = {
   // Availability check gets a color outline (no fill) so it reads the same
-  // way it does on the month grid and in the DayStatusPill.
-  availability_checked: "border border-[#fcd34d] text-[#a26200] dark:border-[#c99b3b] dark:text-[#f5c66a] shadow-sm",
+  // way it does on the month grid and in the DayStatusPill. Sits on a white
+  // (dark: zinc-900) plate so the segmented control's gray track doesn't
+  // show through the outline.
+  availability_checked: "bg-white dark:bg-zinc-900 border border-[#fcd34d] text-[#a26200] dark:border-[#c99b3b] dark:text-[#f5c66a] shadow-sm",
   booked: "bg-[#fcd34d] text-zinc-900 dark:bg-[#c99b3b] dark:text-zinc-950 shadow-sm",
   worked: "bg-[#8dca4a] text-zinc-900 dark:bg-[#5e9f16] dark:text-white shadow-sm",
 };
