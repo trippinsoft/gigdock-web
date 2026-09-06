@@ -86,7 +86,7 @@ export default async function GigWorkspacePage({
   ];
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-5">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
       <Link href="/gigs" className="lg:hidden inline-flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400 mb-3">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
         All gigs
@@ -174,7 +174,7 @@ function OverviewPanel({ gig, dates, bumps, gigId, userId, bumpsOnlyDateIds }: {
             <SubTitle>Work summary</SubTitle>
             <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
               {dates.map((d) => (
-                <div key={d.gig_date_id} className="grid grid-cols-[8rem_1fr_auto_5rem] items-center gap-3 px-4 py-2.5 text-sm">
+                <div key={d.gig_date_id} className="grid grid-cols-[6.5rem_1fr_auto_4.5rem] items-center gap-2 px-3 py-2.5 text-sm">
                   <span className="text-zinc-700 dark:text-zinc-200 whitespace-nowrap">{shortDate(d.date)}</span>
                   <span className="flex items-center gap-2 flex-wrap">
                     {d.status_for_day
@@ -202,7 +202,7 @@ function OverviewPanel({ gig, dates, bumps, gigId, userId, bumpsOnlyDateIds }: {
             {bumps.length > 0 ? (
               <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
                 {bumps.map((b, i) => (
-                  <div key={i} className="grid grid-cols-[1fr_auto_5rem] items-center gap-3 px-4 py-2.5 text-sm">
+                  <div key={i} className="grid grid-cols-[1fr_auto_4.5rem] items-center gap-2 px-3 py-2.5 text-sm">
                     <span className="flex items-center gap-2 flex-wrap min-w-0">
                       <span className="text-zinc-700 dark:text-zinc-200">{additionalPayTypeLabel(b.bump_type)}</span>
                       {bumpsOnlyDateIds.has(b.gig_date_id) && <AdditionalPayOnlyPill />}
