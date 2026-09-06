@@ -8,7 +8,10 @@ import {
   getGigDocuments,
   getGigEarnings,
   getGigPayments,
+  getSessionUser,
 } from "@/lib/backoffice";
+import AdditionalPayLauncher from "@/components/app/AdditionalPayLauncher";
+import { additionalPayTypeLabel } from "@/lib/additionalPayLabels";
 import type {
   GigDateWithEarnings,
   GigPayment,
@@ -35,13 +38,15 @@ export default async function GigWorkspacePage({
   const gig = await getGig(id);
   if (!gig) notFound();
 
-  const [earnings, dates, payments, bumps, docs] = await Promise.all([
+  const [earnings, dates, payments, bumps, docs, user] = await Promise.all([
     getGigEarnings(id),
     getGigDates(id),
     getGigPayments(id),
     getGigBumps(id),
     getGigDocuments(id),
+    getSessionUser(),
   ]);
+  const userId = user?.id ?? "";
 
   const earned = earnings?.gross_earned ?? 0;
   const paid = earnings?.total_paid ?? 0;
@@ -65,7 +70,7 @@ export default async function GigWorkspacePage({
   const headerMeta = [dateRange(gig.start_date, gig.end_date), gig.location].filter((x) => x && x !== "—").join(" · ");
 
   const tabs: GigTab[] = [
-    { id: "overview", label: "Overview", content: <OverviewPanel gig={gig} dates={dates} bumps={bumps} /> },
+    { id: "overview", label: "Overview", content: <OverviewPanel gig={gig} dates={dates} bumps={bumps} gigId={id} userId={userId} /> },
     { id: "work-days", label: "Work Days", count: dates.length, content: <WorkDaysPanel id={id} dates={dates} bumpsByDate={bumpsByDate} /> },
     { id: "payments", label: "Payments", count: payments.length, content: <PaymentsPanel id={id} payments={payments} earned={earned} paid={paid} remaining={remaining} /> },
     { id: "documents", label: "Documents", count: docs.length, content: <DocumentsPanel docs={docs} /> },
@@ -127,24 +132,9 @@ export default async function GigWorkspacePage({
   );
 }
 
-/* ── labels ────────────────────────────────────────────────────────────────── */
-
-// Additional-pay type labels — customer-facing. Keeps familiar background
-// terminology on the individual type (Car bump, Wardrobe bump…) while the
-// umbrella feature name is "Additional Pay". Mirrors the mobile app; stored
-// bump_type values (car / wardrobe / gas / props / other) are unchanged.
-function bumpTypeLabel(rawType: string): string {
-  const t = (rawType ?? "").trim().toLowerCase();
-  if (!t) return "Additional pay";
-  if (t === "other") return "Other additional pay";
-  if (t === "wardrobe / fitting" || t === "wardrobe/fitting") return "Wardrobe / fitting bump";
-  const head = t.charAt(0).toUpperCase() + t.slice(1);
-  return `${head} bump`;
-}
-
 /* ── panels ────────────────────────────────────────────────────────────────── */
 
-function OverviewPanel({ gig, dates, bumps }: { gig: GigWithNames; dates: GigDateWithEarnings[]; bumps: { gig_date_id: string; bump_type: string; amount: number }[] }) {
+function OverviewPanel({ gig, dates, bumps, gigId, userId }: { gig: GigWithNames; dates: GigDateWithEarnings[]; bumps: { gig_date_id: string; bump_type: string; amount: number }[]; gigId: string; userId: string }) {
   const dateById = new Map(dates.map((d) => [d.gig_date_id, d.date]));
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
@@ -187,13 +177,16 @@ function OverviewPanel({ gig, dates, bumps }: { gig: GigWithNames; dates: GigDat
             </div>
           </>
         )}
-        {bumps.length > 0 && (
+        {bumps.length > 0 ? (
           <>
-            <SubTitle className="mt-3">Additional Pay</SubTitle>
+            <div className="mt-3 mb-1.5 flex items-center justify-between">
+              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Additional Pay</div>
+              {userId && <AdditionalPayLauncher gigId={gigId} userId={userId} variant="manage" />}
+            </div>
             <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
               {bumps.map((b, i) => (
                 <div key={i} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                  <span className="text-zinc-700 dark:text-zinc-200">{bumpTypeLabel(b.bump_type)}</span>
+                  <span className="text-zinc-700 dark:text-zinc-200">{additionalPayTypeLabel(b.bump_type)}</span>
                   <span className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
                     {dateById.get(b.gig_date_id) && <span>{shortDate(dateById.get(b.gig_date_id)!)}</span>}
                     <span className="font-medium text-zinc-700 dark:text-zinc-200">{money(Number(b.amount))}</span>
@@ -202,7 +195,15 @@ function OverviewPanel({ gig, dates, bumps }: { gig: GigWithNames; dates: GigDat
               ))}
             </div>
           </>
-        )}
+        ) : userId && dates.length > 0 ? (
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 px-4 py-3">
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-zinc-800 dark:text-zinc-100">Additional Pay</div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">Add extra pay to a booked or worked date.</div>
+            </div>
+            <AdditionalPayLauncher gigId={gigId} userId={userId} variant="add" />
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -285,7 +286,7 @@ function Row({ label, value }: { label: string; value: string | null | undefined
 
 function DayRow({ d, bumps }: { d: GigDateWithEarnings; bumps: { type: string; amount: number }[] }) {
   const gross = d.gross_earned_calc ?? 0;
-  const bumpLabel = bumps.length ? "Base + " + bumps.map((b) => bumpTypeLabel(b.type)).join(", ") : null;
+  const bumpLabel = bumps.length ? "Base + " + bumps.map((b) => additionalPayTypeLabel(b.type)).join(", ") : null;
   return (
     <div className="flex items-center justify-between gap-4 px-4 py-3">
       <div className="min-w-0">
