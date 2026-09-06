@@ -174,17 +174,19 @@ function OverviewPanel({ gig, dates, bumps, gigId, userId, bumpsOnlyDateIds }: {
             <SubTitle>Work summary</SubTitle>
             <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
               {dates.map((d) => (
-                <div key={d.gig_date_id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                  <span className="flex items-center gap-2 min-w-0">
-                    <span className="text-zinc-700 dark:text-zinc-200">{shortDate(d.date)}</span>
-                    {bumpsOnlyDateIds.has(d.gig_date_id) && <AdditionalPayOnlyPill />}
-                  </span>
-                  <span className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
+                <div key={d.gig_date_id} className="grid grid-cols-[8rem_1fr_auto_5rem] items-center gap-3 px-4 py-2.5 text-sm">
+                  <span className="text-zinc-700 dark:text-zinc-200 whitespace-nowrap">{shortDate(d.date)}</span>
+                  <span className="flex items-center gap-2 flex-wrap">
                     {d.status_for_day
                       ? <DayStatusPill status={d.status_for_day} size="xs" />
-                      : <span>—</span>}
-                    {d.hours_total != null && <span>{Number(d.hours_total)} hrs</span>}
-                    <span className="font-medium text-zinc-700 dark:text-zinc-200">{money(d.gross_earned_calc ?? 0)}</span>
+                      : <span className="text-zinc-400">—</span>}
+                    {bumpsOnlyDateIds.has(d.gig_date_id) && <AdditionalPayOnlyPill />}
+                  </span>
+                  <span className="text-zinc-500 dark:text-zinc-400 whitespace-nowrap tabular-nums">
+                    {d.hours_total != null ? `${Number(d.hours_total)} hrs` : ""}
+                  </span>
+                  <span className="font-medium text-zinc-700 dark:text-zinc-200 whitespace-nowrap tabular-nums text-right">
+                    {money(d.gross_earned_calc ?? 0)}
                   </span>
                 </div>
               ))}
@@ -200,14 +202,16 @@ function OverviewPanel({ gig, dates, bumps, gigId, userId, bumpsOnlyDateIds }: {
             {bumps.length > 0 ? (
               <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
                 {bumps.map((b, i) => (
-                  <div key={i} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                    <span className="flex items-center gap-2 min-w-0">
+                  <div key={i} className="grid grid-cols-[1fr_auto_5rem] items-center gap-3 px-4 py-2.5 text-sm">
+                    <span className="flex items-center gap-2 flex-wrap min-w-0">
                       <span className="text-zinc-700 dark:text-zinc-200">{additionalPayTypeLabel(b.bump_type)}</span>
                       {bumpsOnlyDateIds.has(b.gig_date_id) && <AdditionalPayOnlyPill />}
                     </span>
-                    <span className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
-                      {dateById.get(b.gig_date_id) && <span>{shortDate(dateById.get(b.gig_date_id)!)}</span>}
-                      <span className="font-medium text-zinc-700 dark:text-zinc-200">{money(Number(b.amount))}</span>
+                    <span className="text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+                      {dateById.get(b.gig_date_id) ? shortDate(dateById.get(b.gig_date_id)!) : ""}
+                    </span>
+                    <span className="font-medium text-zinc-700 dark:text-zinc-200 whitespace-nowrap tabular-nums text-right">
+                      {money(Number(b.amount))}
                     </span>
                   </div>
                 ))}
