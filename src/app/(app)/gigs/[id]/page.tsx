@@ -5,6 +5,7 @@ import {
   getGig,
   getGigBumps,
   getGigDates,
+  getGigDatesRaw,
   getGigDocuments,
   getGigEarnings,
   getGigPayments,
@@ -38,15 +39,22 @@ export default async function GigWorkspacePage({
   const gig = await getGig(id);
   if (!gig) notFound();
 
-  const [earnings, dates, payments, bumps, docs, user] = await Promise.all([
+  const [earnings, dates, payments, bumps, docs, user, datesRaw] = await Promise.all([
     getGigEarnings(id),
     getGigDates(id),
     getGigPayments(id),
     getGigBumps(id),
     getGigDocuments(id),
     getSessionUser(),
+    getGigDatesRaw(id),
   ]);
   const userId = user?.id ?? "";
+  // Dates flagged as "additional pay only" — regular pay doesn't apply, only
+  // the bumps on that date contribute to gross earned. Surfaced across the
+  // page so a bumps-only day is never mistaken for a regular workday.
+  const bumpsOnlyDateIds = new Set(
+    datesRaw.filter((r) => r.base_pay_applies === false).map((r) => r.id as string)
+  );
 
   const earned = earnings?.gross_earned ?? 0;
   const paid = earnings?.total_paid ?? 0;
@@ -70,8 +78,8 @@ export default async function GigWorkspacePage({
   const headerMeta = [dateRange(gig.start_date, gig.end_date), gig.location].filter((x) => x && x !== "—").join(" · ");
 
   const tabs: GigTab[] = [
-    { id: "overview", label: "Overview", content: <OverviewPanel gig={gig} dates={dates} bumps={bumps} gigId={id} userId={userId} /> },
-    { id: "work-days", label: "Work Days", count: dates.length, content: <WorkDaysPanel id={id} dates={dates} bumpsByDate={bumpsByDate} /> },
+    { id: "overview", label: "Overview", content: <OverviewPanel gig={gig} dates={dates} bumps={bumps} gigId={id} userId={userId} bumpsOnlyDateIds={bumpsOnlyDateIds} /> },
+    { id: "work-days", label: "Work Days", count: dates.length, content: <WorkDaysPanel id={id} dates={dates} bumpsByDate={bumpsByDate} bumpsOnlyDateIds={bumpsOnlyDateIds} /> },
     { id: "payments", label: "Payments", count: payments.length, content: <PaymentsPanel id={id} payments={payments} earned={earned} paid={paid} remaining={remaining} /> },
     { id: "documents", label: "Documents", count: docs.length, content: <DocumentsPanel docs={docs} /> },
   ];
@@ -134,7 +142,7 @@ export default async function GigWorkspacePage({
 
 /* ── panels ────────────────────────────────────────────────────────────────── */
 
-function OverviewPanel({ gig, dates, bumps, gigId, userId }: { gig: GigWithNames; dates: GigDateWithEarnings[]; bumps: { gig_date_id: string; bump_type: string; amount: number }[]; gigId: string; userId: string }) {
+function OverviewPanel({ gig, dates, bumps, gigId, userId, bumpsOnlyDateIds }: { gig: GigWithNames; dates: GigDateWithEarnings[]; bumps: { gig_date_id: string; bump_type: string; amount: number }[]; gigId: string; userId: string; bumpsOnlyDateIds: Set<string> }) {
   const dateById = new Map(dates.map((d) => [d.gig_date_id, d.date]));
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
@@ -166,7 +174,10 @@ function OverviewPanel({ gig, dates, bumps, gigId, userId }: { gig: GigWithNames
             <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
               {dates.map((d) => (
                 <div key={d.gig_date_id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                  <span className="text-zinc-700 dark:text-zinc-200">{shortDate(d.date)}</span>
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className="text-zinc-700 dark:text-zinc-200">{shortDate(d.date)}</span>
+                    {bumpsOnlyDateIds.has(d.gig_date_id) && <AdditionalPayOnlyPill />}
+                  </span>
                   <span className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
                     <span>{statusLabel(d.status_for_day) ?? "—"}</span>
                     {d.hours_total != null && <span>{Number(d.hours_total)} hrs</span>}
@@ -187,7 +198,10 @@ function OverviewPanel({ gig, dates, bumps, gigId, userId }: { gig: GigWithNames
               <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
                 {bumps.map((b, i) => (
                   <div key={i} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                    <span className="text-zinc-700 dark:text-zinc-200">{additionalPayTypeLabel(b.bump_type)}</span>
+                    <span className="flex items-center gap-2 min-w-0">
+                      <span className="text-zinc-700 dark:text-zinc-200">{additionalPayTypeLabel(b.bump_type)}</span>
+                      {bumpsOnlyDateIds.has(b.gig_date_id) && <AdditionalPayOnlyPill />}
+                    </span>
                     <span className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
                       {dateById.get(b.gig_date_id) && <span>{shortDate(dateById.get(b.gig_date_id)!)}</span>}
                       <span className="font-medium text-zinc-700 dark:text-zinc-200">{money(Number(b.amount))}</span>
@@ -211,12 +225,23 @@ function SubTitle({ children, className = "" }: { children: React.ReactNode; cla
   return <div className={`text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500 mb-1.5 ${className}`}>{children}</div>;
 }
 
-function WorkDaysPanel({ id, dates, bumpsByDate }: { id: string; dates: GigDateWithEarnings[]; bumpsByDate: Map<string, { type: string; amount: number }[]> }) {
+// Shared pill for dates where base_pay_applies=false — regular pay does not
+// apply to that date, only its additional-pay entries. Matches mobile's
+// "ADDITIONAL PAY ONLY" pill.
+function AdditionalPayOnlyPill() {
+  return (
+    <span className="inline-flex items-center rounded bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-700 dark:text-blue-300">
+      Additional Pay Only
+    </span>
+  );
+}
+
+function WorkDaysPanel({ id, dates, bumpsByDate, bumpsOnlyDateIds }: { id: string; dates: GigDateWithEarnings[]; bumpsByDate: Map<string, { type: string; amount: number }[]>; bumpsOnlyDateIds: Set<string> }) {
   if (dates.length === 0) return <Empty>No work days recorded. <EditLink id={id}>Add days</EditLink></Empty>;
   return (
     <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
       {dates.map((d) => (
-        <DayRow key={d.gig_date_id} d={d} bumps={bumpsByDate.get(d.gig_date_id) ?? []} />
+        <DayRow key={d.gig_date_id} d={d} bumps={bumpsByDate.get(d.gig_date_id) ?? []} bumpsOnly={bumpsOnlyDateIds.has(d.gig_date_id)} />
       ))}
     </div>
   );
@@ -282,13 +307,20 @@ function Row({ label, value }: { label: string; value: string | null | undefined
   );
 }
 
-function DayRow({ d, bumps }: { d: GigDateWithEarnings; bumps: { type: string; amount: number }[] }) {
+function DayRow({ d, bumps, bumpsOnly }: { d: GigDateWithEarnings; bumps: { type: string; amount: number }[]; bumpsOnly: boolean }) {
   const gross = d.gross_earned_calc ?? 0;
-  const bumpLabel = bumps.length ? "Base + " + bumps.map((b) => additionalPayTypeLabel(b.type)).join(", ") : null;
+  // Bumps-only days accrue additional pay only, so the base+bumps label reads
+  // just as the bump list.
+  const bumpLabel = bumps.length
+    ? (bumpsOnly ? "" : "Base + ") + bumps.map((b) => additionalPayTypeLabel(b.type)).join(", ")
+    : null;
   return (
     <div className="flex items-center justify-between gap-4 px-4 py-3">
       <div className="min-w-0">
-        <div className="font-medium text-zinc-800 dark:text-zinc-200">{shortDate(d.date)}</div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-medium text-zinc-800 dark:text-zinc-200">{shortDate(d.date)}</span>
+          {bumpsOnly && <AdditionalPayOnlyPill />}
+        </div>
         <div className="text-xs text-zinc-400 dark:text-zinc-500">
           {d.hours_total != null && <>{Number(d.hours_total)} hrs</>}
           {d.status_for_day && <> · {d.status_for_day}</>}
