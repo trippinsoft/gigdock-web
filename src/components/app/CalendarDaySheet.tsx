@@ -11,6 +11,7 @@ import {
   loadCalendarDaySheet,
   patchCalendarDay,
 } from "@/lib/backoffice-actions";
+import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import { track } from "@/lib/analytics";
 import { trackProduct } from "@/lib/productEvents";
 
@@ -55,16 +56,67 @@ export default function CalendarDaySheet({
   onNewGig: () => void;
   creating: boolean;
 }) {
+  const router = useRouter();
   const [pickedId, setPickedId] = useState<string | null>(
     gigs.length === 1 ? gigs[0].id : null
   );
+  // Optimistic mirror of `flag` so the pill and action-row label flip
+  // instantly on toggle without waiting for the router refresh.
+  const [localFlag, setLocalFlag] = useState<string | undefined>(flag);
+  const [flagBusy, setFlagBusy] = useState(false);
 
   useEffect(() => {
     setPickedId(gigs.length === 1 ? gigs[0].id : null);
   }, [date, gigs]);
 
+  useEffect(() => {
+    setLocalFlag(flag);
+  }, [date, flag]);
+
   const picked = gigs.find((g) => g.id === pickedId) ?? null;
   const showPicker = gigs.length > 1 && !picked;
+
+  const isUnavailable = localFlag === "unavailable";
+  // Mobile parity: unavailability only applies to empty days — a day already
+  // holding a gig has its own status (availability_checked / booked / worked).
+  const canToggleUnavailable = gigs.length === 0;
+
+  async function toggleUnavailable() {
+    if (flagBusy) return;
+    setFlagBusy(true);
+    const supabase = createSupabaseBrowser();
+    const wasUnavailable = isUnavailable;
+    // Optimistic flip.
+    setLocalFlag(wasUnavailable ? undefined : "unavailable");
+    try {
+      const { data: sess } = await supabase.auth.getUser();
+      const userId = sess.user?.id;
+      if (!userId) throw new Error("Sign in to update availability.");
+      if (wasUnavailable) {
+        const { error } = await supabase
+          .from("date_flags")
+          .delete()
+          .eq("user_id", userId)
+          .eq("date", date);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("date_flags")
+          .upsert(
+            { user_id: userId, date, flag: "unavailable" },
+            { onConflict: "user_id,date" }
+          );
+        if (error) throw error;
+      }
+      router.refresh();
+    } catch (err) {
+      // Rollback the optimistic flip on failure.
+      setLocalFlag(wasUnavailable ? "unavailable" : undefined);
+      console.warn("availability toggle failed", err);
+    } finally {
+      setFlagBusy(false);
+    }
+  }
 
   return (
     <>
@@ -73,9 +125,9 @@ export default function CalendarDaySheet({
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="min-w-0">
             <h3 className="font-bold text-zinc-900 dark:text-zinc-100">{shortDate(date)}</h3>
-            {flag && (
+            {localFlag && (
               <p className="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 mt-0.5">
-                {flag === "unavailable" ? "Unavailable" : flag}
+                {localFlag === "unavailable" ? "Unavailable" : localFlag}
               </p>
             )}
           </div>
@@ -94,6 +146,14 @@ export default function CalendarDaySheet({
 
         <div className="mt-3 flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800 border-t border-zinc-100 dark:border-zinc-800">
           <ActionRow icon={<IconPlus />} label="New gig" onClick={onNewGig} busy={creating} />
+          {canToggleUnavailable && (
+            <ActionRow
+              icon={<IconBlock />}
+              label={isUnavailable ? "Mark available" : "Mark unavailable"}
+              onClick={toggleUnavailable}
+              busy={flagBusy}
+            />
+          )}
           <ActionRow icon={<IconDoc />} label="Add document" hint="Soon on web" disabled />
           <ActionRow icon={<IconReceipt />} label="Add expense" hint="Soon on web" disabled />
         </div>
@@ -430,6 +490,14 @@ function IconReceipt() {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 3v18l3-2 3 2 3-2 3 2 3-2V3l-3 2-3-2-3 2-3-2-3 2Z" />
       <path d="M8 8h8M8 12h6" />
+    </svg>
+  );
+}
+function IconBlock() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="m5.6 5.6 12.8 12.8" />
     </svg>
   );
 }
