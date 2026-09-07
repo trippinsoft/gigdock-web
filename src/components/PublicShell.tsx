@@ -5,14 +5,16 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 
+// Public site nav. GigDock is a work-management platform; Opportunities is one
+// part of that story, so the nav no longer leads with it. Order and labels
+// match the positioning brief.
 const NAV = [
   { href: "/opportunities", label: "Opportunities" },
-  { href: "/opportunities/locations", label: "By location" },
-  { href: "/gigfit", label: "GigFit" },
-  { href: "/guides", label: "Guides" },
-  { href: "/app", label: "Get the app" },
+  { href: "/features", label: "Features" },
+  { href: "/partners", label: "For Partners" },
+  { href: "/resources", label: "Resources" },
+  { href: "/about", label: "About" },
 ];
-
 
 export default function PublicShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -20,10 +22,6 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const supabase = createSupabaseBrowser();
-
-  // Profile lives inside the signed-in app shell (not the public chrome), so the
-  // public nav is the same for everyone.
-  const nav = NAV;
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setSignedIn(!!data.user));
@@ -34,9 +32,13 @@ export default function PublicShell({ children }: { children: React.ReactNode })
     setMenuOpen(false);
     await supabase.auth.signOut();
     setSignedIn(false);
-    router.push("/opportunities");
+    router.push("/");
     router.refresh();
   }
+
+  // Anonymous visitors: logo → the marketing home. Signed-in visitors:
+  // logo → Today, the signed-in workspace home.
+  const logoHref = signedIn === true ? "/today" : "/";
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -45,7 +47,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-3 min-w-0">
               <Link
-                href="/opportunities"
+                href={logoHref}
                 onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-2 shrink-0"
               >
@@ -58,18 +60,10 @@ export default function PublicShell({ children }: { children: React.ReactNode })
               <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
                 Beta
               </span>
-              {/* Marketing tagline — desktop only (mobile header stays compact) */}
-              <div className="hidden lg:block border-l border-zinc-200 dark:border-zinc-700 pl-3 min-w-0">
-                <div className="text-xs text-zinc-500 dark:text-zinc-400 leading-tight truncate">
-                  Film &amp; TV opportunities, all in one place
-                </div>
-              </div>
             </div>
 
             {/* Desktop nav */}
             <nav className="hidden sm:flex items-center gap-2">
-              {/* Signed-in users reach these content pages from inside the app;
-                  give them a clear way back to the workspace. */}
               {signedIn === true && (
                 <Link
                   href="/today"
@@ -78,8 +72,8 @@ export default function PublicShell({ children }: { children: React.ReactNode })
                   ← Dashboard
                 </Link>
               )}
-              {nav.map((n) => {
-                const active = pathname.startsWith(n.href);
+              {NAV.map((n) => {
+                const active = pathname === n.href || pathname.startsWith(`${n.href}/`);
                 return (
                   <Link
                     key={n.href}
@@ -100,13 +94,13 @@ export default function PublicShell({ children }: { children: React.ReactNode })
                     href="/login"
                     className="ml-1 px-3 py-1.5 rounded-lg text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors"
                   >
-                    Log in
+                    Sign In
                   </Link>
                   <Link
                     href="/signup"
-                    className="px-3.5 py-1.5 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                    className="px-3.5 py-1.5 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors"
                   >
-                    Create free account
+                    Get Started Free
                   </Link>
                 </>
               )}
@@ -160,8 +154,21 @@ export default function PublicShell({ children }: { children: React.ReactNode })
                     ← Dashboard
                   </Link>
                 )}
-                {nav.map((n) => {
-                  const active = pathname.startsWith(n.href);
+                {/* Home is redundant with the logo on desktop but useful in the
+                    mobile menu where the logo tap is a small target. */}
+                <Link
+                  href={signedIn === true ? "/today" : "/"}
+                  onClick={() => setMenuOpen(false)}
+                  className={`px-3 py-2.5 rounded-lg text-base font-medium transition-colors ${
+                    pathname === "/"
+                      ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40"
+                      : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  Home
+                </Link>
+                {NAV.map((n) => {
+                  const active = pathname === n.href || pathname.startsWith(`${n.href}/`);
                   return (
                     <Link
                       key={n.href}
@@ -182,16 +189,16 @@ export default function PublicShell({ children }: { children: React.ReactNode })
                     <Link
                       href="/signup"
                       onClick={() => setMenuOpen(false)}
-                      className="mt-1 px-3 py-2.5 rounded-lg text-base font-medium text-center bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                      className="mt-1 px-3 py-2.5 rounded-lg text-base font-semibold text-center bg-blue-600 hover:bg-blue-700 text-white transition-colors"
                     >
-                      Create free account
+                      Get Started Free
                     </Link>
                     <Link
                       href="/login"
                       onClick={() => setMenuOpen(false)}
                       className="px-3 py-2.5 rounded-lg text-base font-medium text-center text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors"
                     >
-                      Log in
+                      Sign In
                     </Link>
                   </>
                 )}
@@ -205,7 +212,6 @@ export default function PublicShell({ children }: { children: React.ReactNode })
                 )}
               </nav>
             </div>
-            {/* Tap-outside to close */}
             <div
               className="sm:hidden fixed inset-x-0 bottom-0 top-14 z-20"
               onClick={() => setMenuOpen(false)}
