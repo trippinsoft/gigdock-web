@@ -63,7 +63,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
             </div>
 
             {/* Desktop nav */}
-            <nav className="hidden sm:flex items-center gap-2">
+            <nav className="hidden lg:flex items-center gap-2">
               {signedIn === true && (
                 <Link
                   href="/today"
@@ -120,7 +120,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
               onClick={() => setMenuOpen((o) => !o)}
               aria-label="Menu"
               aria-expanded={menuOpen}
-              className="sm:hidden inline-flex items-center justify-center h-9 w-9 -mr-1 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              className="lg:hidden inline-flex items-center justify-center h-9 w-9 -mr-1 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 {menuOpen ? (
@@ -143,7 +143,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
         {/* Mobile dropdown */}
         {menuOpen && (
           <>
-            <div className="sm:hidden relative z-30 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+            <div className="lg:hidden relative z-30 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
               <nav className="px-4 py-2 flex flex-col gap-0.5">
                 {signedIn === true && (
                   <Link
@@ -213,7 +213,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
               </nav>
             </div>
             <div
-              className="sm:hidden fixed inset-x-0 bottom-0 top-14 z-20"
+              className="lg:hidden fixed inset-x-0 bottom-0 top-14 z-20"
               onClick={() => setMenuOpen(false)}
             />
           </>

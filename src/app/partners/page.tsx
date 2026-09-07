@@ -33,12 +33,12 @@ export default function PartnersPage() {
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <PrincipleCard
-          title="Complement, don't replace."
-          body="Applications continue to flow through the provider's own channel — email, form or website. GigDock links directly to the source and never gets in the way of the application relationship."
+          title="You control where applications go."
+          body="For a sourced opportunity, Apply on GigDock routes directly to the provider's own channel — the email, form or URL from the source. GigDock only handles intake itself when a provider explicitly delegates that."
         />
         <PrincipleCard
-          title="Reach more of the right workers."
-          body="GigFit surfaces each posting to workers whose profile actually fits it, so applicant quality goes up and providers spend less time filtering."
+          title="Broader distribution for your postings."
+          body="GigDock helps workers find opportunities they might not have seen otherwise, using GigFit to compare posting requirements with a worker's profile."
         />
         <PrincipleCard
           title="Respect the source."
@@ -53,10 +53,9 @@ export default function PartnersPage() {
         <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
             "Casting companies posting background, stand-in and featured roles",
-            "Production companies and productions hiring crew and cast",
-            "Payroll companies handling gig-worker payments",
+            "Production companies and productions posting opportunities",
+            "Aggregators, newsletters and other opportunity distributors",
             "Agencies and industry organizations serving production workers",
-            "Aggregators, newsletters and other opportunity providers",
             "Regional film offices and market-development groups",
           ].map((row) => (
             <li key={row} className="flex items-start gap-2.5 text-sm text-zinc-700 dark:text-zinc-200">

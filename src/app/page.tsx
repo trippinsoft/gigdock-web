@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import type { Opportunity } from "@/lib/types";
 import PublicShell from "@/components/PublicShell";
-import AppCta from "@/components/AppCta";
 import { APP_LIVE, IOS_STORE_URL, ANDROID_STORE_URL, BETA_HREF } from "@/lib/appPromo";
 
 export const metadata: Metadata = {
@@ -151,68 +150,31 @@ function Hero() {
   );
 }
 
-// Product-proof arrangement. Today. Real UI only — no fabricated screens.
-// The desktop plate is designed so a real /today web capture can drop in
-// without changing this component's layout; until then, it's a labeled
-// product surface behind the mobile screen.
+// Product-proof arrangement. Real UI only. Until we capture a real /today
+// desktop view, we present the actual mobile Today screen in an honest phone
+// frame — never a fake browser chrome that would imply a web UI we haven't
+// captured yet.
 function HeroProductProof() {
   return (
-    <div className="relative mx-auto max-w-md lg:max-w-none">
-      {/* Web desktop plate — sized like a laptop lid so a wide /today capture
-          drops in cleanly. Falls back to a labeled product surface so the
-          layout doesn't look fake before the screenshot is captured. */}
-      <div className="hidden sm:block rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl overflow-hidden">
-        <div className="flex items-center gap-1.5 px-3 py-2 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
-          <span className="h-2.5 w-2.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
-          <span className="h-2.5 w-2.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
-          <span className="h-2.5 w-2.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
-          <span className="ml-3 text-[11px] text-zinc-400 dark:text-zinc-500">gigdock.co / today</span>
-        </div>
-        <div className="aspect-[16/10] flex items-center justify-center bg-gradient-to-br from-blue-50/60 to-white dark:from-blue-950/20 dark:to-zinc-900 p-6 text-center">
-          <div>
-            <Image
-              src="/app/today.png"
-              alt="GigDock Today"
-              width={1206}
-              height={2622}
-              sizes="(min-width: 1024px) 220px, 180px"
-              className="dark:hidden mx-auto max-h-[280px] w-auto rounded-xl border border-zinc-200 shadow-sm"
-              priority
-            />
-            <Image
-              src="/app/today-dark.png"
-              alt="GigDock Today"
-              width={1206}
-              height={2622}
-              sizes="(min-width: 1024px) 220px, 180px"
-              className="hidden dark:block mx-auto max-h-[280px] w-auto rounded-xl border border-zinc-700 shadow-sm"
-              priority
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile viewport: single strong mobile Today shot — no shrunken laptop. */}
-      <div className="sm:hidden">
-        <Image
-          src="/app/today.png"
-          alt="GigDock Today"
-          width={1206}
-          height={2622}
-          sizes="240px"
-          className="dark:hidden mx-auto max-h-[440px] w-auto rounded-[2rem] border-[6px] border-zinc-900 shadow-2xl"
-          priority
-        />
-        <Image
-          src="/app/today-dark.png"
-          alt="GigDock Today"
-          width={1206}
-          height={2622}
-          sizes="240px"
-          className="hidden dark:block mx-auto max-h-[440px] w-auto rounded-[2rem] border-[6px] border-zinc-700 shadow-2xl"
-          priority
-        />
-      </div>
+    <div className="mx-auto w-full max-w-[240px] sm:max-w-[280px] rounded-[2rem] border-[6px] border-zinc-900 dark:border-zinc-700 bg-zinc-900 dark:bg-zinc-700 shadow-2xl overflow-hidden">
+      <Image
+        src="/app/today.png"
+        alt="GigDock Today on iPhone"
+        width={1206}
+        height={2622}
+        sizes="(min-width: 1024px) 280px, 240px"
+        className="dark:hidden w-full h-auto rounded-[1.5rem]"
+        priority
+      />
+      <Image
+        src="/app/today-dark.png"
+        alt="GigDock Today on iPhone"
+        width={1206}
+        height={2622}
+        sizes="(min-width: 1024px) 280px, 240px"
+        className="hidden dark:block w-full h-auto rounded-[1.5rem]"
+        priority
+      />
     </div>
   );
 }
@@ -299,7 +261,7 @@ function FourPillars() {
       key: "discover",
       title: "Discover",
       hook: "Find your next opportunity.",
-      body: "Browse current opportunities from casting companies, production companies and other industry sources. GigFit matches roles to your profile so what fits you rises to the top.",
+      body: "Browse current opportunities from casting companies, production companies and other industry sources. GigFit compares each posting's requirements with your profile to help you identify stronger potential matches.",
       href: "/opportunities",
       cta: "Explore Opportunities",
       icon: <IconSearch />,
@@ -703,7 +665,7 @@ function CrossPlatform() {
           GigDock wherever you work.
         </h2>
         <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400">
-          Same account. Same features. On web, iPhone and Android.
+          Same account. GigDock on web, iPhone and Android.
         </p>
 
         <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
@@ -778,12 +740,6 @@ function FinalCta() {
         </Link>
       </div>
       <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">Free to get started. No credit card required.</p>
-
-      {/* Keep the AppCta wired for existing analytics/instrumentation, hidden on
-          desktop so it doesn't repeat Section 8. */}
-      <div className="sr-only">
-        <AppCta />
-      </div>
     </section>
   );
 }

@@ -23,10 +23,10 @@ export default function ResourcesPage() {
           Resources
         </span>
         <h1 className="mt-3 text-3xl sm:text-5xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance">
-          Everything you need to get more out of GigDock.
+          Working guides for gig work in TV, film &amp; production.
         </h1>
         <p className="mt-4 text-base sm:text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed">
-          Guides on how gig work in TV, film and production actually runs — plus how to get GigDock on the device you use most.
+          Practical guides on how the industry actually works — rates, bookings, payments, records — plus help and answers for using GigDock.
         </p>
       </section>
 

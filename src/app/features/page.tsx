@@ -31,10 +31,10 @@ const PILLARS: Pillar[] = [
     title: "Find your next opportunity.",
     hook: "One feed for opportunities from casting companies, production companies and other industry sources.",
     body:
-      "GigDock brings current opportunities together so you're not switching between casting sites, social feeds and email. GigFit compares your profile against each posting so the ones that fit you rise to the top.",
+      "GigDock brings current opportunities together so you're not switching between casting sites, social feeds and email. GigFit compares each posting's requirements with your profile to help you identify stronger potential matches.",
     features: [
       { label: "One feed of current opportunities", tier: "free" },
-      { label: "GigFit — your profile matched to each role", tier: "free" },
+      { label: "GigFit — opportunity requirements compared with your profile", tier: "free" },
       { label: "Filter by state, source, work date, pay and more", tier: "free" },
       { label: "Save opportunities for later", tier: "free" },
       { label: "Mark Applied to keep track of where you've applied", tier: "free" },
@@ -53,11 +53,12 @@ const PILLARS: Pillar[] = [
     features: [
       { label: "Gigs, work dates, hours and pay structure", tier: "free" },
       { label: "Calendar view — booked, worked, availability check", tier: "free" },
-      { label: "Additional Pay: itemize car, wardrobe, gas, props and other bumps", tier: "free" },
+      { label: "Additional Pay: Car bump, Wardrobe bump, Gas bump, Props bump and other additional pay", tier: "free" },
       { label: "Additional-pay-only days for fittings and similar", tier: "free" },
       { label: "Mark unavailable days directly from the calendar", tier: "free" },
       { label: "Projects, gig companies and payroll companies", tier: "free" },
-      { label: "Notes and documents attached to each gig", tier: "free" },
+      { label: "Notes attached to each gig", tier: "free" },
+      { label: "Connect documents to specific gigs", tier: "pro" },
     ],
     shot: { light: "/app/calendar.png", dark: "/app/calendar-dark.png" },
   },
@@ -73,7 +74,7 @@ const PILLARS: Pillar[] = [
       { label: "Outstanding balances and payment status", tier: "free" },
       { label: "Additional Pay contributes to gross earnings", tier: "free" },
       { label: "Aggregate Payments view across gigs", tier: "free" },
-      { label: "\"Needs attention\" list for missing or late payments", tier: "free" },
+      { label: "Needs attention on Today: payments due, missing payment info, missing dates", tier: "free" },
     ],
   },
   {
@@ -84,11 +85,10 @@ const PILLARS: Pillar[] = [
     body:
       "Insights show trends across months, companies and projects. Advanced Reports give you exportable breakdowns for the year. Documents keep your call sheets, vouchers, pay stubs and tax paperwork together — connected to the work they belong to.",
     features: [
-      { label: "Insights: earnings trends, work summary, payments received", tier: "free" },
-      { label: "Complete history across the current year", tier: "free" },
+      { label: "Insights on your recent work: earnings, work summary, payments received", tier: "free", note: "Current-period view within the free history window" },
       { label: "Documents with types (call sheets, vouchers, W-2, 1099, etc.)", tier: "free" },
       { label: "Complete work and payment history", tier: "pro" },
-      { label: "Advanced Insights (year-over-year, company patterns)", tier: "pro" },
+      { label: "Advanced Insights (year-over-year, company and project patterns)", tier: "pro" },
       { label: "Advanced Reports (PDF / CSV export, sortable)", tier: "pro" },
       { label: "Tax Ready — organized records for tax time", tier: "pro" },
     ],

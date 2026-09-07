@@ -30,11 +30,11 @@ export default function AboutPage() {
 
       <section className="py-8 max-w-2xl mx-auto text-zinc-700 dark:text-zinc-200 space-y-5 text-[15px] sm:text-base leading-relaxed">
         <p>
-          Entertainment and production is gig work. Every booking is a small
-          business project — one that comes with dates, hours, rates,
-          additional pay, payments, vouchers, tax paperwork and half a dozen
-          companies to keep track of. Multiply that across a year and it&rsquo;s
-          a full second job just keeping the pieces together.
+          Entertainment and production is gig work. Every booking creates
+          another set of details to manage — dates, hours, rates, additional
+          pay, payments, vouchers, tax paperwork and half a dozen companies
+          to keep track of. Multiply that across a year and it&rsquo;s a full
+          second job just keeping the pieces together.
         </p>
         <p>
           People end up doing it in scattered places: opportunities in a
@@ -62,8 +62,8 @@ export default function AboutPage() {
 
       <section className="my-10 grid grid-cols-1 sm:grid-cols-3 gap-3">
         <ValueCard
-          title="Honest about what exists."
-          body="Real product screenshots, real opportunity data, real capabilities. We don't invent numbers, screens or claims."
+          title="Your work stays yours."
+          body="Your gigs, dates, earnings and records belong to you. GigDock keeps them organized in one place you control, and you can export or take them with you at any time."
         />
         <ValueCard
           title="Complement, don't replace."
