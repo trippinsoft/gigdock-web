@@ -65,7 +65,6 @@ async function getPreviewOpps(): Promise<Opportunity[]> {
     .order("posted_at", { ascending: false })
     .limit(24);
   const all = (data ?? []) as Opportunity[];
-  // Prefer listings with artwork — the inventory is the homepage's imagery.
   const withImg = all.filter((o) => o.image_url);
   const withoutImg = all.filter((o) => !o.image_url);
   return [...withImg, ...withoutImg].slice(0, 3);
@@ -74,7 +73,6 @@ async function getPreviewOpps(): Promise<Opportunity[]> {
 /* ---------- page ---------- */
 
 export default async function Home() {
-  // Signed-in users skip the marketing page and go to their gig-life home.
   const supabase = await createSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
   if (user) redirect("/today");
@@ -86,11 +84,10 @@ export default async function Home() {
       <Hero />
       <ScatteredProblem />
       <FourPillars />
-      <ProductShowcase />
       <OpportunitiesRail preview={preview} />
+      <ProductShowcase />
       <AudienceExpansion />
       <PartnerBand />
-      <CrossPlatform />
       <FinalCta />
     </PublicShell>
   );
@@ -98,18 +95,18 @@ export default async function Home() {
 
 /* ============================================================
    SECTION 1 — Hero
-   Two-column desktop (message | product proof), stacked on mobile.
-   Real /today (web) will slot into the desktop plate as soon as the
-   screenshot is captured — the layout is designed for the drop-in.
+   Names the audience up front (eyebrow + secondary line) so the
+   who-this-is-for question is answered before anything else.
+   Real mobile UI only in the phone frame — no faux desktop chrome.
    ============================================================ */
 
 function Hero() {
   return (
-    <section className="pt-8 pb-14 sm:pt-10 sm:pb-16">
+    <section className="pt-8 pb-12 sm:pt-10 sm:pb-14">
       <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] gap-8 lg:gap-10 items-center">
         <div className="text-center lg:text-left">
           <span className="inline-block text-xs sm:text-sm font-semibold tracking-[0.12em] uppercase text-blue-600 dark:text-blue-400">
-            Opportunities. Gigs. Money. All in one place.
+            For Film, TV &amp; Production Gig Workers
           </span>
           <h1 className="mt-3 text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance leading-[1.05]">
             Your gig life. <span className="text-blue-600 dark:text-blue-400">Simplified.</span>
@@ -118,7 +115,7 @@ function Hero() {
             Find opportunities. Manage your gigs. Track your money. All in one place.
           </p>
           <p className="mt-3 text-sm sm:text-base text-zinc-600 dark:text-zinc-400 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-            GigDock brings the work around your gig career together — from finding the next opportunity to keeping gigs organized and knowing what you&rsquo;ve earned and what&rsquo;s still owed.
+            GigDock brings the work around your production gig life together — from finding the next opportunity to keeping gigs organized and knowing what you&rsquo;ve earned and what&rsquo;s still owed.
           </p>
           <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3">
             <Link
@@ -134,14 +131,9 @@ function Hero() {
               Explore Opportunities
             </Link>
           </div>
-          <div className="mt-5 flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-sm text-zinc-500 dark:text-zinc-400">
-            <span className="inline-flex items-center gap-1.5">
-              <IconCheck /> Free to get started
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <IconDevices /> Web, iOS &amp; Android
-            </span>
-          </div>
+          <p className="mt-4 text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-xl mx-auto lg:mx-0">
+            Built for background performers, stand-ins, production assistants, crew and other production gig workers.
+          </p>
         </div>
 
         <HeroProductProof />
@@ -150,10 +142,8 @@ function Hero() {
   );
 }
 
-// Product-proof arrangement. Real UI only. Until we capture a real /today
-// desktop view, we present the actual mobile Today screen in an honest phone
-// frame — never a fake browser chrome that would imply a web UI we haven't
-// captured yet.
+// Real mobile UI only — no faux browser chrome until we have a real /today
+// desktop capture.
 function HeroProductProof() {
   return (
     <div className="mx-auto w-full max-w-[240px] sm:max-w-[280px] rounded-[2rem] border-[6px] border-zinc-900 dark:border-zinc-700 bg-zinc-900 dark:bg-zinc-700 shadow-2xl overflow-hidden">
@@ -180,7 +170,7 @@ function HeroProductProof() {
 }
 
 /* ============================================================
-   SECTION 2 — Scattered problem
+   SECTION 2 — Scattered problem  (tighter vertical rhythm)
    ============================================================ */
 
 function ScatteredProblem() {
@@ -192,7 +182,7 @@ function ScatteredProblem() {
     { label: "Documents", icon: <IconDoc /> },
   ];
   return (
-    <section className="relative py-14 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-white dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800">
+    <section className="relative py-10 sm:py-12 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-white dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800">
       <div className="max-w-4xl mx-auto text-center">
         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
           Your work shouldn&rsquo;t be scattered everywhere.
@@ -201,8 +191,7 @@ function ScatteredProblem() {
           Opportunities in one place. Dates somewhere else. Hours in notes. Payments in a spreadsheet. Documents buried in email.
         </p>
 
-        {/* Desktop: scattered → converge. Mobile: clean vertical list. */}
-        <div className="hidden sm:flex mt-10 items-center justify-center gap-6 lg:gap-8">
+        <div className="hidden sm:flex mt-8 items-center justify-center gap-6 lg:gap-8">
           <div className="grid grid-cols-3 gap-3 max-w-md">
             {scattered.map((s, i) => (
               <div
@@ -226,7 +215,7 @@ function ScatteredProblem() {
           </div>
         </div>
 
-        <div className="sm:hidden mt-8 flex flex-col gap-2 max-w-xs mx-auto">
+        <div className="sm:hidden mt-6 flex flex-col gap-2 max-w-xs mx-auto">
           {scattered.map((s) => (
             <div key={s.label} className="flex items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 px-4 py-2.5 text-sm text-zinc-600 dark:text-zinc-300">
               <span className="text-zinc-400 dark:text-zinc-500">{s.icon}</span>
@@ -243,7 +232,7 @@ function ScatteredProblem() {
           </div>
         </div>
 
-        <p className="mt-8 text-base font-semibold text-zinc-900 dark:text-zinc-100">
+        <p className="mt-6 text-base font-semibold text-zinc-900 dark:text-zinc-100">
           GigDock gives it all a home.
         </p>
       </div>
@@ -252,7 +241,9 @@ function ScatteredProblem() {
 }
 
 /* ============================================================
-   SECTION 3 — Four pillars: Discover · Manage · Track · Understand
+   SECTION 3 — Four pillars (short cards + single shared CTA)
+   Cards explain the breadth of GigDock; deeper explanations live
+   on /features.
    ============================================================ */
 
 function FourPillars() {
@@ -260,43 +251,31 @@ function FourPillars() {
     {
       key: "discover",
       title: "Discover",
-      hook: "Find your next opportunity.",
-      body: "Browse current opportunities from casting companies, production companies and other industry sources. GigFit compares each posting's requirements with your profile to help you identify stronger potential matches.",
-      href: "/opportunities",
-      cta: "Explore Opportunities",
+      body: "Find relevant production opportunities and use GigFit to compare requirements with your profile.",
       icon: <IconSearch />,
     },
     {
       key: "manage",
       title: "Manage",
-      hook: "Keep every gig organized.",
-      body: "Turn a booking into a gig. Track work dates, hours, additional pay and the details that go with each production — all attached to the gig they belong to.",
-      href: "/features#manage",
-      cta: "See how it works",
+      body: "Keep gigs, dates, hours and work details together.",
       icon: <IconGig />,
     },
     {
       key: "track",
       title: "Track",
-      hook: "Know where your money stands.",
-      body: "Separate what you earned from what you&rsquo;ve received. See outstanding balances at a glance and never lose track of what a production still owes you.",
-      href: "/features#track",
-      cta: "See how it works",
+      body: "Know what you&rsquo;ve earned, received and are still owed.",
       icon: <IconDollar />,
     },
     {
       key: "understand",
       title: "Understand",
-      hook: "See the bigger picture.",
-      body: "Work history, calendar patterns, earnings insights, and Reports &amp; Tax Ready records to help you get organized for tax time.",
-      href: "/features#understand",
-      cta: "See how it works",
+      body: "See patterns across your work, money and history.",
       icon: <IconChart />,
     },
   ];
 
   return (
-    <section className="py-14 sm:py-16">
+    <section className="py-12 sm:py-14">
       <div className="max-w-3xl mx-auto text-center">
         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
           One place for the work behind your work.
@@ -306,7 +285,7 @@ function FourPillars() {
         </p>
       </div>
 
-      <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {pillars.map((p) => (
           <div
             key={p.key}
@@ -316,160 +295,43 @@ function FourPillars() {
               {p.icon}
             </span>
             <h3 className="mt-3 text-lg font-bold text-zinc-900 dark:text-zinc-100">{p.title}</h3>
-            <p className="mt-1 text-sm font-medium text-zinc-700 dark:text-zinc-200">{p.hook}</p>
             <p
               className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed flex-1"
               dangerouslySetInnerHTML={{ __html: p.body }}
             />
-            <Link
-              href={p.href}
-              className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              {p.cta} →
-            </Link>
+            {p.key === "discover" && (
+              <Link
+                href="/opportunities"
+                className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Explore Opportunities →
+              </Link>
+            )}
           </div>
         ))}
       </div>
-    </section>
-  );
-}
 
-/* ============================================================
-   SECTION 4 — Real product showcase
-   Alternating bento rows. All screens are real product UI in /public/app.
-   ============================================================ */
-
-type ShowcaseRow = {
-  eyebrow: string;
-  title: string;
-  body: string;
-  light: string;
-  dark?: string;
-  frame: "phone" | "plate";
-  href?: string;
-  ctaLabel?: string;
-};
-
-function ProductShowcase() {
-  const rows: ShowcaseRow[] = [
-    {
-      eyebrow: "Manage",
-      title: "Keep your gigs organized.",
-      body: "Work dates, project details, hours worked, additional pay and the small things that go with each production — connected to the gig they belong to.",
-      light: "/app/gig-detail.png",
-      dark: "/app/gig-detail-dark.png",
-      frame: "phone",
-    },
-    {
-      eyebrow: "Track",
-      title: "Know what you earned.",
-      body: "Separate what you earned from what you&rsquo;ve received so you always know where each production stands. Additional pay flows into gross earnings automatically.",
-      light: "/app/payments-summary-dark.png",
-      dark: "/app/payments-summary-dark.png",
-      frame: "phone",
-    },
-    {
-      eyebrow: "Manage",
-      title: "See your month at a glance.",
-      body: "One calendar for your booked days, worked days, availability checks and the days you&rsquo;re unavailable — with the same color language on web and in the app.",
-      light: "/app/calendar.png",
-      dark: "/app/calendar-dark.png",
-      frame: "phone",
-    },
-    {
-      eyebrow: "Understand",
-      title: "See the shape of your work.",
-      body: "Track your work over time. See where you&rsquo;re earning, which companies you work with most, and how the numbers are trending. Reports &amp; Tax Ready records help you get organized for tax time.",
-      light: "/app/insights.png",
-      dark: "/app/insights-dark.png",
-      frame: "phone",
-    },
-    {
-      eyebrow: "Records",
-      title: "Keep your records together.",
-      body: "Store the paperwork around your work — call sheets, vouchers, pay stubs, tax documents — and connect it to the gig it belongs to.",
-      light: "/app/documents.png",
-      dark: "/app/documents-dark.png",
-      frame: "phone",
-    },
-  ];
-
-  return (
-    <section className="py-14 sm:py-16 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-white dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800">
-      <div className="max-w-3xl mx-auto text-center">
-        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
-          Built around how gig work actually runs.
-        </h2>
-        <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400">
-          Real product — not marketing shots. Here&rsquo;s what GigDock looks like today.
-        </p>
-      </div>
-
-      <div className="mt-10 flex flex-col gap-14 lg:gap-20">
-        {rows.map((r, i) => (
-          <ShowcaseRowBlock key={r.title} row={r} reverse={i % 2 === 1} />
-        ))}
+      <div className="mt-6 text-center">
+        <Link
+          href="/features"
+          className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+        >
+          Explore all features →
+        </Link>
       </div>
     </section>
   );
 }
 
-function ShowcaseRowBlock({ row, reverse }: { row: ShowcaseRow; reverse: boolean }) {
-  return (
-    <div className={`grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 items-center ${reverse ? "lg:[&>*:first-child]:order-2" : ""}`}>
-      <div className="text-center lg:text-left">
-        <span className="inline-block text-xs font-semibold tracking-[0.12em] uppercase text-blue-600 dark:text-blue-400">
-          {row.eyebrow}
-        </span>
-        <h3 className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
-          {row.title}
-        </h3>
-        <p
-          className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-xl mx-auto lg:mx-0"
-          dangerouslySetInnerHTML={{ __html: row.body }}
-        />
-      </div>
-      <div>
-        <PhoneFrame light={row.light} dark={row.dark} alt={row.title} />
-      </div>
-    </div>
-  );
-}
-
-function PhoneFrame({ light, dark, alt }: { light: string; dark?: string; alt: string }) {
-  return (
-    <div className="mx-auto w-full max-w-[240px] sm:max-w-[260px] rounded-[2rem] border-[6px] border-zinc-900 dark:border-zinc-700 bg-zinc-900 dark:bg-zinc-700 shadow-2xl overflow-hidden">
-      <Image
-        src={light}
-        alt={alt}
-        width={1206}
-        height={2622}
-        sizes="260px"
-        className={`w-full h-auto rounded-[1.5rem] ${dark ? "dark:hidden" : ""}`}
-      />
-      {dark && (
-        <Image
-          src={dark}
-          alt={alt}
-          width={1206}
-          height={2622}
-          sizes="260px"
-          className="hidden dark:block w-full h-auto rounded-[1.5rem]"
-        />
-      )}
-    </div>
-  );
-}
-
 /* ============================================================
-   SECTION 5 — Opportunities remain prominent
-   Real live cards via getPreviewOpps (reused from prior homepage).
+   SECTION 4 — Live Opportunities  (moved up)
+   Reuses the existing preview cards + real active data.
    ============================================================ */
 
 function OpportunitiesRail({ preview }: { preview: Opportunity[] }) {
   if (preview.length === 0) return null;
   return (
-    <section className="py-14 sm:py-16">
+    <section className="py-12 sm:py-14 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-white dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-8 lg:gap-10 items-start">
         <div>
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
@@ -539,8 +401,113 @@ function OppPreviewCard({ o }: { o: Opportunity }) {
 }
 
 /* ============================================================
+   SECTION 5 — Three product-proof modules
+   Only real screens that don't visibly carry outdated "Bumps"
+   labels. Calendar, Insights, Documents all have current
+   light + dark pairs shipped in public/app.
+   ============================================================ */
+
+type ShowcaseRow = {
+  eyebrow: string;
+  title: string;
+  body: string;
+  light: string;
+  dark: string;
+};
+
+function ProductShowcase() {
+  const rows: ShowcaseRow[] = [
+    {
+      eyebrow: "Manage the work",
+      title: "Keep the work organized.",
+      body: "Gigs, work dates, hours and details stay connected to the production they belong to.",
+      light: "/app/calendar.png",
+      dark: "/app/calendar-dark.png",
+    },
+    {
+      eyebrow: "Know where your money stands",
+      title: "Know what you&rsquo;ve earned — and what&rsquo;s still owed.",
+      body: "Separate earned, received and outstanding money, then see the bigger picture over time.",
+      light: "/app/insights.png",
+      dark: "/app/insights-dark.png",
+    },
+    {
+      eyebrow: "Keep your records together",
+      title: "Keep the records around the work together.",
+      body: "Store the paperwork and records that go with each gig so they&rsquo;re there when you need them.",
+      light: "/app/documents.png",
+      dark: "/app/documents-dark.png",
+    },
+  ];
+
+  return (
+    <section className="py-12 sm:py-14">
+      <div className="max-w-3xl mx-auto text-center">
+        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
+          See how GigDock keeps your work connected.
+        </h2>
+        <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400">
+          Gigs, schedules, earnings, payments and records — organized around the work they belong to.
+        </p>
+      </div>
+
+      <div className="mt-10 flex flex-col gap-12 lg:gap-16">
+        {rows.map((r, i) => (
+          <ShowcaseRowBlock key={r.title} row={r} reverse={i % 2 === 1} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ShowcaseRowBlock({ row, reverse }: { row: ShowcaseRow; reverse: boolean }) {
+  return (
+    <div className={`grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 items-center ${reverse ? "lg:[&>*:first-child]:order-2" : ""}`}>
+      <div className="text-center lg:text-left">
+        <span className="inline-block text-xs font-semibold tracking-[0.12em] uppercase text-blue-600 dark:text-blue-400">
+          {row.eyebrow}
+        </span>
+        <h3
+          className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100"
+          dangerouslySetInnerHTML={{ __html: row.title }}
+        />
+        <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-xl mx-auto lg:mx-0">
+          {row.body}
+        </p>
+      </div>
+      <div>
+        <PhoneFrame light={row.light} dark={row.dark} alt={row.title} />
+      </div>
+    </div>
+  );
+}
+
+function PhoneFrame({ light, dark, alt }: { light: string; dark: string; alt: string }) {
+  return (
+    <div className="mx-auto w-full max-w-[240px] sm:max-w-[260px] rounded-[2rem] border-[6px] border-zinc-900 dark:border-zinc-700 bg-zinc-900 dark:bg-zinc-700 shadow-2xl overflow-hidden">
+      <Image
+        src={light}
+        alt={alt}
+        width={1206}
+        height={2622}
+        sizes="260px"
+        className="dark:hidden w-full h-auto rounded-[1.5rem]"
+      />
+      <Image
+        src={dark}
+        alt={alt}
+        width={1206}
+        height={2622}
+        sizes="260px"
+        className="hidden dark:block w-full h-auto rounded-[1.5rem]"
+      />
+    </div>
+  );
+}
+
+/* ============================================================
    SECTION 6 — Broader production community
-   Icon-led tiles only. No stock imagery, no fabricated roles.
+   Reinforces the hero's audience naming. Role list unchanged.
    ============================================================ */
 
 function AudienceExpansion() {
@@ -553,7 +520,7 @@ function AudienceExpansion() {
     { label: "Other production roles", icon: <IconPeople /> },
   ];
   return (
-    <section className="py-14 sm:py-16 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-white dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800">
+    <section className="py-12 sm:py-14 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-white dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800">
       <div className="max-w-3xl mx-auto text-center">
         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
           Built for the people who make production happen.
@@ -563,7 +530,7 @@ function AudienceExpansion() {
         </p>
       </div>
 
-      <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-4xl mx-auto">
+      <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-4xl mx-auto">
         {roles.map((r) => (
           <div
             key={r.label}
@@ -581,150 +548,51 @@ function AudienceExpansion() {
 }
 
 /* ============================================================
-   SECTION 7 — Partner ecosystem
-   No third-party logos. Neutral SVG illustration + generic categories.
+   SECTION 7 — Compact partner band
+   The full ecosystem illustration lives on /partners — the
+   homepage just gets a tight cross-link.
    ============================================================ */
 
 function PartnerBand() {
   return (
-    <section className="py-14 sm:py-16">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+    <section className="py-10 sm:py-12">
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-5 py-6 sm:px-8 sm:py-7 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-5 md:gap-8 items-center">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
-            Better connections. Better opportunities.
+          <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+            Have opportunities to share?
           </h2>
-          <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed">
-            GigDock works alongside casting companies, production companies and other opportunity providers — helping workers discover opportunities while supporting the provider&rsquo;s existing relationship and workflow.
+          <p className="mt-2 text-sm sm:text-base text-zinc-600 dark:text-zinc-400 leading-relaxed">
+            GigDock helps casting and production partners extend the reach of their opportunities while keeping control of their application workflow.
           </p>
-          <div className="mt-5">
-            <Link
-              href="/partners"
-              className="inline-flex items-center gap-1 px-5 py-2.5 rounded-full border border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-100 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-            >
-              Partner with GigDock →
-            </Link>
-          </div>
         </div>
-
-        {/* Neutral ecosystem illustration — no third-party marks. */}
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-8">
-          <svg viewBox="0 0 320 200" className="w-full h-auto" role="img" aria-label="GigDock connects with opportunity providers on one side and gig workers on the other">
-            {/* Providers */}
-            {[
-              { y: 30, label: "Casting" },
-              { y: 80, label: "Production" },
-              { y: 130, label: "Other providers" },
-            ].map((p) => (
-              <g key={p.label}>
-                <rect x="16" y={p.y} width="90" height="34" rx="8" fill="none" stroke="#94a3b8" strokeWidth="1.4" />
-                <text x="61" y={p.y + 22} textAnchor="middle" fontSize="12" fill="#475569" fontFamily="Inter, ui-sans-serif, system-ui">
-                  {p.label}
-                </text>
-                <line x1="106" y1={p.y + 17} x2="146" y2="100" stroke="#93c5fd" strokeWidth="1.5" strokeDasharray="3 4" />
-              </g>
-            ))}
-            {/* Hub */}
-            <g>
-              <circle cx="160" cy="100" r="34" fill="#eff6ff" stroke="#2563eb" strokeWidth="1.6" />
-              <text x="160" y="105" textAnchor="middle" fontSize="13" fontWeight="700" fill="#1d4ed8" fontFamily="Inter, ui-sans-serif, system-ui">
-                GigDock
-              </text>
-            </g>
-            {/* Workers */}
-            {[
-              { y: 30, label: "Performers" },
-              { y: 80, label: "Crew" },
-              { y: 130, label: "Production" },
-            ].map((w) => (
-              <g key={w.label}>
-                <line x1="174" y1="100" x2="214" y2={w.y + 17} stroke="#93c5fd" strokeWidth="1.5" strokeDasharray="3 4" />
-                <rect x="214" y={w.y} width="90" height="34" rx="8" fill="none" stroke="#94a3b8" strokeWidth="1.4" />
-                <text x="259" y={w.y + 22} textAnchor="middle" fontSize="12" fill="#475569" fontFamily="Inter, ui-sans-serif, system-ui">
-                  {w.label}
-                </text>
-              </g>
-            ))}
-          </svg>
-        </div>
+        <Link
+          href="/partners"
+          className="justify-self-start md:justify-self-end inline-flex items-center gap-1 px-5 py-2.5 rounded-full border border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-100 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+        >
+          Partner with GigDock →
+        </Link>
       </div>
     </section>
   );
 }
 
 /* ============================================================
-   SECTION 8 — GigDock wherever you work
-   Respects APP_LIVE — beta CTA today, store buttons at launch.
-   ============================================================ */
-
-function CrossPlatform() {
-  const storesLive = APP_LIVE && (IOS_STORE_URL || ANDROID_STORE_URL);
-  return (
-    <section className="py-14 sm:py-16 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-blue-50 dark:bg-blue-950/30 border-y border-blue-200 dark:border-blue-900/40">
-      <div className="max-w-3xl mx-auto text-center">
-        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
-          GigDock wherever you work.
-        </h2>
-        <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400">
-          Same account. GigDock on web, iPhone and Android.
-        </p>
-
-        <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
-          <Link
-            href="/signup"
-            className="px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm text-center transition-colors"
-          >
-            Use GigDock on the Web
-          </Link>
-          {storesLive ? (
-            <>
-              {IOS_STORE_URL && (
-                <a
-                  href={IOS_STORE_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-6 py-3 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold text-sm text-center hover:bg-zinc-800 dark:hover:bg-white transition-colors"
-                >
-                  Download for iPhone
-                </a>
-              )}
-              {ANDROID_STORE_URL && (
-                <a
-                  href={ANDROID_STORE_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-6 py-3 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold text-sm text-center hover:bg-zinc-800 dark:hover:bg-white transition-colors"
-                >
-                  Download for Android
-                </a>
-              )}
-            </>
-          ) : (
-            <Link
-              href={BETA_HREF}
-              className="px-6 py-3 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 font-semibold text-sm text-center hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-            >
-              Join the iPhone &amp; Android beta
-            </Link>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ============================================================
-   SECTION 9 — Final CTA
+   SECTION 8 — Combined final / platform CTA
+   Merges the previous "GigDock wherever you work" + "Your gig
+   life. Simplified." into one ending.
    ============================================================ */
 
 function FinalCta() {
+  const storesLive = APP_LIVE && (IOS_STORE_URL || ANDROID_STORE_URL);
   return (
-    <section className="py-16 sm:py-20 text-center">
+    <section className="py-14 sm:py-16 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-blue-50 dark:bg-blue-950/30 border-y border-blue-200 dark:border-blue-900/40 text-center">
       <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
         Your gig life. <span className="text-blue-600 dark:text-blue-400">Simplified.</span>
       </h2>
-      <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400 max-w-xl mx-auto">
-        Find the work. Keep the details together. Know where your money stands.
+      <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
+        GigDock is available on web, iPhone and Android. Advanced Alerts are currently available only in the mobile app.
       </p>
+
       <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
         <Link
           href="/signup"
@@ -732,36 +600,57 @@ function FinalCta() {
         >
           Get Started Free
         </Link>
+        {storesLive ? (
+          <>
+            {IOS_STORE_URL && (
+              <a
+                href={IOS_STORE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-6 py-3 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold text-sm text-center hover:bg-zinc-800 dark:hover:bg-white transition-colors"
+              >
+                Download for iPhone
+              </a>
+            )}
+            {ANDROID_STORE_URL && (
+              <a
+                href={ANDROID_STORE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-6 py-3 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold text-sm text-center hover:bg-zinc-800 dark:hover:bg-white transition-colors"
+              >
+                Download for Android
+              </a>
+            )}
+          </>
+        ) : (
+          <Link
+            href={BETA_HREF}
+            className="px-6 py-3 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 font-semibold text-sm text-center hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+          >
+            Join the iPhone &amp; Android beta
+          </Link>
+        )}
+      </div>
+
+      <div className="mt-4">
         <Link
           href="/opportunities"
-          className="px-6 py-3 rounded-full border border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-100 font-semibold text-sm text-center hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+          className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
         >
-          Explore Opportunities
+          Explore Opportunities →
         </Link>
       </div>
+
       <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">Free to get started. No credit card required.</p>
     </section>
   );
 }
 
 /* ============================================================
-   Icons — inline SVG (matches existing conventions on this file)
+   Icons — inline SVG
    ============================================================ */
 
-function IconCheck() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-600 dark:text-green-400">
-      <path d="m5 12 5 5L20 7" />
-    </svg>
-  );
-}
-function IconDevices() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="4" width="14" height="10" rx="2" /><path d="M9 18h14" /><rect x="17" y="9" width="6" height="12" rx="1.5" />
-    </svg>
-  );
-}
 function IconSearch() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
