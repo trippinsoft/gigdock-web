@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import PublicShell from "@/components/PublicShell";
 
-type Intent = "save" | "applied" | "gigfit" | "default";
+type Intent = "save" | "applied" | "gigfit" | "manage" | "default";
 
 // Copy is tailored to the action that sent the user here, so the account gate
 // explains WHY an account is useful rather than being a generic dead-end form.
@@ -25,6 +25,15 @@ const COPY: Record<Intent, { heading: string; sub: string; cta: string }> = {
     heading: "Create your free GigFit profile",
     sub: "Takes just a minute. Your profile details are used to help match you with film & TV casting opportunities.",
     cta: "Get my GigFit matches",
+  },
+  // Broader-product intent. Sent here from the Opportunities-page product
+  // promo, the homepage feature CTAs, and anywhere the message is about
+  // managing gigs after they're booked (not just finding them). Successful
+  // signup lands on /today — the gig-life home.
+  manage: {
+    heading: "Keep your gig work organized",
+    sub: "Create your free GigDock account to keep gigs, dates, earnings, payments and records together in one place.",
+    cta: "Create free account",
   },
   default: {
     heading: "Create your free GigDock account",
@@ -46,7 +55,7 @@ function SignupForm() {
 
   const rawIntent = params.get("intent");
   const intent: Intent =
-    rawIntent === "save" || rawIntent === "applied" || rawIntent === "gigfit"
+    rawIntent === "save" || rawIntent === "applied" || rawIntent === "gigfit" || rawIntent === "manage"
       ? rawIntent
       : "default";
   const oppId = safeOppId(params.get("opportunity"));
@@ -58,6 +67,7 @@ function SignupForm() {
   const completionPath = useMemo(() => {
     if (nextParam && nextParam.startsWith("/")) return nextParam;
     if (intent === "gigfit") return "/profile";
+    if (intent === "manage") return "/today";
     if ((intent === "save" || intent === "applied") && oppId) {
       return `/opportunities/${oppId}?do=${intent}`;
     }

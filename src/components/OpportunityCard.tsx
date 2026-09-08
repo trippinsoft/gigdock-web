@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 import { track } from "@/lib/analytics";
 import type { Opportunity } from "@/lib/types";
@@ -306,6 +307,7 @@ export default function OpportunityCard({
   hideAdminMeta = false,
   dense = false,
   onApply,
+  anonymous = false,
 }: {
   opp: Opportunity;
   actions?: React.ReactNode;
@@ -317,6 +319,10 @@ export default function OpportunityCard({
   dense?: boolean;
   /** Fired when the user taps Apply — used to auto-mark the gig as applied. */
   onApply?: (kind: "email" | "url") => void;
+  /** True when the viewer is signed out. Turns on the broader-product
+   *  education (contextual + post-Apply follow-up). Ignored when
+   *  hideAdminMeta is false — admin/curator views never show these. */
+  anonymous?: boolean;
 }) {
   const specs = opp.casting_specs as Record<string, unknown> | null;
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -325,6 +331,19 @@ export default function OpportunityCard({
   // position:fixed overlay. Guarded so SSR/first paint don't touch `document`.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // Anonymous outbound-Apply moment. Tracks whether the visitor has clicked
+  // the external Apply CTA on this card so we can swap the generic
+  // contextual education for a stronger post-Apply follow-up. Never asserts
+  // that the visitor actually completed an application — the language stays
+  // a question. Resets per-card (mount/unmount), which is fine: we're not
+  // trying to survive navigation with client-only state.
+  const [applyClicked, setApplyClicked] = useState(false);
+  useEffect(() => {
+    // Reset when the card renders a different opportunity.
+    setApplyClicked(false);
+  }, [opp.id]);
+  const showBroaderEducation = anonymous && hideAdminMeta;
 
   const postedAgo = relativeTime(opp.posted_at);
   const postedAbs = shortDate(opp.posted_at);
@@ -512,6 +531,9 @@ export default function OpportunityCard({
                   apply_host: host,
                 });
               }
+              // Anonymous visitors flip into the post-Apply follow-up state;
+              // signed-in visitors are already marked applied by onApply().
+              if (anonymous) setApplyClicked(true);
               onApply?.(kind);
             }}
             className="block w-full text-center sm:inline-block sm:w-auto rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-6 py-3 transition-colors"
@@ -523,6 +545,7 @@ export default function OpportunityCard({
               href={opp.source_url}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => { if (anonymous) setApplyClicked(true); }}
               className="block text-center sm:text-left text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 mt-2.5"
             >
               View original post
@@ -536,6 +559,7 @@ export default function OpportunityCard({
               href={opp.source_url}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => { if (anonymous) setApplyClicked(true); }}
               className={`block w-full text-center sm:inline-block sm:w-auto rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 transition-colors ${dense ? "text-sm" : "text-base"}`}
             >
               View original post
@@ -543,6 +567,88 @@ export default function OpportunityCard({
           </div>
         )
       )}
+
+      {/* Broader-product education for anonymous public-feed viewers. Sits
+          AFTER the provider Apply block by design — never competes with or
+          intercepts the outbound application. When the visitor has clicked
+          Apply, the generic education swaps for a stronger, non-blocking
+          "Applied for this one?" follow-up whose Mark-as-Applied CTA reuses
+          the existing signed-out Applied intent flow. */}
+      {showBroaderEducation && (applyClicked ? (
+        <div className="rounded-lg border border-blue-200 dark:border-blue-900/50 bg-blue-50/70 dark:bg-blue-950/30 p-4 sm:p-5">
+          <h4 className={`${dense ? "text-sm" : "text-base"} font-bold text-zinc-900 dark:text-zinc-100`}>
+            Applied for this one?
+          </h4>
+          <p className={`${dense ? "text-xs mt-1" : "text-sm mt-1.5"} text-zinc-600 dark:text-zinc-300 leading-relaxed`}>
+            Keep track of it in GigDock so you know where you&rsquo;ve applied — and if you get booked, you can keep the gig, dates and pay connected.
+          </p>
+          <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
+            <Link
+              href={`/signup?intent=applied&opportunity=${encodeURIComponent(opp.id)}`}
+              onClick={() =>
+                track("opportunities_product_promo_clicked", {
+                  surface: "post_apply",
+                  action: "mark_applied",
+                  opportunity_id: opp.id,
+                })
+              }
+              className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors"
+            >
+              Mark as Applied
+            </Link>
+            <Link
+              href="/features"
+              onClick={() =>
+                track("opportunities_product_promo_clicked", {
+                  surface: "post_apply",
+                  action: "features",
+                  opportunity_id: opp.id,
+                })
+              }
+              className="text-sm font-semibold text-blue-700 dark:text-blue-300 hover:underline"
+            >
+              See how GigDock works →
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 p-4 sm:p-5">
+          <h4 className={`${dense ? "text-sm" : "text-base"} font-bold text-zinc-900 dark:text-zinc-100`}>
+            If you land this gig, keep it organized in GigDock.
+          </h4>
+          <p className={`${dense ? "text-xs mt-1" : "text-sm mt-1.5"} text-zinc-600 dark:text-zinc-300 leading-relaxed`}>
+            Track the dates, hours, earnings, payments and records that come with the work — all in one place.
+          </p>
+          <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
+            <Link
+              href="/signup?intent=manage"
+              onClick={() =>
+                track("opportunities_product_promo_clicked", {
+                  surface: "detail",
+                  action: "signup",
+                  opportunity_id: opp.id,
+                })
+              }
+              className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors"
+            >
+              Get Started Free
+            </Link>
+            <Link
+              href="/features"
+              onClick={() =>
+                track("opportunities_product_promo_clicked", {
+                  surface: "detail",
+                  action: "features",
+                  opportunity_id: opp.id,
+                })
+              }
+              className="text-sm font-semibold text-blue-700 dark:text-blue-300 hover:underline"
+            >
+              See how GigDock works →
+            </Link>
+          </div>
+        </div>
+      ))}
 
       {showRawText && (
         <details className="mt-2">

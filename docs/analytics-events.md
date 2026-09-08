@@ -26,11 +26,18 @@ funnel lives in one place: discover on the web → track in the app.
 | `opportunity_unsaved` | Save is toggled off | `opportunity_id`, `signed_in` |
 | `opportunity_applied` | Gig marked applied — outbound Apply CTA (`method: "email"`/`"url"`, `apply_host`) or the Mark‑applied button (`method: "manual"`) | `opportunity_id`, `method`, `signed_in`, plus `production_name`/`market`/`source`/`pay_min` on the CTA path |
 | `opportunity_unapplied` | Mark‑applied is toggled off | `opportunity_id`, `method: "manual"`, `signed_in` |
+| `opportunities_product_promo_clicked` | A signed‑out visitor taps a broader‑product CTA in Opportunities — the feed "More from GigDock" card, the detail contextual card, or the post‑Apply follow‑up | `surface` (`feed` \| `detail` \| `post_apply`), `action` (`signup` \| `features` \| `mark_applied`), `opportunity_id` (when the surface is bound to a specific gig) |
 
 `signed_in: false` means a logged‑out visitor tapped Save/Apply and was routed to
 sign‑up — a real intent signal worth keeping in the funnel. `opportunity_saved`
 writes to `saved_opportunities`; `opportunity_applied` writes to
 `applied_opportunities` (both shared with the app).
+
+The `opportunities_product_promo_clicked` event measures whether the broader‑
+product surfaces inside Opportunities are actually converting anonymous
+visitors toward account creation. Pair it with the existing
+`opportunity_applied` (`signed_in: false`) + downstream `gig_created` events to
+close the loop: Opportunities visitor → account → first managed gig.
 
 ## App events (`gigvault`) — existing
 

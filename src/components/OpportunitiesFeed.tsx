@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import type { Opportunity } from "@/lib/types";
 import OpportunityCard from "@/components/OpportunityCard";
 import OpportunityListItem from "@/components/OpportunityListItem";
+import OpportunitiesPromoCard from "@/components/OpportunitiesPromoCard";
 import PublicShell from "@/components/PublicShell";
 import ShareButton from "@/components/ShareButton";
 import FilterChips, {
@@ -823,8 +824,18 @@ export default function OpportunitiesFeed({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {shown.map((opp) => (
-                    <OpportunityListItem key={opp.id} opp={opp} selected={opp.id === selectedId} href={`/opportunities/${opp.id}`} now={now} onSelect={() => { track("opportunity_viewed", { opportunity_id: opp.id, production_name: opp.production_name, market: opp.match_state, source: opp.source, pay_min: opp.pay_min, surface: embedded ? "location" : "feed" }); selectOpportunity(opp.id); }} fit={fitById.get(opp.id) ?? null} saved={savedIds.has(opp.id)} onToggleSave={() => toggleSave(opp.id)} />
+                  {shown.map((opp, i) => (
+                    <Fragment key={opp.id}>
+                      <OpportunityListItem opp={opp} selected={opp.id === selectedId} href={`/opportunities/${opp.id}`} now={now} onSelect={() => { track("opportunity_viewed", { opportunity_id: opp.id, production_name: opp.production_name, market: opp.match_state, source: opp.source, pay_min: opp.pay_min, surface: embedded ? "location" : "feed" }); selectOpportunity(opp.id); }} fit={fitById.get(opp.id) ?? null} saved={savedIds.has(opp.id)} onToggleSave={() => toggleSave(opp.id)} />
+                      {/* Single "More from GigDock" promo. Anonymous + main
+                          feed only, and only after enough opportunities to
+                          not feel like it's blocking the search. Skipped on
+                          embedded location pages (SEO content-page
+                          experience) and inside Saved / Applied lists. */}
+                      {i === 6 && !embedded && !userId && scope === "all" && shown.length > 7 && (
+                        <OpportunitiesPromoCard />
+                      )}
+                    </Fragment>
                   ))}
                   {moreCount > 0 && (
                     <Link href="/opportunities" className="block text-center py-3 text-sm font-semibold text-blue-600 hover:underline dark:text-blue-400">
@@ -838,7 +849,7 @@ export default function OpportunitiesFeed({
 
           <div className={detailColCls}>
             {selected ? (
-              <OpportunityCard opp={selected} actions={<div className="flex items-center gap-2 flex-wrap justify-end">{saveButton(selected.id)}{appliedButton(selected.id)}<ShareButton id={selected.id} title={selected.title} /></div>} fit={selectedId ? fitById.get(selectedId) ?? null : null} onApply={(kind) => markApplied(selected.id, kind)} hideAdminMeta />
+              <OpportunityCard opp={selected} actions={<div className="flex items-center gap-2 flex-wrap justify-end">{saveButton(selected.id)}{appliedButton(selected.id)}<ShareButton id={selected.id} title={selected.title} /></div>} fit={selectedId ? fitById.get(selectedId) ?? null : null} onApply={(kind) => markApplied(selected.id, kind)} hideAdminMeta anonymous={!userId} />
             ) : (
               <div className="flex items-center justify-center h-full min-h-[12rem] text-zinc-500 dark:text-zinc-400 text-sm">Select an opportunity to view details</div>
             )}
@@ -901,7 +912,7 @@ export default function OpportunitiesFeed({
                 </div>
               </div>
               <div ref={contentRef} className="flex-1 overflow-y-auto overscroll-contain p-4">
-                <OpportunityCard opp={selected} fit={selectedId ? fitById.get(selectedId) ?? null : null} onApply={(kind) => markApplied(selected.id, kind)} hideAdminMeta />
+                <OpportunityCard opp={selected} fit={selectedId ? fitById.get(selectedId) ?? null : null} onApply={(kind) => markApplied(selected.id, kind)} hideAdminMeta anonymous={!userId} />
               </div>
             </div>
           </div>
