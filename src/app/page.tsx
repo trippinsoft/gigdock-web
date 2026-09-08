@@ -106,7 +106,7 @@ function Hero() {
       <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] gap-8 lg:gap-10 items-center">
         <div className="text-center lg:text-left">
           <span className="inline-block text-xs sm:text-sm font-semibold tracking-[0.12em] uppercase text-blue-600 dark:text-blue-400">
-            For Film, TV &amp; Production Gig Workers
+            For People Who Work in Film &amp; TV
           </span>
           <h1 className="mt-3 text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance leading-[1.05]">
             Your gig life. <span className="text-blue-600 dark:text-blue-400">Simplified.</span>
@@ -332,7 +332,7 @@ function OpportunitiesRail({ preview }: { preview: Opportunity[] }) {
   if (preview.length === 0) return null;
   return (
     <section className="py-12 sm:py-14 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-white dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800">
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-8 lg:gap-10 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-8 lg:gap-10 items-start">
         <div>
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
             Find the next gig. Then keep everything that follows organized.
@@ -434,14 +434,14 @@ function ProductShowcase() {
     {
       eyebrow: "Keep your records together",
       title: "Keep the records around the work together.",
-      body: "Store the paperwork and records that go with each gig so they&rsquo;re there when you need them.",
+      body: "Store the paperwork and records that go with each gig so they’re there when you need them.",
       light: "/app/documents.png",
       dark: "/app/documents-dark.png",
     },
   ];
 
   return (
-    <section className="py-12 sm:py-14">
+    <section className="py-10 sm:py-12">
       <div className="max-w-3xl mx-auto text-center">
         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
           See how GigDock keeps your work connected.
@@ -451,7 +451,7 @@ function ProductShowcase() {
         </p>
       </div>
 
-      <div className="mt-10 flex flex-col gap-12 lg:gap-16">
+      <div className="mt-8 flex flex-col gap-10 lg:gap-14">
         {rows.map((r, i) => (
           <ShowcaseRowBlock key={r.title} row={r} reverse={i % 2 === 1} />
         ))}
@@ -590,7 +590,7 @@ function FinalCta() {
         Your gig life. <span className="text-blue-600 dark:text-blue-400">Simplified.</span>
       </h2>
       <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
-        GigDock is available on web, iPhone and Android. Advanced Alerts are currently available only in the mobile app.
+        GigDock is available on web, iPhone and Android.
       </p>
 
       <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
