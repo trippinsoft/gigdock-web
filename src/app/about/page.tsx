@@ -63,7 +63,7 @@ export default function AboutPage() {
       <section className="my-10 grid grid-cols-1 sm:grid-cols-3 gap-3">
         <ValueCard
           title="Your work stays yours."
-          body="Your gigs, dates, earnings and records belong to you. GigDock keeps them organized in one place you control, and you can export or take them with you at any time."
+          body="Your gigs, dates, earnings and records are yours to manage. GigDock keeps them organized in one place so they're there when you need them."
         />
         <ValueCard
           title="Complement, don't replace."

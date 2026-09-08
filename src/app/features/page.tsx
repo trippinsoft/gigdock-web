@@ -109,6 +109,9 @@ export default function FeaturesPage() {
         <p className="mt-4 text-base sm:text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
           Discover the next opportunity. Manage every gig. Track your money. Understand your work over time. Here&rsquo;s what GigDock does today — and what&rsquo;s free vs.&nbsp;Pro.
         </p>
+        <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-500 max-w-2xl mx-auto">
+          GigDock is available on web, iPhone and Android. Some capabilities, including Advanced Alerts, are currently available only in the mobile app.
+        </p>
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
           {PILLARS.map((p) => (
             <a
@@ -131,7 +134,7 @@ export default function FeaturesPage() {
           Start using GigDock today.
         </h2>
         <p className="mt-2 text-base text-zinc-600 dark:text-zinc-400">
-          Free to get started. Everything above is available on web, iPhone and Android.
+          Free to get started. GigDock is available on web, iPhone and Android — some capabilities, including Advanced Alerts, are currently available only in the mobile app.
         </p>
         <div className="mt-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
           <Link href="/signup" className="px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm text-center">
