@@ -102,13 +102,13 @@ export default async function Home() {
    Real mobile UI only in the phone frame — no faux desktop chrome.
    ============================================================ */
 
+// lg:-mx-8 on the hero <section> escapes PublicShell's px-8 padding at lg+,
+// growing the effective content width from ~960px to ~1024px so the real
+// product screenshots read at a more legible size (~+20% on the right
+// column). Below lg the negative margin doesn't apply — mobile and tablet
+// composition are unchanged.
 function Hero() {
   return (
-    {/* lg:-mx-8 pulls the hero out of PublicShell's px-8 padding at lg+,
-        which grows the effective content width from ~960px to ~1024px so the
-        real product screenshots read at a more legible size (~+20% on the
-        right column). Below lg the negative margin doesn't apply — mobile
-        and tablet composition are unchanged. */}
     <section className="pt-8 pb-12 sm:pt-10 sm:pb-14 lg:-mx-8">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.22fr] gap-8 lg:gap-12 items-center">
         <div className="text-center lg:text-left">
