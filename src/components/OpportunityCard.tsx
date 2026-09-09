@@ -356,8 +356,15 @@ export default function OpportunityCard({
 
   return (
     <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg ${dense ? "p-4 space-y-3" : "p-4 sm:p-6 space-y-4 sm:space-y-5"}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3 min-w-0 flex-1">
+      {/* Title header uses the full content width. Actions moved to their own
+          row below so a long detail title can wrap to 2–4 natural lines
+          instead of being squeezed into a narrow column by a shrink-0 actions
+          box on the same row. Mobile bottom sheet passes actions=undefined
+          (it renders Save/Applied/Share in the sheet's own sticky header), so
+          the actions row simply doesn't render there — mobile behavior
+          preserved. */}
+      <div>
+        <div className="flex items-start gap-3">
           {opp.image_url && (
             <button
               type="button"
@@ -406,7 +413,11 @@ export default function OpportunityCard({
             )}
           </div>
         </div>
-        {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
+        {actions && (
+          <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+            {actions}
+          </div>
+        )}
       </div>
 
       {opp.summary && (
