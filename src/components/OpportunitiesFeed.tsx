@@ -730,10 +730,14 @@ export default function OpportunitiesFeed({
   const listScrollCls = embedded ? "pb-2" : "flex-1 min-h-0 overflow-y-auto overscroll-y-contain pr-1 pb-4";
   const detailColCls = embedded
     ? "hidden md:block flex-1 min-w-0 sticky top-20 self-start max-h-[calc(100dvh-6rem)] overflow-y-auto"
-    : "hidden md:block flex-1 min-w-0 overflow-y-auto";
+    // min-h-0 lets the detail column shrink below its intrinsic content
+    // height so overflow-y-auto engages instead of expanding the flex row
+    // (which would push the feed past its fixed viewport height and pull
+    // the outer page into scroll).
+    : "hidden md:block flex-1 min-w-0 min-h-0 overflow-y-auto overscroll-y-contain";
 
   const content = (
-    <div className={embedded ? "" : `flex flex-col h-[calc(100dvh-6.5rem)]${bareChrome ? " lg:h-[calc(100dvh-3rem)]" : ""}`}>
+    <div className={embedded ? "" : `flex flex-col h-[calc(100dvh-6.5rem)] overflow-hidden${bareChrome ? " lg:h-[calc(100dvh-3rem)]" : ""}`}>
         {/* Toolbar — compact: search · region · Filters·N · sort, then view tabs */}
         <div className="space-y-2 pb-3 border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex gap-2 items-center">
