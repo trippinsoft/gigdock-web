@@ -67,7 +67,9 @@ async function getPreviewOpps(): Promise<Opportunity[]> {
   const all = (data ?? []) as Opportunity[];
   const withImg = all.filter((o) => o.image_url);
   const withoutImg = all.filter((o) => !o.image_url);
-  return [...withImg, ...withoutImg].slice(0, 3);
+  // Homepage renders two preview cards — balances the right column height
+  // against the left copy and keeps the section compact.
+  return [...withImg, ...withoutImg].slice(0, 2);
 }
 
 /* ---------- page ---------- */
