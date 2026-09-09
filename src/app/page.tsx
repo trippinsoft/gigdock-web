@@ -104,8 +104,13 @@ export default async function Home() {
 
 function Hero() {
   return (
-    <section className="pt-8 pb-12 sm:pt-10 sm:pb-14">
-      <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] gap-8 lg:gap-10 items-center">
+    {/* lg:-mx-8 pulls the hero out of PublicShell's px-8 padding at lg+,
+        which grows the effective content width from ~960px to ~1024px so the
+        real product screenshots read at a more legible size (~+20% on the
+        right column). Below lg the negative margin doesn't apply — mobile
+        and tablet composition are unchanged. */}
+    <section className="pt-8 pb-12 sm:pt-10 sm:pb-14 lg:-mx-8">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.22fr] gap-8 lg:gap-12 items-center">
         <div className="text-center lg:text-left">
           <span className="inline-block text-xs sm:text-sm font-semibold tracking-[0.12em] uppercase text-blue-600 dark:text-blue-400">
             For People Who Work in Film &amp; TV
