@@ -243,29 +243,6 @@ export default function OpportunitiesFeed({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // The non-embedded Opportunities workspace is a fixed-viewport master/detail:
-  // toolbar stays put, list and detail scroll independently. The outer feed
-  // container is already sized to (viewport − chrome) and its scroll regions
-  // use overscroll-y-contain, but the surrounding page can still gain a
-  // scrollbar from a sub-pixel rounding delta. Locking documentElement +
-  // body overflow while THIS feed is mounted guarantees the browser page
-  // itself never scrolls — the list and detail keep their independent
-  // scrollbars intact. Cleaned up on unmount so every other page is unaffected.
-  // Embedded (location-page) mounts keep normal document flow, so this
-  // effect skips them entirely.
-  useEffect(() => {
-    if (embedded) return;
-    const html = document.documentElement;
-    const body = document.body;
-    const prevHtml = html.style.overflow;
-    const prevBody = body.style.overflow;
-    html.style.overflow = "hidden";
-    body.style.overflow = "hidden";
-    return () => {
-      html.style.overflow = prevHtml;
-      body.style.overflow = prevBody;
-    };
-  }, [embedded]);
 
   // Finish a Save / Mark-applied that a logged-out user started before signing
   // up: they return to /opportunities/<id>?do=save|applied, and once signed in
