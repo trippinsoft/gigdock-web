@@ -142,29 +142,125 @@ function Hero() {
   );
 }
 
-// Real mobile UI only — no faux browser chrome until we have a real /today
-// desktop capture.
+// Web dominant + mobile companion. GigDock is the product; web, iOS and
+// Android are ways to use it — the visual weighting communicates that.
+// Screenshots are real captures; we crop the sidebar's test-account footer
+// via aspect-ratio + object-top instead of pretending to have a clean shot.
+// Container stays a subtle white/neutral plate so the light captures render
+// intentionally in dark mode without manufacturing a dark version.
 function HeroProductProof() {
   return (
-    <div className="mx-auto w-full max-w-[240px] sm:max-w-[280px] rounded-[2rem] border-[6px] border-zinc-900 dark:border-zinc-700 bg-zinc-900 dark:bg-zinc-700 shadow-2xl overflow-hidden">
+    <div className="mx-auto w-full">
+      {/* Desktop: real web Today with a real mobile Today overlapping the
+          bottom-right. Web is ~4× the phone footprint so the web posture
+          reads first. */}
+      <div className="relative hidden lg:block">
+        <WebPlate
+          src="/app/today-web.png"
+          alt="GigDock Today on web"
+          priority
+          sizes="(min-width: 1280px) 720px, (min-width: 1024px) 560px, 100vw"
+        />
+        <div className="absolute -bottom-6 -right-4 w-[26%] max-w-[168px] z-10 drop-shadow-2xl">
+          <PhonePlate
+            src="/app/today.png"
+            darkSrc="/app/today-dark.png"
+            alt="GigDock Today on iPhone"
+            priority
+            sizes="168px"
+          />
+        </div>
+      </div>
+
+      {/* Mobile viewport: keep a single, strong mobile Today. The web
+          capture is too information-dense to render meaningfully at a
+          phone-sized width. */}
+      <div className="lg:hidden mx-auto max-w-[240px] sm:max-w-[280px]">
+        <PhonePlate
+          src="/app/today.png"
+          darkSrc="/app/today-dark.png"
+          alt="GigDock Today"
+          priority
+          sizes="(min-width: 640px) 280px, 240px"
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Shared product-visual plates
+   ============================================================ */
+
+// Wide, real web screenshot in a neutral bordered plate — no fake browser
+// chrome. Cropping via aspect-[16/9] + object-top removes the sidebar's
+// test-account footer that sits at the bottom of a full-height capture.
+// Always renders on a white ground so the light screenshot looks
+// intentional in dark mode without a fabricated dark variant.
+function WebPlate({
+  src,
+  alt,
+  priority = false,
+  sizes = "(min-width: 1024px) 680px, 100vw",
+}: {
+  src: string;
+  alt: string;
+  priority?: boolean;
+  sizes?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white shadow-xl overflow-hidden">
+      <div className="relative w-full aspect-[16/9] bg-white">
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          sizes={sizes}
+          priority={priority}
+          className="object-cover object-top"
+        />
+      </div>
+    </div>
+  );
+}
+
+// Real mobile screenshot in a phone frame. Supports a real dark-mode
+// companion when we have one.
+function PhonePlate({
+  src,
+  darkSrc,
+  alt,
+  priority = false,
+  sizes = "260px",
+}: {
+  src: string;
+  darkSrc?: string;
+  alt: string;
+  priority?: boolean;
+  sizes?: string;
+}) {
+  return (
+    <div className="rounded-[2rem] border-[6px] border-zinc-900 dark:border-zinc-700 bg-zinc-900 dark:bg-zinc-700 shadow-2xl overflow-hidden">
       <Image
-        src="/app/today.png"
-        alt="GigDock Today on iPhone"
+        src={src}
+        alt={alt}
         width={1206}
         height={2622}
-        sizes="(min-width: 1024px) 280px, 240px"
-        className="dark:hidden w-full h-auto rounded-[1.5rem]"
-        priority
+        sizes={sizes}
+        priority={priority}
+        className={`w-full h-auto rounded-[1.5rem] ${darkSrc ? "dark:hidden" : ""}`}
       />
-      <Image
-        src="/app/today-dark.png"
-        alt="GigDock Today on iPhone"
-        width={1206}
-        height={2622}
-        sizes="(min-width: 1024px) 280px, 240px"
-        className="hidden dark:block w-full h-auto rounded-[1.5rem]"
-        priority
-      />
+      {darkSrc && (
+        <Image
+          src={darkSrc}
+          alt={alt}
+          width={1206}
+          height={2622}
+          sizes={sizes}
+          priority={priority}
+          className="hidden dark:block w-full h-auto rounded-[1.5rem]"
+        />
+      )}
     </div>
   );
 }
@@ -411,30 +507,41 @@ type ShowcaseRow = {
   eyebrow: string;
   title: string;
   body: string;
-  light: string;
-  dark: string;
+  /** phone → tall mobile capture; web → wide desktop capture in a plate. */
+  frame: "phone" | "web";
+  /** Wide web capture (used when frame === "web"). */
+  webSrc?: string;
+  /** Mobile captures (used when frame === "phone"). */
+  light?: string;
+  dark?: string;
 };
 
 function ProductShowcase() {
+  // Platform mix on the homepage:
+  //   Manage → web My Gigs / Gig Detail (strongest desktop management story)
+  //   Money  → web Insights (strongest desktop earnings story)
+  //   Records → mobile Documents (they benefit from being with you on set)
+  // Deliberate variety so the page stops reading as "GigDock is a mobile app."
   const rows: ShowcaseRow[] = [
     {
       eyebrow: "Manage the work",
       title: "Keep the work organized.",
       body: "Gigs, work dates, hours and details stay connected to the production they belong to.",
-      light: "/app/calendar.png",
-      dark: "/app/calendar-dark.png",
+      frame: "web",
+      webSrc: "/app/my-gigs-web.png",
     },
     {
       eyebrow: "Know where your money stands",
       title: "Know what you&rsquo;ve earned — and what&rsquo;s still owed.",
       body: "Separate earned, received and outstanding money, then see the bigger picture over time.",
-      light: "/app/insights.png",
-      dark: "/app/insights-dark.png",
+      frame: "web",
+      webSrc: "/app/insights-web.png",
     },
     {
       eyebrow: "Keep your records together",
       title: "Keep the records around the work together.",
       body: "Store the paperwork and records that go with each gig so they’re there when you need them.",
+      frame: "phone",
       light: "/app/documents.png",
       dark: "/app/documents-dark.png",
     },
@@ -461,8 +568,14 @@ function ProductShowcase() {
 }
 
 function ShowcaseRowBlock({ row, reverse }: { row: ShowcaseRow; reverse: boolean }) {
+  // Web plates want more horizontal room than phone plates; give them a
+  // ~55% column so the wide UI reads at a legible scale.
+  const gridCls =
+    row.frame === "web"
+      ? "grid grid-cols-1 lg:grid-cols-[1fr_1.35fr] gap-8 lg:gap-12 items-center"
+      : "grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 items-center";
   return (
-    <div className={`grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 items-center ${reverse ? "lg:[&>*:first-child]:order-2" : ""}`}>
+    <div className={`${gridCls} ${reverse ? "lg:[&>*:first-child]:order-2" : ""}`}>
       <div className="text-center lg:text-left">
         <span className="inline-block text-xs font-semibold tracking-[0.12em] uppercase text-blue-600 dark:text-blue-400">
           {row.eyebrow}
@@ -476,31 +589,23 @@ function ShowcaseRowBlock({ row, reverse }: { row: ShowcaseRow; reverse: boolean
         </p>
       </div>
       <div>
-        <PhoneFrame light={row.light} dark={row.dark} alt={row.title} />
+        {row.frame === "web" && row.webSrc ? (
+          <WebPlate
+            src={row.webSrc}
+            alt={row.title.replace(/&rsquo;/g, "’")}
+            sizes="(min-width: 1024px) 640px, 100vw"
+          />
+        ) : row.light ? (
+          <div className="mx-auto w-full max-w-[240px] sm:max-w-[260px]">
+            <PhonePlate
+              src={row.light}
+              darkSrc={row.dark}
+              alt={row.title.replace(/&rsquo;/g, "’")}
+              sizes="260px"
+            />
+          </div>
+        ) : null}
       </div>
-    </div>
-  );
-}
-
-function PhoneFrame({ light, dark, alt }: { light: string; dark: string; alt: string }) {
-  return (
-    <div className="mx-auto w-full max-w-[240px] sm:max-w-[260px] rounded-[2rem] border-[6px] border-zinc-900 dark:border-zinc-700 bg-zinc-900 dark:bg-zinc-700 shadow-2xl overflow-hidden">
-      <Image
-        src={light}
-        alt={alt}
-        width={1206}
-        height={2622}
-        sizes="260px"
-        className="dark:hidden w-full h-auto rounded-[1.5rem]"
-      />
-      <Image
-        src={dark}
-        alt={alt}
-        width={1206}
-        height={2622}
-        sizes="260px"
-        className="hidden dark:block w-full h-auto rounded-[1.5rem]"
-      />
     </div>
   );
 }
