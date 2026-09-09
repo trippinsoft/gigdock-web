@@ -28,13 +28,17 @@ export default function OpportunitiesPromoCard() {
       <p className="mt-1.5 text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">
         Keep your gigs, dates, earnings, payments and records together after you get booked.
       </p>
-      <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
+      {/* Vertical hierarchy inside the narrow feed column: primary CTA
+          takes the full width on its own row, secondary text link sits
+          centered underneath. Prevents the previous side-by-side layout
+          from wrapping awkwardly at feed widths. */}
+      <div className="mt-4 flex flex-col items-center gap-3">
         <Link
           href="/signup?intent=manage"
           onClick={() =>
             track("opportunities_product_promo_clicked", { surface: "feed", action: "signup" })
           }
-          className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors"
+          className="w-full inline-flex items-center justify-center px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors"
         >
           Get Started Free
         </Link>

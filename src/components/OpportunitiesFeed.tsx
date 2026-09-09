@@ -786,8 +786,22 @@ export default function OpportunitiesFeed({
             )
           )}
 
-          <div className="text-sm text-zinc-500 dark:text-zinc-400">
-            {loading ? "Loading..." : formatPostRoleCount(visible.length, visibleRoleCount)}
+          {/* Result count on the left; a subtle "Browse by location" link on
+              the right for the location-hub navigation shortcut. Keeps the
+              filter chip ("All regions") in the toolbar as the way to filter
+              THIS feed, while this link takes users out to the curated-market
+              and state-page hub. Right-aligned on wider viewports, wraps and
+              stacks naturally on narrow. */}
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
+            <div>
+              {loading ? "Loading..." : formatPostRoleCount(visible.length, visibleRoleCount)}
+            </div>
+            <Link
+              href="/opportunities/locations"
+              className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
+            >
+              Browse by location →
+            </Link>
           </div>
         </div>
 
