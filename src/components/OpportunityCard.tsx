@@ -529,6 +529,10 @@ export default function OpportunityCard({
                   pay_min: opp.pay_min,
                   method: kind,
                   apply_host: host,
+                  // Matches the documented analytics contract — the funnel
+                  // splits outbound Applies by signed_in so anonymous intent
+                  // can be counted separately from authenticated applies.
+                  signed_in: !anonymous,
                 });
               }
               // Anonymous visitors flip into the post-Apply follow-up state;

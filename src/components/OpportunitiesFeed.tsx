@@ -86,6 +86,12 @@ export default function OpportunitiesFeed({
   const [loading, setLoading] = useState(!initialOpps);
 
   const [userId, setUserId] = useState<string | null>(null);
+  // Distinguishes "auth check hasn't finished" from "confirmed signed out".
+  // Anonymous acquisition surfaces (in-feed promo, detail education,
+  // post-Apply follow-up) must only render once auth has resolved — otherwise
+  // a signed-in visitor can see a flash of the anonymous UI before the
+  // supabase.auth.getUser() call settles on hydration.
+  const [authResolved, setAuthResolved] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
 
@@ -221,6 +227,7 @@ export default function OpportunitiesFeed({
       const { data: auth } = await supabase.auth.getUser();
       const uid = auth.user?.id ?? null;
       setUserId(uid);
+      setAuthResolved(true);
       if (!uid) return;
       const [{ data: saved }, { data: applied }, { data: profs }] = await Promise.all([
         supabase.from("saved_opportunities").select("opportunity_id").eq("user_id", uid),
@@ -832,7 +839,7 @@ export default function OpportunitiesFeed({
                           not feel like it's blocking the search. Skipped on
                           embedded location pages (SEO content-page
                           experience) and inside Saved / Applied lists. */}
-                      {i === 6 && !embedded && !userId && scope === "all" && shown.length > 7 && (
+                      {i === 6 && !embedded && authResolved && !userId && scope === "all" && shown.length > 7 && (
                         <OpportunitiesPromoCard />
                       )}
                     </Fragment>
@@ -849,7 +856,7 @@ export default function OpportunitiesFeed({
 
           <div className={detailColCls}>
             {selected ? (
-              <OpportunityCard opp={selected} actions={<div className="flex items-center gap-2 flex-wrap justify-end">{saveButton(selected.id)}{appliedButton(selected.id)}<ShareButton id={selected.id} title={selected.title} /></div>} fit={selectedId ? fitById.get(selectedId) ?? null : null} onApply={(kind) => markApplied(selected.id, kind)} hideAdminMeta anonymous={!userId} />
+              <OpportunityCard opp={selected} actions={<div className="flex items-center gap-2 flex-wrap justify-end">{saveButton(selected.id)}{appliedButton(selected.id)}<ShareButton id={selected.id} title={selected.title} /></div>} fit={selectedId ? fitById.get(selectedId) ?? null : null} onApply={(kind) => markApplied(selected.id, kind)} hideAdminMeta anonymous={authResolved && !userId} />
             ) : (
               <div className="flex items-center justify-center h-full min-h-[12rem] text-zinc-500 dark:text-zinc-400 text-sm">Select an opportunity to view details</div>
             )}
@@ -912,7 +919,7 @@ export default function OpportunitiesFeed({
                 </div>
               </div>
               <div ref={contentRef} className="flex-1 overflow-y-auto overscroll-contain p-4">
-                <OpportunityCard opp={selected} fit={selectedId ? fitById.get(selectedId) ?? null : null} onApply={(kind) => markApplied(selected.id, kind)} hideAdminMeta anonymous={!userId} />
+                <OpportunityCard opp={selected} fit={selectedId ? fitById.get(selectedId) ?? null : null} onApply={(kind) => markApplied(selected.id, kind)} hideAdminMeta anonymous={authResolved && !userId} />
               </div>
             </div>
           </div>
