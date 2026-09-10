@@ -80,7 +80,7 @@ export default async function GigWorkspacePage({
 
   const tabs: GigTab[] = [
     { id: "overview", label: "Overview", content: <OverviewPanel gig={gig} dates={dates} bumps={bumps} gigId={id} userId={userId} bumpsOnlyDateIds={bumpsOnlyDateIds} /> },
-    { id: "work-days", label: "Work Days", count: dates.length, content: <WorkDaysPanel id={id} dates={dates} bumpsByDate={bumpsByDate} bumpsOnlyDateIds={bumpsOnlyDateIds} /> },
+    { id: "gig-days", label: "Gig Days", count: dates.length, content: <GigDaysPanel id={id} dates={dates} bumpsByDate={bumpsByDate} bumpsOnlyDateIds={bumpsOnlyDateIds} /> },
     { id: "payments", label: "Payments", count: payments.length, content: <PaymentsPanel id={id} payments={payments} earned={earned} paid={paid} remaining={remaining} /> },
     { id: "documents", label: "Documents", count: docs.length, content: <DocumentsPanel docs={docs} /> },
   ];
@@ -243,8 +243,8 @@ function AdditionalPayOnlyPill() {
   );
 }
 
-function WorkDaysPanel({ id, dates, bumpsByDate, bumpsOnlyDateIds }: { id: string; dates: GigDateWithEarnings[]; bumpsByDate: Map<string, { type: string; amount: number }[]>; bumpsOnlyDateIds: Set<string> }) {
-  if (dates.length === 0) return <Empty>No work days recorded. <EditLink id={id}>Add days</EditLink></Empty>;
+function GigDaysPanel({ id, dates, bumpsByDate, bumpsOnlyDateIds }: { id: string; dates: GigDateWithEarnings[]; bumpsByDate: Map<string, { type: string; amount: number }[]>; bumpsOnlyDateIds: Set<string> }) {
+  if (dates.length === 0) return <Empty>No gig days recorded. <EditLink id={id}>Add days</EditLink></Empty>;
   return (
     <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
       {dates.map((d) => (
