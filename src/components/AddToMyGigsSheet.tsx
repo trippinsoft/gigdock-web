@@ -57,13 +57,9 @@ export default function AddToMyGigsSheet({
   const parsedRate = useMemo(() => parseOpportunityRate(opportunity.pay_rate), [opportunity.pay_rate]);
   const advertisedDate = opportunity.work_date?.slice(0, 10) ?? null;
 
-  // Global default status — mirrors mobile's sheet-level toggle. Also the
-  // status assigned to newly added dates until the user overrides them
-  // per-row.
-  const [defaultStatus, setDefaultStatus] = useState<DateStatus>("availability_checked");
-
   // Preselect the advertised date if present. Users can remove it or add
-  // additional dates below.
+  // additional dates below. New dates start as availability_checked and can
+  // be toggled to Booked per row.
   const [dates, setDates] = useState<SelectedDate[]>(() =>
     advertisedDate ? [{ date: advertisedDate, status: "availability_checked" }] : []
   );
@@ -98,7 +94,9 @@ export default function AddToMyGigsSheet({
     }
     setError(null);
     setDates((prev) =>
-      [...prev, { date: iso, status: defaultStatus }].sort((a, b) => a.date.localeCompare(b.date))
+      [...prev, { date: iso, status: "availability_checked" as DateStatus }].sort((a, b) =>
+        a.date.localeCompare(b.date)
+      )
     );
     setNewDate("");
   }
@@ -197,28 +195,6 @@ export default function AddToMyGigsSheet({
           <p className="text-sm text-zinc-700 dark:text-zinc-200 leading-relaxed">
             Which dates are you being considered or booked for?
           </p>
-
-          {/* Global default status — applies to newly added dates and
-              can be overridden per row. */}
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-1.5">
-              Default status for new dates
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <StatusChip
-                label="Availability Check"
-                active={defaultStatus === "availability_checked"}
-                onClick={() => setDefaultStatus("availability_checked")}
-                variant="outline"
-              />
-              <StatusChip
-                label="Booked"
-                active={defaultStatus === "booked"}
-                onClick={() => setDefaultStatus("booked")}
-                variant="filled"
-              />
-            </div>
-          </div>
 
           {/* Selected dates + per-date override */}
           <div>
@@ -338,46 +314,8 @@ export default function AddToMyGigsSheet({
   );
 }
 
-// Amber / green cues match the shared day-status color language used across
-// the app. Outline = availability check, filled = booked.
-function StatusChip({
-  label,
-  active,
-  onClick,
-  variant,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-  variant: "outline" | "filled";
-}) {
-  const activeCls =
-    variant === "filled"
-      ? "bg-[#fcd34d] text-zinc-900 dark:bg-[#c99b3b] dark:text-zinc-950 border border-transparent"
-      : "bg-white dark:bg-zinc-900 border border-[#fcd34d] text-[#a26200] dark:border-[#c99b3b] dark:text-[#f5c66a]";
-  const idleCls =
-    "border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800";
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`h-11 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${active ? activeCls : idleCls}`}
-    >
-      <span
-        aria-hidden
-        className={`h-3 w-3 rounded-full ${
-          active
-            ? variant === "filled"
-              ? "bg-white/70 dark:bg-black/40"
-              : "border-2 border-[#a26200] dark:border-[#f5c66a]"
-            : "border border-zinc-300 dark:border-zinc-600"
-        }`}
-      />
-      {label}
-    </button>
-  );
-}
-
+// Amber cue matches the shared day-status color language used across the app.
+// Outline = availability check, filled = booked.
 function MiniStatus({
   label,
   active,
