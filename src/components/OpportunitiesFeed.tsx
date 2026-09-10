@@ -10,6 +10,7 @@ import OpportunityListItem from "@/components/OpportunityListItem";
 import OpportunitiesPromoCard from "@/components/OpportunitiesPromoCard";
 import PublicShell from "@/components/PublicShell";
 import ShareButton from "@/components/ShareButton";
+import AddToMyGigsSheet from "@/components/AddToMyGigsSheet";
 import FilterChips, {
   EMPTY_FILTERS,
   applyFilters,
@@ -94,6 +95,14 @@ export default function OpportunitiesFeed({
   const [authResolved, setAuthResolved] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
+  // Mobile-parity opportunity→gig association map: for every non-deleted
+  // gig the signed-in user owns that carries a non-null gigs.opportunity_id,
+  // opportunity_id → gig_id. Used to flip the CTA to "✓ In My Gigs →" and to
+  // navigate to the associated gig. Mirrors mobile's
+  // useLoadMyGigOpportunityIdsGET query shape.
+  const [myGigsByOpportunity, setMyGigsByOpportunity] = useState<Map<string, string>>(new Map());
+  // When set, the AddToMyGigsSheet renders for this opportunity.
+  const [addToMyGigsFor, setAddToMyGigsFor] = useState<Opportunity | null>(null);
 
   // Scope filter (All / Saved / Applied), like the mobile app.
   const [scope, setScope] = useState<"all" | "saved" | "applied">("all");
@@ -229,13 +238,19 @@ export default function OpportunitiesFeed({
       setUserId(uid);
       setAuthResolved(true);
       if (!uid) return;
-      const [{ data: saved }, { data: applied }, { data: profs }] = await Promise.all([
+      const [{ data: saved }, { data: applied }, { data: profs }, { data: myGigs }] = await Promise.all([
         supabase.from("saved_opportunities").select("opportunity_id").eq("user_id", uid),
         supabase.from("applied_opportunities").select("opportunity_id").eq("user_id", uid),
         supabase.from("performer_profiles").select("*").eq("user_id", uid).order("is_default", { ascending: false }),
+        // Mirrors mobile's loadMyGigOpportunityIdsGET — all non-deleted gigs
+        // this user owns that came from an opportunity.
+        supabase.from("gigs").select("id, opportunity_id").eq("user_id", uid).is("deleted_at", null).not("opportunity_id", "is", null),
       ]);
       setSavedIds(new Set((saved ?? []).map((s) => s.opportunity_id)));
       setAppliedIds(new Set((applied ?? []).map((s) => s.opportunity_id)));
+      setMyGigsByOpportunity(
+        new Map((myGigs ?? []).map((g) => [g.opportunity_id as string, g.id as string]))
+      );
       const list = (profs ?? []) as PerformerProfile[];
       setProfiles(list);
       if (list.length > 0) setGigfitProfileId(list[0].id);
@@ -627,6 +642,34 @@ export default function OpportunitiesFeed({
     );
   }
 
+  // "+ Add to My Gigs" (opens the sheet) or "✓ In My Gigs →" (navigates to
+  // the associated gig). Anonymous / signed-out viewers do not see this
+  // affordance — it's an authenticated workflow. Matches mobile's
+  // OpportunityDetailScreen behavior.
+  function addToMyGigsButton(opp: Opportunity) {
+    if (!userId) return null;
+    const linkedGigId = myGigsByOpportunity.get(opp.id) ?? null;
+    if (linkedGigId) {
+      return (
+        <button
+          onClick={() => router.push(`/gigs/${linkedGigId}`)}
+          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors"
+          title="Open the gig this opportunity is connected to"
+        >
+          ✓ In My Gigs →
+        </button>
+      );
+    }
+    return (
+      <button
+        onClick={() => setAddToMyGigsFor(opp)}
+        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-blue-300 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+      >
+        + Add to My Gigs
+      </button>
+    );
+  }
+
   function appliedButton(id: string) {
     const isApplied = appliedIds.has(id);
     return (
@@ -875,7 +918,7 @@ export default function OpportunitiesFeed({
 
           <div className={detailColCls}>
             {selected ? (
-              <OpportunityCard opp={selected} actions={<div className="flex items-center gap-2 flex-wrap justify-end">{saveButton(selected.id)}{appliedButton(selected.id)}<ShareButton id={selected.id} title={selected.title} /></div>} fit={selectedId ? fitById.get(selectedId) ?? null : null} onApply={(kind) => markApplied(selected.id, kind)} hideAdminMeta anonymous={authResolved && !userId} />
+              <OpportunityCard opp={selected} actions={<div className="flex items-center gap-2 flex-wrap justify-end">{addToMyGigsButton(selected)}{saveButton(selected.id)}{appliedButton(selected.id)}<ShareButton id={selected.id} title={selected.title} /></div>} fit={selectedId ? fitById.get(selectedId) ?? null : null} onApply={(kind) => markApplied(selected.id, kind)} hideAdminMeta anonymous={authResolved && !userId} />
             ) : (
               <div className="flex items-center justify-center h-full min-h-[12rem] text-zinc-500 dark:text-zinc-400 text-sm">Select an opportunity to view details</div>
             )}
@@ -934,7 +977,7 @@ export default function OpportunitiesFeed({
                 <div className="flex justify-center pt-2.5 pb-1"><div className="h-1.5 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" /></div>
                 <div className="flex items-center justify-between px-4 pb-3">
                   <button type="button" onClick={closeSheet} className="text-2xl leading-none text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 -ml-1 px-1" aria-label="Close">×</button>
-                  <div className="flex gap-2 flex-wrap">{saveButton(selected.id)}{appliedButton(selected.id)}<ShareButton id={selected.id} title={selected.title} /></div>
+                  <div className="flex gap-2 flex-wrap">{addToMyGigsButton(selected)}{saveButton(selected.id)}{appliedButton(selected.id)}<ShareButton id={selected.id} title={selected.title} /></div>
                 </div>
               </div>
               <div ref={contentRef} className="flex-1 overflow-y-auto overscroll-contain p-4">
@@ -942,6 +985,29 @@ export default function OpportunitiesFeed({
               </div>
             </div>
           </div>
+        )}
+
+        {/* Add to My Gigs sheet. Optimistically stamps opportunity_id →
+            gig_id into the local map on success so the CTA immediately flips
+            to "✓ In My Gigs →" without waiting on a refetch. Also navigates
+            to the newly created gig's edit screen for parity with mobile,
+            which lands the user on Edit Gig Detail. */}
+        {addToMyGigsFor && (
+          <AddToMyGigsSheet
+            opportunity={addToMyGigsFor}
+            fitTier={fitById.get(addToMyGigsFor.id)?.tier ?? null}
+            onClose={() => setAddToMyGigsFor(null)}
+            onComplete={({ gigId }) => {
+              const oppId = addToMyGigsFor.id;
+              setMyGigsByOpportunity((prev) => {
+                const next = new Map(prev);
+                next.set(oppId, gigId);
+                return next;
+              });
+              setAddToMyGigsFor(null);
+              router.push(`/gigs/${gigId}/edit`);
+            }}
+          />
         )}
       </div>
   );

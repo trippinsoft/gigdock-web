@@ -27,6 +27,9 @@ funnel lives in one place: discover on the web → track in the app.
 | `opportunity_applied` | Gig marked applied — outbound Apply CTA (`method: "email"`/`"url"`, `apply_host`) or the Mark‑applied button (`method: "manual"`) | `opportunity_id`, `method`, `signed_in`, plus `production_name`/`market`/`source`/`pay_min` on the CTA path |
 | `opportunity_unapplied` | Mark‑applied is toggled off | `opportunity_id`, `method: "manual"`, `signed_in` |
 | `opportunities_product_promo_clicked` | A signed‑out visitor taps a broader‑product CTA in Opportunities — the feed "More from GigDock" card, the detail contextual card, or the post‑Apply follow‑up | `surface` (`feed` \| `detail` \| `post_apply`), `action` (`signup` \| `features` \| `mark_applied`), `opportunity_id` (when the surface is bound to a specific gig) |
+| `opportunity_add_to_gigs_started` | A signed‑in viewer opens the Add to My Gigs sheet on the opportunity detail | `opportunity_id`, `fit_tier` |
+| `opportunity_added_to_gigs` | The Add to My Gigs sheet confirms and `add_opportunity_to_my_gigs` returns a new gig id | `opportunity_id`, `gig_id`, `booking_status` (`booked` when any selected date is booked, otherwise `availability_checked`), `date_count`, `rate_type` (matches the value the RPC receives as `p_pay_type`, or `unrecognized`) |
+| `opportunity_booked` | Fires alongside `opportunity_added_to_gigs` when at least one selected date has status `booked` | `opportunity_id`, `gig_id`, `booking_source: "opportunity_conversion"`, `date_count` |
 
 `signed_in: false` means a logged‑out visitor tapped Save/Apply and was routed to
 sign‑up — a real intent signal worth keeping in the funnel. `opportunity_saved`
