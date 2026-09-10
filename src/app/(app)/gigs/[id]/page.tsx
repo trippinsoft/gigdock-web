@@ -57,6 +57,25 @@ export default async function GigWorkspacePage({
     datesRaw.filter((r) => r.base_pay_applies === false).map((r) => r.id as string)
   );
 
+  // load_gig_dates_with_earnings only returns worked days (the only ones with
+  // computed earnings), so merge that with the raw gig_dates rows to cover
+  // availability_checked / booked / unavailable dates as well. Earnings fall
+  // back to zero for non-worked rows, which matches calculate_gig_earned_amount.
+  const earningsByDateId = new Map(dates.map((d) => [d.gig_date_id, d]));
+  const allDates: GigDateWithEarnings[] = datesRaw.map((r) => {
+    const e = earningsByDateId.get(r.id as string);
+    return {
+      gig_date_id: r.id as string,
+      gig_id: r.gig_id as string,
+      date: r.date as string,
+      status_for_day: (r.status_for_day as string | null) ?? e?.status_for_day ?? null,
+      hours_total: e?.hours_total ?? (r.hours_total as number | null) ?? null,
+      base_rate_calc: e?.base_rate_calc ?? null,
+      ot_rate_calc: e?.ot_rate_calc ?? null,
+      gross_earned_calc: e?.gross_earned_calc ?? 0,
+    };
+  });
+
   const earned = earnings?.gross_earned ?? 0;
   const paid = earnings?.total_paid ?? 0;
   const remaining = earnings?.remaining ?? Math.max(earned - paid, 0);
@@ -80,7 +99,7 @@ export default async function GigWorkspacePage({
 
   const tabs: GigTab[] = [
     { id: "overview", label: "Overview", content: <OverviewPanel gig={gig} dates={dates} bumps={bumps} gigId={id} userId={userId} bumpsOnlyDateIds={bumpsOnlyDateIds} /> },
-    { id: "gig-days", label: "Gig Days", count: dates.length, content: <GigDaysPanel id={id} dates={dates} bumpsByDate={bumpsByDate} bumpsOnlyDateIds={bumpsOnlyDateIds} /> },
+    { id: "gig-days", label: "Gig Days", count: allDates.length, content: <GigDaysPanel id={id} dates={allDates} bumpsByDate={bumpsByDate} bumpsOnlyDateIds={bumpsOnlyDateIds} /> },
     { id: "payments", label: "Payments", count: payments.length, content: <PaymentsPanel id={id} payments={payments} earned={earned} paid={paid} remaining={remaining} /> },
     { id: "documents", label: "Documents", count: docs.length, content: <DocumentsPanel docs={docs} /> },
   ];
