@@ -286,7 +286,7 @@ function Opportunities() {
           <FeatureRow title="Real filters, real sorting" body="Search text, U.S. state, sources, date posted, work-date range, work type, gender, union status and minimum pay. Sort by most recent, shoot date, or apply deadline." />
           <FeatureRow title="Location browsing" body="Jump into a specific state or market and see everything currently active there." />
           <FeatureRow title="Save / Applied / Share" body="Bookmark listings you're considering. Mark ones you've applied to. Share a listing to anyone with the URL." />
-          <FeatureRow title="GigFit — profile-aware fit" body="GigFit compares an opportunity's casting requirements with information in your profile — markets, gender, ethnicity, age and union — to help you assess whether it's worth pursuing. GigFit does not decide who casts." />
+          <FeatureRow title="GigFit — profile-aware fit" body="GigFit compares an opportunity's casting requirements with information in your profile — markets, gender, ethnicity, age and union status — to help you quickly assess whether an opportunity may be a fit for you." />
           <FeatureRow title="Add to My Gigs" body="Pick the relevant date(s) as Availability Check or Booked, and GigDock creates a connected Gig on the spot — advertised rate mapped to the right pay structure, dates set, ready to manage." />
         </div>
         <div className="mx-auto lg:mx-0 lg:sticky lg:top-20 w-full max-w-[260px]">
@@ -435,11 +435,11 @@ function MoneyAndPayments() {
           />
         </div>
         <div className="space-y-4">
-          <FeatureRow title="Expected · Received · Outstanding" body="Every Gig shows what you earned, what has come in and what's still open — with a received percentage ring." />
-          <FeatureRow title="Payments belong to the Gig" body="Record any number of payments against a Gig with pay date, gross, and — when known — net. Partial payments are first-class." />
-          <FeatureRow title="Payment status per date" body="See which worked days are still outstanding and which are paid." />
-          <FeatureRow title="Needs Attention on Today" body="Missing payments, missing hours and other loose ends bubble up automatically on the Today home." />
-          <FeatureRow title="Gross vs Net where recorded" body="Insights and reports separate gross received from net received — nothing is estimated for you." />
+          <FeatureRow title="Earned · Received · Outstanding" body="Every Gig shows what you've earned, what has come in, and what's still outstanding — with a received percentage so you can see where things stand at a glance." />
+          <FeatureRow title="Payments belong to the Gig" body="Record one or more payments against a Gig with the payment date, gross amount and, when known, net amount. Partial payments are supported." />
+          <FeatureRow title="Work dates and payment status stay distinct" body="Track which dates were worked while payments and outstanding balances are tracked for the Gig as a whole." />
+          <FeatureRow title="Needs Attention on Today" body="Outstanding payments, missing payment details and other incomplete Gig information surface on Today so they don't get forgotten." />
+          <FeatureRow title="Gross vs. net where recorded" body="Insights and reports separate gross received from net received when you've recorded both — GigDock doesn't invent a net amount for you." />
         </div>
       </div>
 
