@@ -7,7 +7,9 @@ import PublicShell from "@/components/PublicShell";
 // /features previously ran four "pillar" cards, it now walks through the eight
 // shipped product systems as a scannable product tour: real GigDock UI in
 // every plate (nothing fabricated), honest Free vs Pro delineation, and no
-// forward-looking promises the app cannot back up.
+// forward-looking promises the app cannot back up. Every screenshot is a real
+// capture from the shipping product; mobile screenshots render inside a phone
+// frame so they read as mobile, not as cropped/decorative web fragments.
 
 const TITLE = "Features — GigDock";
 const DESCRIPTION =
@@ -143,39 +145,36 @@ function Opportunities() {
         lead="Browse opportunities from casting, production and other providers in one feed. Search, filter, save, share and mark applied. When work becomes real, add it straight to My Gigs so nothing gets re-typed."
       />
 
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6 lg:gap-10 items-center">
-        <div>
-          <WebPlate
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-8 lg:gap-12 items-start">
+        <div className="space-y-4">
+          <FeatureRow title="One feed, many sources" body="Opportunities are gathered from across the industry so you don't tab-hop between listings sites." />
+          <FeatureRow title="Real filters, real sorting" body="Search text, U.S. state, sources, date posted, work-date range, work type, gender, union status and minimum pay. Sort by most recent, shoot date, or apply deadline." />
+          <FeatureRow title="Location browsing" body="Jump into a specific state or market and see everything currently active there." />
+          <FeatureRow title="Save / Applied / Share" body="Bookmark listings you're considering. Mark ones you've applied to. Share a listing to anyone with the URL." />
+          <FeatureRow title="GigFit — profile-aware fit" body="GigFit compares an opportunity's casting requirements with information in your profile — markets, gender, ethnicity, age and union — to help you assess whether it's worth pursuing. GigFit does not decide who casts." />
+          <FeatureRow title="Add to My Gigs" body="Pick the relevant date(s) as Availability Check or Booked, and GigDock creates a connected Gig on the spot — advertised rate mapped to the right pay structure, dates set, ready to manage." />
+        </div>
+        <div className="mx-auto lg:mx-0 lg:sticky lg:top-20 w-full max-w-[260px]">
+          <PhonePlate
             light="/app/opportunities-feed.png"
             dark="/app/opportunities-feed-dark.png"
-            alt="GigDock Opportunities feed on the web, showing search, filters, a segmented All / Saved / Applied lens and a scrollable list of listings with GigFit tiers."
+            alt="GigDock Opportunities feed on iPhone, showing GigFit turned on, a search box, All/Filters chips, a Matching on line, an opportunities count, and cards with Good match and New badges."
+            caption="Opportunities feed · GigFit on, filters, matching line, real listings."
             priority
           />
         </div>
-        <div className="space-y-4">
-          <FeatureRow title="One feed, many sources" body="Opportunities are gathered from across the industry so you don't tab-hop between listings sites." />
-          <FeatureRow title="Real filters" body="Search text, U.S. state, sources, date posted, work-date range, work type, gender, union status and minimum pay. Sort by most recent, shoot date, or apply deadline." />
-          <FeatureRow title="Location browsing" body="Jump into a specific state or market and see everything currently active there." />
-          <FeatureRow title="Save / Applied / Share" body="Bookmark listings you're considering. Mark ones you've applied to. Share a listing to anyone with the URL." />
-        </div>
       </div>
 
-      {/* GigFit + Advanced Alerts + Add to My Gigs — three richer callouts */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Callout title="GigFit — profile-aware fit">
-          GigFit compares an opportunity&rsquo;s casting requirements with information in your profile — markets, gender, ethnicity, age and union status — to help you assess whether it&rsquo;s worth pursuing. GigFit does not decide who casts.
-        </Callout>
-        <Callout title="Advanced Alerts" pro>
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Callout title="Advanced Alerts" pro mobileOnly>
           Get notified when a listing matches specific criteria you&rsquo;ve saved — region, work type, minimum pay, casting company, GigFit tier, and more. <em className="not-italic text-zinc-500 dark:text-zinc-400">Currently available in the GigDock mobile app.</em>
         </Callout>
-        <Callout title="Add to My Gigs">
-          Pick the relevant date(s) as Availability Check or Booked, and GigDock creates a connected Gig on the spot — advertised rate mapped to the right pay structure, dates set, ready to manage.
+        <Callout title="Providers keep their application flow">
+          Apply through the same channel the listing points to. GigDock helps you find and track the opportunity — it doesn&rsquo;t replace the provider&rsquo;s system.
         </Callout>
       </div>
 
       <Lifecycle />
-
-      <Fineprint>Providers own the application flow. Apply through the same channel their listing points to — GigDock doesn&rsquo;t replace their system.</Fineprint>
     </Section>
   );
 }
@@ -218,34 +217,32 @@ function GigManagement() {
         lead="After you get the work, GigDock keeps every practical detail — dates, hours, pay, notes, location, project, companies, documents — attached to the Gig it belongs to."
       />
 
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-6 lg:gap-10 items-start">
+      <div className="mt-8">
+        <WebPlate
+          light="/app/my-gigs-web.png"
+          alt="GigDock My Gigs on the web: sidebar with Today, Opportunities, My Gigs, Calendar, Documents, Payments, Insights, Advanced Reports and Tax Ready; center list of gigs with Paid, Partial and Unpaid status pills; right pane Gig Detail showing Earned $300, Received $175, Outstanding $125, a Work Summary with Worked and Additional Pay Only rows, and an Additional Pay list with dated bumps."
+          caption="One workspace — list, detail, tabs and the Additional Pay that stays with the workday."
+          priority
+        />
+      </div>
+
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-8 lg:gap-12 items-start">
         <div className="space-y-4">
           <FeatureRow title="Day statuses that reflect real life" body="Availability Check → Booked → Worked. Change a date's status right where you're already working." />
           <FeatureRow title="Additional Pay stays with the work" body='Mileage, per diem, wardrobe, night premium, MPV — track "Additional Pay" against the specific worked day it belongs to.' />
           <FeatureRow title="Quick hour entry" body="Update hours from the calendar day view without reopening and re-editing the whole Gig." />
           <FeatureRow title="Projects, gig companies, payroll companies" body="Keep track of who's producing, who's casting, and who's paying — across gigs and across seasons." />
-          <FeatureRow title="Calendar you'll actually use" body="A monthly calendar shows every gig date at a glance — with per-day earnings, statuses, and links right into the day." />
+          <FeatureRow title="Calendar you'll actually use" body="A monthly calendar shows every gig date at a glance — with statuses, links right into the day, and quick actions from the day sheet." />
         </div>
-        <WebPlate
-          light="/app/my-gigs-web.png"
-          alt="GigDock My Gigs page on the web, showing a list of gigs with dates, status pills and the Add Gig affordance."
-        />
+        <div className="mx-auto lg:mx-0 w-full max-w-[260px]">
+          <PhonePlate
+            light="/app/calendar.png"
+            dark="/app/calendar-dark.png"
+            alt="GigDock monthly calendar on iPhone showing gig days with status colors."
+            caption="Calendar · every gig date at a glance."
+          />
+        </div>
       </div>
-
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <WebPlate
-          light="/app/gig-detail.png"
-          dark="/app/gig-detail-dark.png"
-          alt="A single Gig Detail page on GigDock, with tabs for Overview, Gig Days, Payments and Documents."
-        />
-        <WebPlate
-          light="/app/calendar.png"
-          dark="/app/calendar-dark.png"
-          alt="The GigDock calendar showing a month with per-day gigs and status colors."
-        />
-      </div>
-
-      <Fineprint>The gig lifecycle is deliberate. Availability Check, Booked and Worked each mean something different — and Additional Pay lives with the day, not with a mystery bucket.</Fineprint>
     </Section>
   );
 }
@@ -263,21 +260,29 @@ function MoneyAndPayments() {
         lead="GigDock separates the money you've earned from the money you've actually been paid — so partial payments, missing payments and slow payments are visible, not hidden."
       />
 
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-6 lg:gap-10 items-center">
-        <div>
-          <WebPlate
-            light="/app/gig-detail-earnings-dark.png"
-            alt="Gig Detail earnings summary, showing Expected, Received and Outstanding amounts alongside a per-day payment status."
-            forceDark
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8 lg:gap-12 items-start">
+        <div className="mx-auto lg:mx-0 lg:sticky lg:top-20 w-full max-w-[260px]">
+          <PhonePlate
+            light="/guides/gigdock-app-gig-detail-earnings.png"
+            alt="A single Gig Detail on iPhone showing Earnings Summary for a Hardee's Commercial: Gross Earned $500.00, Received $450.00, 90% received ring, and Outstanding $50.00."
+            caption="A real gig · Earned $500 · Received $450 · Outstanding $50."
           />
         </div>
         <div className="space-y-4">
-          <FeatureRow title="Expected · Received · Outstanding" body="Every Gig shows what you earned, what has come in and what's still open — with a received percentage bar." />
+          <FeatureRow title="Expected · Received · Outstanding" body="Every Gig shows what you earned, what has come in and what's still open — with a received percentage ring." />
           <FeatureRow title="Payments belong to the Gig" body="Record any number of payments against a Gig with pay date, gross, and — when known — net. Partial payments are first-class." />
           <FeatureRow title="Payment status per date" body="See which worked days are still outstanding and which are paid." />
           <FeatureRow title="Needs Attention on Today" body="Missing payments, missing hours and other loose ends bubble up automatically on the Today home." />
           <FeatureRow title="Gross vs Net where recorded" body="Insights and reports separate gross received from net received — nothing is estimated for you." />
         </div>
+      </div>
+
+      <div className="mt-10">
+        <WebPlate
+          light="/app/today-web.png"
+          alt="GigDock Today on the web: Next Up card, a Needs Attention card showing 5 payments due at $2,106.37 and 2 with missing pay info, Today's Insight, a Your Money card ($100 earned, $150 received, $1,116.37 outstanding), Recent Activity of received payments, and Opportunities for You with Strong match badges."
+          caption="Today, at a glance — Needs Attention, the money picture, and what to look at next."
+        />
       </div>
 
       <Fineprint>GigDock&rsquo;s calculations are authoritative. Numbers on the page reflect what you&rsquo;ve entered — not a guessed rate-times-days.</Fineprint>
@@ -301,7 +306,9 @@ function Insights() {
       <div className="mt-8">
         <WebPlate
           light="/app/insights-web.png"
-          alt="GigDock Insights on the web: earnings for the period, days worked, gigs worked, earnings trend, payments received, gig payment status and career patterns."
+          alt="GigDock Insights on the web: Earnings $2,844, Work Activity 17 days worked / 6 gigs worked, an Earnings trend monthly bar chart with a Pro badge, a Payments received card showing Gross $1,878 and Net $1,126 with net recorded for 5 of 8 payments, a Gig payment status donut ($738 Paid, $2,106 Outstanding, 26%), and Career patterns with average per workday, top company and top project — Pro-badged."
+          caption="Insights web dashboard · Earnings, activity, trend, payments, aging and career patterns."
+          priority
         />
       </div>
 
@@ -331,7 +338,7 @@ function DocumentsRecords() {
         lead="A voucher is not just a file. A pay stub is not just a file. A call sheet is not just a file. When applicable, those records belong to a specific Gig."
       />
 
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_1.15fr] gap-6 lg:gap-10 items-center">
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-8 lg:gap-12 items-start">
         <div className="space-y-4">
           <FeatureRow title="Add Document, right from the browser" body="Upload a PDF or image, name it, classify it, set a document date — the file lives in a private, per-user location." />
           <FeatureRow title="Document types you'll recognize" body="Pay Stub, Voucher, Call Sheet, Receipt, Contract, W-2, 1099, Other Tax Document, Other." />
@@ -339,11 +346,14 @@ function DocumentsRecords() {
           <FeatureRow title="Search & filter" body="Search across documents and their gigs. Filter by type or year." />
           <FeatureRow title="Connect a document to a Gig" pro body="Attach the record to the work it belongs to — from the upload sheet or the document inspector. Change or remove the connection any time." />
         </div>
-        <WebPlate
-          light="/app/documents.png"
-          dark="/app/documents-dark.png"
-          alt="GigDock Documents library on the web with a search bar, type filter chips and a list of documents with their connected gigs."
-        />
+        <div className="mx-auto lg:mx-0 lg:sticky lg:top-20 w-full max-w-[260px]">
+          <PhonePlate
+            light="/app/documents.png"
+            dark="/app/documents-dark.png"
+            alt="GigDock Documents on iPhone: type filter chips for All, Pay Stubs, Vouchers, Receipts, Contracts; a list of records including Paystub 1 (PDF, 9.1 MB), Gig contract (Photo), Travel expense (PDF), Paystub 2 (Photo) and a Voucher connected to a Feature Film Iron Jane gig."
+            caption="Records with their type · Voucher connected to its gig."
+          />
+        </div>
       </div>
 
       <Fineprint>Basic uploading, viewing, renaming, classifying and downloading are free for everyone. Connecting a document to a specific Gig is a GigDock Pro feature.</Fineprint>
@@ -364,11 +374,12 @@ function TaxReady() {
         lead="The work you record throughout the year becomes the organized information you need later. Tax Ready doesn't file anything — it makes the file-ready."
       />
 
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-6 lg:gap-10 items-start">
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-8 lg:gap-12 items-start">
         <div>
           <WebPlate
             light="/app/insights-web.png"
-            alt="Yearly work totals surfaced through Insights, feeding the Tax Ready organizer."
+            alt="A yearly view of GigDock Insights — the same records that feed Tax Ready — showing a monthly gross-earnings bar chart across the year, payments received (gross and net), and gig payment status."
+            caption="The year in one view · monthly earnings, payments received, and payment status."
           />
           <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
             The same worked-day and payment records that power Insights power Tax Ready.
@@ -699,7 +710,7 @@ function FeatureRow({ title, body, pro }: { title: string; body: string; pro?: b
   );
 }
 
-function Callout({ title, children, pro = false }: { title: string; children: React.ReactNode; pro?: boolean }) {
+function Callout({ title, children, pro = false, mobileOnly = false }: { title: string; children: React.ReactNode; pro?: boolean; mobileOnly?: boolean }) {
   return (
     <div
       className={`rounded-2xl border px-5 py-5 ${
@@ -708,11 +719,16 @@ function Callout({ title, children, pro = false }: { title: string; children: Re
           : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900"
       }`}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <div className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{title}</div>
         {pro && (
           <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
             Pro
+          </span>
+        )}
+        {mobileOnly && (
+          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+            Mobile
           </span>
         )}
       </div>
@@ -727,58 +743,100 @@ function Fineprint({ children }: { children: React.ReactNode }) {
 
 /* ================================================================
    Media primitives
-   Real screenshots only. WebPlate never invents fake browser chrome
-   and gracefully swaps to the dark screenshot only when a real one
-   exists. `forceDark` renders a dark-only capture on a dark ground
-   with no light variant.
+   Real screenshots only. WebPlate is used for actual web-shaped
+   captures (1435×926). PhonePlate is used for actual iPhone
+   captures (1206×2622) and shows the full phone frame — no
+   16:9 crop that would hide everything below the header.
    ================================================================ */
 
 function WebPlate({
   light,
   dark,
   alt,
+  caption,
   priority = false,
-  forceDark = false,
-  sizes = "(min-width: 1024px) 640px, 100vw",
+  sizes = "(min-width: 1024px) 900px, 100vw",
 }: {
   light: string;
   dark?: string;
   alt: string;
+  caption?: string;
   priority?: boolean;
-  forceDark?: boolean;
   sizes?: string;
 }) {
-  if (forceDark) {
-    return (
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-950 shadow-xl overflow-hidden">
-        <div className="relative w-full aspect-[16/9]">
-          <Image src={light} alt={alt} fill sizes={sizes} priority={priority} className="object-cover object-top" />
+  return (
+    <figure>
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl overflow-hidden">
+        <div className="relative w-full aspect-[1435/926] bg-white dark:bg-zinc-900">
+          <Image
+            src={light}
+            alt={alt}
+            fill
+            sizes={sizes}
+            priority={priority}
+            className={`object-cover object-top ${dark ? "dark:hidden" : ""}`}
+          />
+          {dark && (
+            <Image
+              src={dark}
+              alt={alt}
+              fill
+              sizes={sizes}
+              priority={priority}
+              className="hidden dark:block object-cover object-top"
+            />
+          )}
         </div>
       </div>
-    );
-  }
+      {caption && (
+        <figcaption className="mt-3 text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">{caption}</figcaption>
+      )}
+    </figure>
+  );
+}
+
+function PhonePlate({
+  light,
+  dark,
+  alt,
+  caption,
+  priority = false,
+  sizes = "260px",
+}: {
+  light: string;
+  dark?: string;
+  alt: string;
+  caption?: string;
+  priority?: boolean;
+  sizes?: string;
+}) {
   return (
-    <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl overflow-hidden">
-      <div className="relative w-full aspect-[16/9] bg-white dark:bg-zinc-900">
+    <figure>
+      <div className="rounded-[2rem] border-[6px] border-zinc-900 dark:border-zinc-700 bg-zinc-900 dark:bg-zinc-700 shadow-2xl overflow-hidden">
         <Image
           src={light}
           alt={alt}
-          fill
+          width={1206}
+          height={2622}
           sizes={sizes}
           priority={priority}
-          className={`object-cover object-top ${dark ? "dark:hidden" : ""}`}
+          className={`w-full h-auto rounded-[1.5rem] ${dark ? "dark:hidden" : ""}`}
         />
         {dark && (
           <Image
             src={dark}
             alt={alt}
-            fill
+            width={1206}
+            height={2622}
             sizes={sizes}
             priority={priority}
-            className="hidden dark:block object-cover object-top"
+            className="hidden dark:block w-full h-auto rounded-[1.5rem]"
           />
         )}
       </div>
-    </div>
+      {caption && (
+        <figcaption className="mt-3 text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed text-center">{caption}</figcaption>
+      )}
+    </figure>
   );
 }
