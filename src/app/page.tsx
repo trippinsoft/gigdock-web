@@ -276,12 +276,17 @@ function PhonePlate({
    ============================================================ */
 
 function ScatteredProblem() {
+  // Colorful app-style tiles: each source that used to live somewhere else
+  // gets a distinct hue + glyph so the scan reads "different apps → one
+  // home" without needing a caption. Icons are generic app-tile shapes;
+  // no third-party brand marks. AppTile encapsulates the tile so the
+  // color story lives in one place.
   const scattered = [
-    { label: "Opportunities", icon: <IconSearch /> },
-    { label: "Dates", icon: <IconCalendar /> },
-    { label: "Hours", icon: <IconClock /> },
-    { label: "Payments", icon: <IconDollar /> },
-    { label: "Documents", icon: <IconDoc /> },
+    { label: "Opportunities", icon: <OpportunitiesAppIcon /> },
+    { label: "Dates", icon: <DatesAppIcon /> },
+    { label: "Hours", icon: <HoursAppIcon /> },
+    { label: "Payments", icon: <PaymentsAppIcon /> },
+    { label: "Documents", icon: <DocumentsAppIcon /> },
   ];
   return (
     <section className="relative py-10 sm:py-12 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-white dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800">
@@ -298,11 +303,11 @@ function ScatteredProblem() {
             {scattered.map((s, i) => (
               <div
                 key={s.label}
-                className={`flex flex-col items-center gap-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 px-3 py-3 text-xs text-zinc-500 dark:text-zinc-400 ${
+                className={`flex flex-col items-center gap-2 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-3 text-xs font-medium text-zinc-600 dark:text-zinc-300 shadow-sm ${
                   i === 1 ? "rotate-[-3deg]" : i === 3 ? "rotate-[2deg]" : i === 4 ? "rotate-[-1deg]" : ""
                 }`}
               >
-                <span className="text-zinc-400 dark:text-zinc-500">{s.icon}</span>
+                {s.icon}
                 {s.label}
               </div>
             ))}
@@ -319,8 +324,8 @@ function ScatteredProblem() {
 
         <div className="sm:hidden mt-6 flex flex-col gap-2 max-w-xs mx-auto">
           {scattered.map((s) => (
-            <div key={s.label} className="flex items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 px-4 py-2.5 text-sm text-zinc-600 dark:text-zinc-300">
-              <span className="text-zinc-400 dark:text-zinc-500">{s.icon}</span>
+            <div key={s.label} className="flex items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-200 shadow-sm">
+              {s.icon}
               {s.label}
             </div>
           ))}
@@ -339,6 +344,103 @@ function ScatteredProblem() {
         </p>
       </div>
     </section>
+  );
+}
+
+/* ── ScatteredProblem app-tile icons ─────────────────────────────────────
+   Each source gets a distinct hue + glyph so the section reads as five
+   different apps consolidating into one GigDock home. All are inline SVG,
+   sized once at h-9 w-9 (36px) with a soft interior shadow via a linear
+   gradient on the tile background. No brand marks; shapes are the
+   universal glyph for the concept (magnifier, calendar, clock, dollar,
+   folded document). */
+
+function AppTile({
+  children,
+  from,
+  to,
+  ariaLabel,
+}: {
+  children: React.ReactNode;
+  from: string;
+  to: string;
+  ariaLabel: string;
+}) {
+  return (
+    <span
+      role="img"
+      aria-label={ariaLabel}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br ${from} ${to} text-white shadow-[0_2px_4px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.25)]`}
+    >
+      {children}
+    </span>
+  );
+}
+
+function OpportunitiesAppIcon() {
+  return (
+    <AppTile ariaLabel="Opportunities" from="from-sky-500" to="to-blue-600">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <circle cx="11" cy="11" r="6.5" />
+        <path d="m20 20-3.6-3.6" />
+      </svg>
+    </AppTile>
+  );
+}
+
+function DatesAppIcon() {
+  // Calendar tile with a red header strip. Rendered as one SVG so the
+  // header colour lives with the glyph, not on the tile background.
+  return (
+    <span
+      role="img"
+      aria-label="Dates"
+      className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] bg-white dark:bg-zinc-100 shadow-[0_2px_4px_rgba(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.6)] overflow-hidden"
+    >
+      <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden>
+        <rect x="6" y="7" width="24" height="22" rx="3" fill="white" />
+        <rect x="6" y="7" width="24" height="7" rx="3" fill="#EF4444" />
+        <rect x="6" y="12" width="24" height="2" fill="#EF4444" />
+        <text x="18" y="26" textAnchor="middle" fontFamily="ui-sans-serif, system-ui, sans-serif" fontWeight="800" fontSize="12" fill="#18181B">
+          17
+        </text>
+      </svg>
+    </span>
+  );
+}
+
+function HoursAppIcon() {
+  return (
+    <AppTile ariaLabel="Hours" from="from-amber-400" to="to-amber-500">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <circle cx="12" cy="12" r="8.5" />
+        <path d="M12 7.5V12l3 2" />
+      </svg>
+    </AppTile>
+  );
+}
+
+function PaymentsAppIcon() {
+  return (
+    <AppTile ariaLabel="Payments" from="from-emerald-500" to="to-green-600">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M12 3v18" />
+        <path d="M17 6H9.75a3.25 3.25 0 0 0 0 6.5h4.5a3.25 3.25 0 0 1 0 6.5H7" />
+      </svg>
+    </AppTile>
+  );
+}
+
+function DocumentsAppIcon() {
+  return (
+    <AppTile ariaLabel="Documents" from="from-indigo-500" to="to-violet-600">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+        <path d="M14 3v5h5" />
+        <path d="M9 13h6" />
+        <path d="M9 17h4" />
+      </svg>
+    </AppTile>
   );
 }
 
