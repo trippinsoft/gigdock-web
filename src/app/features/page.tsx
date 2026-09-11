@@ -485,7 +485,7 @@ function Insights() {
         <FeatureRow title="Gig payment status" body="A donut of Paid vs Outstanding across the gigs in the window — with drill-throughs to the underlying gigs." />
         <FeatureRow title="Career patterns" pro body="Top company, top project, and average per workday over a wider window." />
         <FeatureRow title='"Where is my unpaid money?"' pro body="Aging buckets (current, 15–30, 31–60, 60+ days) so slow payers surface as a group." />
-        <FeatureRow title="Complete history" pro body="Look beyond the current period into any window your work history covers." />
+        <FeatureRow title="Historical insights & trends" pro body="Analyze your work across longer time periods. Your GigDock history is always stored — Pro unlocks the trend, comparison and reporting views across it." />
       </div>
     </Section>
   );
@@ -690,9 +690,9 @@ function FreeVsPro() {
     "Basic Documents: upload, classify, view, download, rename",
   ];
   const pro = [
-    "Complete history — look beyond the current period",
-    "Advanced Insights (career patterns, aging)",
-    "Advanced Reports & PDF / CSV exports",
+    "Historical insights & trends — analyze your work across longer time periods",
+    "Advanced Insights — career patterns, aging, and deeper analysis",
+    "Advanced Reports & PDF / CSV exports — report across your full GigDock history",
     "Tax Ready organizer",
     "Connect documents to specific gigs",
     "Advanced Alerts (mobile)",
@@ -710,6 +710,10 @@ function FreeVsPro() {
         <PlanColumn tone="free" title="GigDock" subtitle="Free" bullets={free} />
         <PlanColumn tone="pro" title="GigDock Pro" subtitle="Everything in GigDock, plus" bullets={pro} />
       </div>
+
+      <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">
+        Your GigDock history is always stored. Pro unlocks deeper analysis, reporting and organization across it.
+      </p>
     </Section>
   );
 }
