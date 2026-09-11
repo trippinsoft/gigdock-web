@@ -165,17 +165,48 @@ function Opportunities() {
         </div>
       </div>
 
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Callout title="Advanced Alerts" pro mobileOnly>
-          Get notified when a listing matches specific criteria you&rsquo;ve saved — region, work type, minimum pay, casting company, GigFit tier, and more. <em className="not-italic text-zinc-500 dark:text-zinc-400">Currently available in the GigDock mobile app.</em>
-        </Callout>
-        <Callout title="Providers keep their application flow">
-          Apply through the same channel the listing points to. GigDock helps you find and track the opportunity — it doesn&rsquo;t replace the provider&rsquo;s system.
-        </Callout>
-      </div>
+      <AdvancedAlertsPanel />
+
+      <Callout title="Providers keep their application flow">
+        Apply through the same channel the listing points to. GigDock helps you find and track the opportunity — it doesn&rsquo;t replace the provider&rsquo;s system.
+      </Callout>
 
       <Lifecycle />
     </Section>
+  );
+}
+
+function AdvancedAlertsPanel() {
+  return (
+    <div className="mt-10 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/60 dark:bg-blue-950/20 overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-6 lg:gap-8 items-center p-5 sm:p-6">
+        <div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+              Pro
+            </span>
+            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+              Mobile
+            </span>
+          </div>
+          <h3 className="mt-2 text-xl sm:text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 leading-tight">
+            Advanced Alerts — the listings you actually want, the moment they post.
+          </h3>
+          <p className="mt-3 text-sm sm:text-base text-zinc-600 dark:text-zinc-300 leading-relaxed">
+            Save personalized rules — region, work type, minimum pay, casting company, GigFit tier and more — and get notified the moment a matching opportunity goes live. Switch between personalized alerts, all-new-in-your-regions, or off without losing your saved rules.
+          </p>
+          <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+            Currently available in the GigDock mobile app.
+          </p>
+        </div>
+        <div className="mx-auto lg:mx-0 w-full max-w-[240px]">
+          <PhonePlate
+            light="/app/opportunity-alerts-mobile.png"
+            alt="GigDock Opportunity Alerts on iPhone: notification style options (Personalized alerts recommended, All new opportunities, Off), a Personalized alerts section with a Pro badge, and a saved My Alerts rule for AR, CA, CO, CT, FL, GA, IL, LA, MA, MS, NC, NJ, NY, SC, TN, TX with a Good Match+ filter — plus a Create alert button."
+          />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -710,10 +741,10 @@ function FeatureRow({ title, body, pro }: { title: string; body: string; pro?: b
   );
 }
 
-function Callout({ title, children, pro = false, mobileOnly = false }: { title: string; children: React.ReactNode; pro?: boolean; mobileOnly?: boolean }) {
+function Callout({ title, children, pro = false }: { title: string; children: React.ReactNode; pro?: boolean }) {
   return (
     <div
-      className={`rounded-2xl border px-5 py-5 ${
+      className={`mt-6 rounded-2xl border px-5 py-5 ${
         pro
           ? "border-blue-200 dark:border-blue-900/50 bg-blue-50/60 dark:bg-blue-950/20"
           : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900"
@@ -724,11 +755,6 @@ function Callout({ title, children, pro = false, mobileOnly = false }: { title: 
         {pro && (
           <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
             Pro
-          </span>
-        )}
-        {mobileOnly && (
-          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
-            Mobile
           </span>
         )}
       </div>
