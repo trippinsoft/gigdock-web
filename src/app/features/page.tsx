@@ -325,7 +325,7 @@ function AdvancedAlertsPanel() {
             </span>
           </div>
           <h3 className="mt-2 text-xl sm:text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 leading-tight">
-            Advanced Alerts — the listings you actually want, the moment they post.
+            Advanced Alerts — the listings you actually want, the moment they arrive.
           </h3>
           <p className="mt-3 text-sm sm:text-base text-zinc-600 dark:text-zinc-300 leading-relaxed">
             Save personalized rules — region, work type, minimum pay, casting company, GigFit tier and more — and get notified the moment a matching opportunity goes live. Switch between personalized alerts, all-new-in-your-regions, or off without losing your saved rules.
