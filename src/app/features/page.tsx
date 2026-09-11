@@ -619,11 +619,20 @@ function AIConnections() {
   ];
   return (
     <Section id="ai" tone="alt">
-      <SectionHeader
-        eyebrow="8 · AI Connections"
-        title="Ask AI about your GigDock data."
-        lead="Connect GigDock to supported AI assistants and ask questions about your work in plain English. Financial answers come from GigDock&rsquo;s own calculations, not AI guesswork."
-      />
+      <div className="max-w-3xl">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Eyebrow>8 · AI Connections</Eyebrow>
+          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+            Pro
+          </span>
+        </div>
+        <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 leading-tight text-balance">
+          Ask AI about your GigDock data.
+        </h2>
+        <p className="mt-4 text-base sm:text-lg text-zinc-600 dark:text-zinc-300 leading-relaxed">
+          Connect GigDock to supported AI assistants and ask questions about your work in plain English. Financial answers come from GigDock&rsquo;s own calculations, not AI guesswork.
+        </p>
+      </div>
 
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 lg:gap-10">
         <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-5 py-5 sm:px-6 sm:py-6">
@@ -678,9 +687,7 @@ function FreeVsPro() {
     "Full Gig Management: dates, hours, Additional Pay, notes",
     "Payments per Gig: expected, received, outstanding",
     "Basic Insights for the current period",
-    "Basic Alerts (mobile)",
     "Basic Documents: upload, classify, view, download, rename",
-    "Read-only AI connection setup (MCP)",
   ];
   const pro = [
     "Complete history — look beyond the current period",
@@ -689,6 +696,7 @@ function FreeVsPro() {
     "Tax Ready organizer",
     "Connect documents to specific gigs",
     "Advanced Alerts (mobile)",
+    "AI connections (MCP) — Claude, ChatGPT, Cursor",
   ];
   return (
     <Section id="free-vs-pro">
