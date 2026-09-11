@@ -9,6 +9,9 @@ const DESCRIPTION =
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
+  // Partners is available via direct URL but not promoted to search or the
+  // public site during the worker/customer launch.
+  robots: { index: false, follow: false },
   alternates: { canonical: "/partners" },
   openGraph: { title: TITLE, description: DESCRIPTION, type: "website", siteName: "GigDock" },
 };

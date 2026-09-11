@@ -89,7 +89,6 @@ export default async function Home() {
       <OpportunitiesRail preview={preview} />
       <ProductShowcase />
       <AudienceExpansion />
-      <PartnerBand />
       <FinalCta />
     </PublicShell>
   );
@@ -654,35 +653,6 @@ function AudienceExpansion() {
             <span className="text-sm font-medium text-zinc-800 dark:text-zinc-100 leading-snug">{r.label}</span>
           </div>
         ))}
-      </div>
-    </section>
-  );
-}
-
-/* ============================================================
-   SECTION 7 — Compact partner band
-   The full ecosystem illustration lives on /partners — the
-   homepage just gets a tight cross-link.
-   ============================================================ */
-
-function PartnerBand() {
-  return (
-    <section className="py-10 sm:py-12">
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-5 py-6 sm:px-8 sm:py-7 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-5 md:gap-8 items-center">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-            Have opportunities to share?
-          </h2>
-          <p className="mt-2 text-sm sm:text-base text-zinc-600 dark:text-zinc-400 leading-relaxed">
-            GigDock helps casting and production partners extend the reach of their opportunities while keeping control of their application workflow.
-          </p>
-        </div>
-        <Link
-          href="/partners"
-          className="justify-self-start md:justify-self-end inline-flex items-center gap-1 px-5 py-2.5 rounded-full border border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-100 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-        >
-          Partner with GigDock →
-        </Link>
       </div>
     </section>
   );

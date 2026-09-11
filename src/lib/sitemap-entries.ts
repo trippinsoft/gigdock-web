@@ -43,7 +43,9 @@ export function staticSitemapEntries(): MetadataRoute.Sitemap {
     { url: SITEMAP_BASE, changeFrequency: "hourly", priority: 1 },
     { url: `${SITEMAP_BASE}/opportunities`, changeFrequency: "hourly", priority: 0.9 },
     { url: `${SITEMAP_BASE}/features`, changeFrequency: "monthly", priority: 0.8 },
-    { url: `${SITEMAP_BASE}/partners`, changeFrequency: "monthly", priority: 0.6 },
+    // /partners is intentionally excluded — the provider surface is not
+    // promoted for the worker/customer launch (see PublicShell nav + partners
+    // page metadata: noindex).
     { url: `${SITEMAP_BASE}/resources`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${SITEMAP_BASE}/about`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITEMAP_BASE}/app`, changeFrequency: "weekly", priority: 0.9 },
