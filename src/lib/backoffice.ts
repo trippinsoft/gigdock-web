@@ -204,6 +204,38 @@ export async function getCompanies() {
   return (data ?? []) as { id: string; name: string; kind: string }[];
 }
 
+/** The user's gigs, shaped for a document-connection picker. Matches mobile
+ * loadDocumentGigsGET: title + location + date span + active/past status so
+ * similar gigs are distinguishable. Newest first. */
+export async function getUserGigsForPicker(): Promise<
+  {
+    id: string;
+    title: string;
+    location: string | null;
+    start_date: string | null;
+    end_date: string | null;
+    active: boolean;
+  }[]
+> {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase
+    .from("gigs")
+    .select("id, title, location, start_date, end_date, active")
+    .is("deleted_at", null)
+    .not("title", "eq", "")
+    .order("start_date", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as {
+    id: string;
+    title: string;
+    location: string | null;
+    start_date: string | null;
+    end_date: string | null;
+    active: boolean;
+  }[];
+}
+
 /** The user's projects (for the project picker). */
 export async function getProjects() {
   const supabase = await createSupabaseServer();

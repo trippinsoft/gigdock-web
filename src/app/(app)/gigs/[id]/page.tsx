@@ -23,6 +23,7 @@ import type {
 import { paymentStatusOf } from "@/lib/gigBuckets";
 import { StatusPill } from "@/components/app/ui";
 import GigTabs, { type GigTab } from "@/components/app/GigTabs";
+import GigDocumentsSection from "@/components/app/GigDocumentsSection";
 import { money, shortDate, dateRange } from "@/lib/format";
 import { documentTypeLabel } from "@/lib/documentTypes";
 
@@ -101,7 +102,7 @@ export default async function GigWorkspacePage({
     { id: "overview", label: "Overview", content: <OverviewPanel gig={gig} dates={dates} bumps={bumps} gigId={id} userId={userId} bumpsOnlyDateIds={bumpsOnlyDateIds} /> },
     { id: "gig-days", label: "Gig Days", count: allDates.length, content: <GigDaysPanel id={id} dates={allDates} bumpsByDate={bumpsByDate} bumpsOnlyDateIds={bumpsOnlyDateIds} /> },
     { id: "payments", label: "Payments", count: payments.length, content: <PaymentsPanel id={id} payments={payments} earned={earned} paid={paid} remaining={remaining} /> },
-    { id: "documents", label: "Documents", count: docs.length, content: <DocumentsPanel docs={docs} /> },
+    { id: "documents", label: "Documents", count: docs.length, content: <DocumentsPanel docs={docs} gigId={id} gigTitle={gig.title || "Untitled gig"} /> },
   ];
 
   return (
@@ -292,12 +293,17 @@ function PaymentsPanel({ id, payments, earned, paid, remaining }: { id: string; 
   );
 }
 
-function DocumentsPanel({ docs }: { docs: (DocumentRow & { url?: string })[] }) {
-  if (docs.length === 0) return <Empty>No documents for this gig yet.</Empty>;
+function DocumentsPanel({ docs, gigId, gigTitle }: { docs: (DocumentRow & { url?: string })[]; gigId: string; gigTitle: string }) {
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
-      {docs.map((d) => <DocRow key={d.id} d={d} />)}
-    </div>
+    <GigDocumentsSection gigId={gigId} gigTitle={gigTitle}>
+      {docs.length === 0 ? (
+        <Empty>No documents for this gig yet.</Empty>
+      ) : (
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
+          {docs.map((d) => <DocRow key={d.id} d={d} />)}
+        </div>
+      )}
+    </GigDocumentsSection>
   );
 }
 

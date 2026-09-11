@@ -509,10 +509,19 @@ export async function deletePayment(
   }
 }
 
-/** Rename a document or change its type. Does not connect a gig (that's Pro). */
+/** Rename a document, change its type/date/notes. Gig linking lives in a
+ * separate action (updateDocumentGig) because it is Pro-gated and mobile
+ * exposes it through its own picker screen, not the general edit form. */
 export async function updateDocumentMeta(
   id: string,
-  fields: { display_name: string; document_type: string }
+  fields: {
+    display_name: string;
+    document_type: string;
+    /** ISO YYYY-MM-DD or null to clear. Undefined = leave unchanged. */
+    document_date?: string | null;
+    /** Free text; null clears, undefined leaves unchanged. */
+    notes?: string | null;
+  }
 ): Promise<ActionResult> {
   try {
     const { supabase } = await client();
@@ -523,13 +532,28 @@ export async function updateDocumentMeta(
     if (!isDocumentType(fields.document_type)) {
       return { ok: false, error: "Choose a valid document type." };
     }
+    if (
+      fields.document_date != null &&
+      fields.document_date !== "" &&
+      !/^\d{4}-\d{2}-\d{2}$/.test(fields.document_date)
+    ) {
+      return { ok: false, error: "Enter the date as YYYY-MM-DD." };
+    }
+    const patch: Record<string, unknown> = {
+      display_name: name,
+      document_type: fields.document_type,
+      updated_at: new Date().toISOString(),
+    };
+    if (fields.document_date !== undefined) {
+      patch.document_date = fields.document_date === "" ? null : fields.document_date;
+    }
+    if (fields.notes !== undefined) {
+      const trimmed = fields.notes?.trim() ?? "";
+      patch.notes = trimmed === "" ? null : trimmed;
+    }
     const { error } = await supabase
       .from("documents")
-      .update({
-        display_name: name,
-        document_type: fields.document_type,
-        updated_at: new Date().toISOString(),
-      })
+      .update(patch)
       .eq("id", id)
       .is("deleted_at", null);
     if (error) throw error;
@@ -538,6 +562,194 @@ export async function updateDocumentMeta(
     revalidatePath("/reports/taxReady");
     revalidatePath("/reports/documents");
     return { ok: true };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+/** Insert a documents row for a file the browser client just uploaded to
+ * Storage. Mirrors the mobile insert exactly (same columns, no rpc). The
+ * storage_path must live under the user's own prefix — belt-and-braces on top
+ * of Storage RLS. Setting a gig_id requires the caller be Pro; a Free user's
+ * gig_id is silently coerced to null so the upload still succeeds (matches the
+ * mobile flow: keep the document, offer the Pro upsell afterward). */
+export async function createDocument(fields: {
+  storage_path: string;
+  original_file_name: string;
+  mime_type: string;
+  file_size: number;
+  display_name: string;
+  document_type: string;
+  document_date: string | null;
+  notes: string | null;
+  gig_id: string | null;
+}): Promise<
+  ActionResult<{ id: string; gig_id: string | null; storage_path: string }>
+> {
+  try {
+    const { supabase, user } = await client();
+    const name = fields.display_name.trim();
+    if (name.length < 1 || name.length > 160) {
+      return { ok: false, error: "Name must be between 1 and 160 characters." };
+    }
+    if (!isDocumentType(fields.document_type)) {
+      return { ok: false, error: "Choose a valid document type." };
+    }
+    if (
+      fields.document_date &&
+      !/^\d{4}-\d{2}-\d{2}$/.test(fields.document_date)
+    ) {
+      return { ok: false, error: "Enter the date as YYYY-MM-DD." };
+    }
+    if (!fields.storage_path.startsWith(`${user.id}/`)) {
+      return { ok: false, error: "That upload could not be saved." };
+    }
+
+    // Pro gating: Free users may still create the record; the gig association
+    // is dropped. Matches mobile AddDocumentScreen behavior.
+    let gigId: string | null = fields.gig_id;
+    if (gigId) {
+      const { data: pro } = await supabase.rpc("has_active_entitlement", {
+        p_product: "pro",
+      });
+      if (!pro) gigId = null;
+      else {
+        const { data: gig, error: gigErr } = await supabase
+          .from("gigs")
+          .select("id")
+          .eq("id", gigId)
+          .is("deleted_at", null)
+          .maybeSingle();
+        if (gigErr) throw gigErr;
+        if (!gig) return { ok: false, error: "That gig could not be found." };
+      }
+    }
+
+    const { data, error } = await supabase
+      .from("documents")
+      .insert({
+        user_id: user.id,
+        gig_id: gigId,
+        document_type: fields.document_type,
+        display_name: name,
+        storage_path: fields.storage_path,
+        original_file_name: fields.original_file_name,
+        mime_type: fields.mime_type,
+        file_size: fields.file_size,
+        document_date: fields.document_date,
+        notes: fields.notes?.trim() || null,
+      })
+      .select("id, gig_id, storage_path")
+      .single();
+    if (error) throw error;
+    revalidatePath("/documents");
+    revalidatePath("/tax-ready");
+    revalidatePath("/reports/taxReady");
+    revalidatePath("/reports/documents");
+    if (gigId) revalidatePath(`/gigs/${gigId}`);
+    return {
+      ok: true,
+      data: {
+        id: data.id as string,
+        gig_id: (data.gig_id as string | null) ?? null,
+        storage_path: data.storage_path as string,
+      },
+    };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+/** Change a document's gig association. Pass null to detach ("Personal
+ * Documents" in mobile). Pro-gated because gig linking is Pro. */
+export async function updateDocumentGig(
+  id: string,
+  gigId: string | null
+): Promise<ActionResult<{ gig_id: string | null; previous_gig_id: string | null }>> {
+  try {
+    const { supabase } = await client();
+    const { data: pro } = await supabase.rpc("has_active_entitlement", {
+      p_product: "pro",
+    });
+    if (!pro) return { ok: false, error: "Connecting documents to gigs is a Pro feature." };
+
+    const { data: existing, error: readErr } = await supabase
+      .from("documents")
+      .select("gig_id")
+      .eq("id", id)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (readErr) throw readErr;
+    if (!existing) return { ok: false, error: "That document could not be found." };
+
+    if (gigId) {
+      const { data: gig, error: gigErr } = await supabase
+        .from("gigs")
+        .select("id")
+        .eq("id", gigId)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (gigErr) throw gigErr;
+      if (!gig) return { ok: false, error: "That gig could not be found." };
+    }
+
+    const { error } = await supabase
+      .from("documents")
+      .update({ gig_id: gigId, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .is("deleted_at", null);
+    if (error) throw error;
+
+    const previousGigId = (existing.gig_id as string | null) ?? null;
+    revalidatePath("/documents");
+    if (previousGigId) revalidatePath(`/gigs/${previousGigId}`);
+    if (gigId) revalidatePath(`/gigs/${gigId}`);
+    return { ok: true, data: { gig_id: gigId, previous_gig_id: previousGigId } };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+/** Delete a document. Matches mobile: row is removed and the Storage object is
+ * cleaned up too so the private bucket does not accumulate orphans. If the
+ * Storage remove fails after the row is gone, the row deletion still wins —
+ * the file becomes an orphan we can sweep later, same behavior as mobile. */
+export async function deleteDocument(
+  id: string
+): Promise<ActionResult<{ storage_path: string; gig_id: string | null }>> {
+  try {
+    const { supabase } = await client();
+    const { data: existing, error: readErr } = await supabase
+      .from("documents")
+      .select("id, storage_path, gig_id")
+      .eq("id", id)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (readErr) throw readErr;
+    if (!existing) return { ok: false, error: "That document could not be found." };
+
+    const { error: delErr } = await supabase.from("documents").delete().eq("id", id);
+    if (delErr) throw delErr;
+
+    // Best-effort storage cleanup (matches mobile order: row first, then file).
+    await supabase.storage
+      .from("documents")
+      .remove([existing.storage_path as string])
+      .catch(() => undefined);
+
+    revalidatePath("/documents");
+    revalidatePath("/tax-ready");
+    revalidatePath("/reports/taxReady");
+    revalidatePath("/reports/documents");
+    const gigId = (existing.gig_id as string | null) ?? null;
+    if (gigId) revalidatePath(`/gigs/${gigId}`);
+    return {
+      ok: true,
+      data: {
+        storage_path: existing.storage_path as string,
+        gig_id: gigId,
+      },
+    };
   } catch (e) {
     return { ok: false, error: msg(e) };
   }
