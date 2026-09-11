@@ -60,33 +60,41 @@ export default function FeaturesPage() {
 function Hero() {
   return (
     <section className="pt-8 pb-10 sm:pt-10 sm:pb-12">
-      <div className="max-w-4xl">
-        <Eyebrow>Everything Behind the Gig</Eyebrow>
-        <h1 className="mt-3 text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 leading-[1.05] text-balance">
-          One place for the work behind your work.
-        </h1>
-        <p className="mt-5 text-lg sm:text-xl text-zinc-600 dark:text-zinc-300 leading-relaxed max-w-2xl">
-          Find opportunities. Manage your gigs. Track your money. Keep your records organized. Understand what your work is adding up to.
-        </p>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.15fr] gap-10 lg:gap-14 items-center">
+        {/* Left column — copy + CTAs. Reads first on every viewport. */}
+        <div>
+          <Eyebrow>Everything Behind the Gig</Eyebrow>
+          <h1 className="mt-3 text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 leading-[1.05] text-balance">
+            One place for the work behind your work.
+          </h1>
+          <p className="mt-5 text-lg sm:text-xl text-zinc-600 dark:text-zinc-300 leading-relaxed max-w-2xl">
+            Find opportunities. Manage your gigs. Track your money. Keep your records organized. Understand what your work is adding up to.
+          </p>
 
-        <div className="mt-6 flex flex-col sm:flex-row gap-3">
-          <Link
-            href="/signup"
-            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-blue-600 hover:bg-blue-700 px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors"
-          >
-            Get Started Free
-          </Link>
-          <Link
-            href="/opportunities"
-            className="inline-flex items-center justify-center gap-1.5 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-6 py-3 text-base font-semibold text-zinc-800 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-          >
-            Explore Opportunities
-          </Link>
+          <div className="mt-6 flex flex-col sm:flex-row gap-3">
+            <Link
+              href="/signup"
+              className="inline-flex items-center justify-center gap-1.5 rounded-full bg-blue-600 hover:bg-blue-700 px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors"
+            >
+              Get Started Free
+            </Link>
+            <Link
+              href="/opportunities"
+              className="inline-flex items-center justify-center gap-1.5 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-6 py-3 text-base font-semibold text-zinc-800 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+            >
+              Explore Opportunities
+            </Link>
+          </div>
+
+          <p className="mt-6 text-sm text-zinc-500 dark:text-zinc-400">
+            GigDock is available on <span className="font-semibold text-zinc-700 dark:text-zinc-200">web, iPhone and Android</span>.
+          </p>
         </div>
 
-        <p className="mt-6 text-sm text-zinc-500 dark:text-zinc-400">
-          GigDock is available on <span className="font-semibold text-zinc-700 dark:text-zinc-200">web, iPhone and Android</span>.
-        </p>
+        {/* Right column — real product composition. On mobile this stacks
+            below the CTAs; on lg+ the phone overlaps the web plate for a
+            two-surface story (web management + mobile discovery). */}
+        <HeroComposition />
       </div>
 
       <nav aria-label="Section navigation" className="mt-10 flex flex-wrap gap-2">
@@ -104,6 +112,52 @@ function Hero() {
   );
 }
 
+// The hero product composition. Two real GigDock screenshots layered so
+// the reader immediately sees that GigDock covers both the web
+// management surface and the mobile discovery surface: the wide web My
+// Gigs plate is dominant, and the mobile Opportunities feed overlaps its
+// lower-left corner on lg+ viewports. On mobile the phone drops below the
+// web plate rather than overlapping (avoids covering critical UI when the
+// composition is small). No fake chrome, no fabricated screens.
+function HeroComposition() {
+  return (
+    <div className="relative">
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl overflow-hidden">
+        <div className="relative w-full aspect-[1435/926] bg-white dark:bg-zinc-900">
+          <Image
+            src="/app/my-gigs-web.png"
+            alt="GigDock My Gigs on the web: a list of gigs on the left and a single Gig Detail on the right showing Earned $300, Received $175, Outstanding $125, plus a Work Summary and an Additional Pay list."
+            fill
+            sizes="(min-width: 1024px) 640px, 100vw"
+            priority
+            className="object-cover object-top"
+          />
+        </div>
+      </div>
+      {/* Phone overlay — lg+ only, positioned outside the plate's flow so
+          it hangs off the lower-left corner. Sits in front (z-10) but
+          leaves the important right-hand Gig Detail numbers uncovered. */}
+      <div className="hidden lg:block absolute -bottom-8 -left-10 z-10 w-[180px] xl:w-[200px]">
+        <PhonePlate
+          light="/app/opportunities-feed.png"
+          dark="/app/opportunities-feed-dark.png"
+          alt="GigDock Opportunities feed on iPhone."
+          sizes="200px"
+        />
+      </div>
+      {/* Phone stacked — hidden on lg+ where the overlay handles it. */}
+      <div className="lg:hidden mt-6 mx-auto w-full max-w-[220px]">
+        <PhonePlate
+          light="/app/opportunities-feed.png"
+          dark="/app/opportunities-feed-dark.png"
+          alt="GigDock Opportunities feed on iPhone."
+          sizes="220px"
+        />
+      </div>
+    </div>
+  );
+}
+
 /* ================================================================
    Framework — the Discover / Manage / Track / Understand overview
    is a lightweight scene-setter, not a substitute for the sections.
@@ -111,24 +165,105 @@ function Hero() {
 
 function Framework() {
   const items = [
-    { title: "Discover", body: "Opportunities from across the industry, ranked and filtered by what actually fits." },
-    { title: "Manage", body: "The work behind the gig — dates, hours, additional pay, notes, projects, companies." },
-    { title: "Track", body: "Earned versus received. Outstanding versus paid. Gross versus net. Never guessing." },
-    { title: "Understand", body: "What your gig year is adding up to, month over month, company over company." },
+    {
+      label: "Discover",
+      title: "Find work worth pursuing",
+      body: "Search, filter and assess potential fit across opportunities from multiple sources.",
+      icon: <IconDiscover />,
+    },
+    {
+      label: "Manage",
+      title: "Keep every gig organized",
+      body: "Dates, hours, pay, notes, companies, documents and work status stay together.",
+      icon: <IconManage />,
+    },
+    {
+      label: "Track",
+      title: "Know where your money stands",
+      body: "See what you earned, what you received and what is still outstanding.",
+      icon: <IconTrack />,
+    },
+    {
+      label: "Understand",
+      title: "See the bigger picture",
+      body: "Understand your work activity, earnings patterns and history over time.",
+      icon: <IconUnderstand />,
+    },
   ];
   return (
-    <section className="py-10 sm:py-12 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-white dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800">
+    <section className="py-12 sm:py-16 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-white dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800">
       <div className="max-w-5xl mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="max-w-3xl">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 leading-tight text-balance">
+            Everything around the gig, connected.
+          </h2>
+          <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-300 leading-relaxed">
+            From finding the opportunity to getting paid and understanding what your work is adding up to, GigDock keeps the whole lifecycle together.
+          </p>
+        </div>
+
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {items.map((it) => (
-            <div key={it.title} className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-950 px-5 py-5">
-              <div className="text-xs font-bold uppercase tracking-[0.12em] text-blue-600 dark:text-blue-400">{it.title}</div>
-              <p className="mt-2 text-sm sm:text-[15px] text-zinc-600 dark:text-zinc-300 leading-relaxed">{it.body}</p>
+            <div
+              key={it.label}
+              className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-950 px-5 py-5 flex flex-col"
+            >
+              <span
+                aria-hidden
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300"
+              >
+                {it.icon}
+              </span>
+              <div className="mt-4 text-[11px] font-bold uppercase tracking-[0.14em] text-blue-600 dark:text-blue-400">
+                {it.label}
+              </div>
+              <h3 className="mt-1.5 text-base sm:text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-snug">
+                {it.title}
+              </h3>
+              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                {it.body}
+              </p>
             </div>
           ))}
         </div>
       </div>
     </section>
+  );
+}
+
+/* Framework icons — simple line strokes consistent with GigDock's existing
+ * SVG treatment. Sized via the parent container; strokeWidth stays constant
+ * so the four icons read as one family. */
+function IconDiscover() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
+  );
+}
+function IconManage() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="2" y="7" width="20" height="14" rx="2" />
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+    </svg>
+  );
+}
+function IconTrack() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M12 2v20" />
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
+  );
+}
+function IconUnderstand() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M3 3v18h18" />
+      <path d="m7 15 4-4 3 3 5-6" />
+    </svg>
   );
 }
 
