@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import { stateLabel } from "@/components/FilterChips";
 import {
@@ -10,6 +10,10 @@ import {
   type PerformerProfile,
   type ProfileFieldKey,
 } from "@/lib/gigfit";
+import WorkRolesPicker from "@/components/app/WorkRolesPicker";
+import { hasPerformerRole, type WorkRoleCatalogRow } from "@/lib/workRoles";
+import { updateWorkRoles } from "@/lib/backoffice-actions";
+import { trackOnboarding } from "@/lib/onboardingEvents";
 
 // Major production markets first — most users pick one of these.
 const TOP_MARKETS = ["GA", "CA", "NY", "NM", "IL", "LA", "TX", "NC", "NV", "FL", "ON", "BC"];
@@ -80,6 +84,16 @@ export default function ProfilePage() {
   // Served markets come from the admin-managed `markets` table so the list can
   // change without a redeploy; the hardcoded ALL_MARKETS is a safe fallback.
   const [marketOptions, setMarketOptions] = useState<string[]>(ALL_MARKETS);
+  // Work roles — top-of-page editor. The casting section below only renders
+  // when the current selection contains a performer role.
+  const [catalog, setCatalog] = useState<WorkRoleCatalogRow[]>([]);
+  const [roleSelection, setRoleSelection] = useState<Set<string>>(() => new Set());
+  const [roleOther, setRoleOther] = useState("");
+  const [rolesDirty, setRolesDirty] = useState(false);
+  const [rolesSaving, setRolesSaving] = useState(false);
+  const [rolesSavedAt, setRolesSavedAt] = useState<string | null>(null);
+  const [rolesError, setRolesError] = useState<string | null>(null);
+  const rolesLoadedRef = useRef(false);
 
   useEffect(() => {
     (async () => {
@@ -92,6 +106,82 @@ export default function ProfilePage() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Load the work-roles catalog + current selection once.
+  useEffect(() => {
+    if (rolesLoadedRef.current) return;
+    rolesLoadedRef.current = true;
+    (async () => {
+      const [catalogRes, profileRes] = await Promise.all([
+        supabase
+          .from("work_roles_catalog")
+          .select("role_key, label, category, is_performer, sort_order, is_active")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
+        supabase.auth.getUser().then(async ({ data }) => {
+          if (!data.user) return null;
+          const { data: p } = await supabase
+            .from("profiles")
+            .select("work_roles, work_roles_other")
+            .eq("user_id", data.user.id)
+            .maybeSingle();
+          return p;
+        }),
+      ]);
+      if (catalogRes.data) setCatalog(catalogRes.data as WorkRoleCatalogRow[]);
+      if (profileRes) {
+        setRoleSelection(new Set((profileRes.work_roles as string[] | null) ?? []));
+        setRoleOther((profileRes.work_roles_other as string | null) ?? "");
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const roleSelectionKeys = useMemo(
+    () => Array.from(roleSelection).sort(),
+    [roleSelection]
+  );
+  const isPerformer = useMemo(
+    () => hasPerformerRole(roleSelectionKeys, catalog),
+    [roleSelectionKeys, catalog]
+  );
+
+  function toggleRole(roleKey: string) {
+    setRolesDirty(true);
+    setRolesSavedAt(null);
+    setRolesError(null);
+    setRoleSelection((prev) => {
+      const next = new Set(prev);
+      if (next.has(roleKey)) next.delete(roleKey);
+      else next.add(roleKey);
+      return next;
+    });
+  }
+
+  async function saveRoles() {
+    setRolesError(null);
+    if (roleSelection.size === 0) {
+      setRolesError("Select at least one to save.");
+      return;
+    }
+    setRolesSaving(true);
+    const res = await updateWorkRoles(
+      roleSelectionKeys,
+      roleSelection.has("other") ? roleOther : null
+    );
+    setRolesSaving(false);
+    if (!res.ok) {
+      setRolesError(res.error);
+      return;
+    }
+    trackOnboarding("work_roles_updated", {
+      role_count: roleSelectionKeys.length,
+      roles: roleSelectionKeys,
+      has_performer_role: isPerformer,
+    });
+    setRolesDirty(false);
+    setRolesSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -263,14 +353,71 @@ export default function ProfilePage() {
     <div className="max-w-2xl space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-          My Casting Profile
+          Profile
         </h2>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-          Used only to match you with relevant film &amp; TV casting opportunities.
-          Every detail you add helps GigFit compare your profile with casting
-          requirements — you don&apos;t have to fill it all in at once.
+          Your work roles tailor GigDock to the kind of work you do. Casting
+          profile fields help GigFit match you to relevant opportunities.
         </p>
       </div>
+
+      {/* Work roles — always visible */}
+      <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
+        <div className="mb-3">
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            Work roles
+          </h3>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+            What kind of work do you do? Select all that apply.
+          </p>
+        </div>
+        {catalog.length === 0 ? (
+          <div className="text-xs text-zinc-500 dark:text-zinc-400">Loading…</div>
+        ) : (
+          <>
+            <WorkRolesPicker
+              catalog={catalog}
+              selected={roleSelection}
+              onToggle={toggleRole}
+              otherDetail={roleOther}
+              onOtherDetailChange={(v) => {
+                setRolesDirty(true);
+                setRolesSavedAt(null);
+                setRoleOther(v);
+              }}
+            />
+            {rolesError && (
+              <p className="mt-3 text-xs text-red-600 dark:text-red-400">{rolesError}</p>
+            )}
+            <div className="mt-4 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={saveRoles}
+                disabled={rolesSaving || !rolesDirty || roleSelection.size === 0}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-lg text-sm font-medium"
+              >
+                {rolesSaving ? "Saving…" : "Save work roles"}
+              </button>
+              {rolesSavedAt && (
+                <span className="text-xs text-green-600 dark:text-green-400">
+                  Saved at {rolesSavedAt}
+                </span>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {isPerformer ? (
+        <>
+          <div className="pt-2">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              Casting profile
+            </h3>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+              Used only to match you with relevant film &amp; TV casting opportunities. Every detail you add helps GigFit compare your profile with casting requirements — you don&apos;t have to fill it all in at once.
+            </p>
+          </div>
 
       {/* Profile name */}
       <Section
@@ -516,6 +663,12 @@ export default function ProfilePage() {
           </span>
         )}
       </div>
+        </>
+      ) : (
+        <div className="rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 px-4 py-4 text-sm text-zinc-500 dark:text-zinc-400">
+          Casting profile is available when your work roles include a performing role (Background Actor, Stand-In / Photo Double, Actor, Voice Actor, or Model). Add one above and it will appear here — your existing casting data (if any) is preserved and will reappear when a performer role is selected again.
+        </div>
+      )}
     </div>
   );
 }

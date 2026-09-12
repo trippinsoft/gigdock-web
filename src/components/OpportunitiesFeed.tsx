@@ -60,6 +60,7 @@ export default function OpportunitiesFeed({
   bareChrome = false,
   scopeLabel,
   now,
+  hideGigFit = false,
 }: {
   /** When set (a shared /opportunities/[id] link), that gig opens pre-selected. */
   initialSelectedId?: string;
@@ -78,6 +79,11 @@ export default function OpportunitiesFeed({
   /** Stable render-time clock (from the server on SSR-seeded pages) so the
    *  cards' relative times hydrate without a mismatch. */
   now?: number;
+  /** When true, GigFit-related UI is suppressed for this viewer. Set by the
+   *  server for signed-in users whose work_roles are non-empty and contain
+   *  no performer-triggering role (crew-only). Grandfathered users (never
+   *  answered) and performer / mixed users get the current behavior. */
+  hideGigFit?: boolean;
 } = {}) {
   const router = useRouter();
   const supabase = createSupabaseBrowser();
@@ -296,7 +302,11 @@ export default function OpportunitiesFeed({
     () => profiles.find((p) => p.id === gigfitProfileId) ?? null,
     [profiles, gigfitProfileId]
   );
-  const profileHasCriteria = !!selectedProfile && fieldsSet(selectedProfile).length > 0;
+  // Crew-only viewers (hideGigFit=true) always report no criteria so every
+  // downstream GigFit branch collapses. The performer_profiles rows they
+  // may still carry from before are ignored for feed personalization.
+  const profileHasCriteria =
+    !hideGigFit && !!selectedProfile && fieldsSet(selectedProfile).length > 0;
 
   useEffect(() => {
     (async () => {
@@ -744,8 +754,8 @@ export default function OpportunitiesFeed({
   );
 
   // Selectable GigFit profile — matching is recalculated against the chosen
-  // person. Not a passive indicator.
-  const gigfitControl = embedded ? null : profiles.length > 0 ? (
+  // person. Not a passive indicator. Hidden entirely for crew-only viewers.
+  const gigfitControl = hideGigFit ? null : embedded ? null : profiles.length > 0 ? (
     <select
       value={gigfitProfileId ?? ""}
       onChange={(e) => setGigfitProfileId(e.target.value || null)}
@@ -822,7 +832,7 @@ export default function OpportunitiesFeed({
             </div>
           )}
 
-          {selectedProfile && (
+          {!hideGigFit && selectedProfile && (
             fieldsSet(selectedProfile).length === 0 ? (
               <div className="text-sm text-zinc-600 dark:text-zinc-400">
                 <Link href="/profile" className="text-blue-600 dark:text-blue-400 underline underline-offset-2">Set up your profile</Link> to see your matches.

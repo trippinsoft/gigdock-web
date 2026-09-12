@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import OpportunitiesFeed from "@/components/OpportunitiesFeed";
 import AppShell from "@/components/AppShell";
-import { getSessionUser, getPlan } from "@/lib/backoffice";
+import {
+  getSessionUser,
+  getPlan,
+  getProfileWithWorkRoles,
+  hasPerformerRole,
+} from "@/lib/backoffice";
+import { isGrandfathered } from "@/lib/workRolesLaunch";
 import { loadActiveOpportunities } from "@/lib/load-opportunities";
 
 export const metadata: Metadata = {
@@ -26,10 +32,19 @@ export default async function OpportunitiesPage() {
   const [user, opps] = await Promise.all([getSessionUser(), loadActiveOpportunities()]);
   const now = Date.now();
   if (user) {
-    const plan = await getPlan();
+    const [plan, roleGate, isPerformer] = await Promise.all([
+      getPlan(),
+      getProfileWithWorkRoles(),
+      hasPerformerRole(),
+    ]);
+    // Crew-only viewer (answered roles, no performer role, not
+    // grandfathered) — suppress GigFit UI in the feed. Grandfathered and
+    // performer/mixed users get the current behavior.
+    const grandfathered = roleGate ? isGrandfathered(roleGate) : false;
+    const hideGigFit = !isPerformer && !grandfathered;
     return (
       <AppShell userEmail={user.email} plan={plan}>
-        <OpportunitiesFeed bareChrome initialOpps={opps} now={now} />
+        <OpportunitiesFeed bareChrome initialOpps={opps} now={now} hideGigFit={hideGigFit} />
       </AppShell>
     );
   }

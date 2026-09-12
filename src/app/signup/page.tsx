@@ -62,10 +62,15 @@ function SignupForm() {
 
   // Where to send the user after they have an account — and finish what they
   // started (auto-save / auto-mark-applied via ?do=, or GigFit setup). An
-  // explicit same-site ?next= (e.g. bounced back from /login) wins.
+  // explicit same-site ?next= (e.g. bounced back from /login) wins. New
+  // users are routed through /onboarding first (middleware also enforces
+  // this on first authenticated request as belt-and-braces); the intended
+  // destination survives via the preserved ?next= query.
   const nextParam = params.get("next");
   const completionPath = useMemo(() => {
-    if (nextParam && nextParam.startsWith("/")) return nextParam;
+    if (nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")) {
+      return nextParam;
+    }
     if (intent === "gigfit") return "/profile";
     if (intent === "manage") return "/today";
     if ((intent === "save" || intent === "applied") && oppId) {
@@ -74,6 +79,14 @@ function SignupForm() {
     return "/opportunities";
   }, [intent, oppId, nextParam]);
 
+  // New signups always go through work-roles onboarding first. The
+  // completionPath is preserved as ?next= so the flow ends at the same
+  // destination it would have without onboarding.
+  const postSignupPath = useMemo(
+    () => `/onboarding?next=${encodeURIComponent(completionPath)}`,
+    [completionPath]
+  );
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -81,6 +94,8 @@ function SignupForm() {
   const [checkEmail, setCheckEmail] = useState(false);
 
   // Already signed in? Skip the gate and go straight to finishing the task.
+  // If they haven't answered work-roles yet the middleware will re-route
+  // them through /onboarding — cheap belt-and-braces.
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) router.replace(completionPath);
@@ -93,8 +108,12 @@ function SignupForm() {
     setLoading(true);
     setError("");
 
+    // The confirm email needs to land on /onboarding so the user's very
+    // first authenticated moment goes through work-roles setup, but with
+    // ?next= carrying their original intent so the flow still finishes on
+    // the right destination.
     const emailRedirectTo =
-      typeof window !== "undefined" ? `${window.location.origin}${completionPath}` : undefined;
+      typeof window !== "undefined" ? `${window.location.origin}${postSignupPath}` : undefined;
 
     const { data, error: signErr } = await supabase.auth.signUp({
       email,
@@ -108,14 +127,14 @@ function SignupForm() {
       return;
     }
 
-    // If the project auto-confirms, we get a session now — continue the task.
+    // If the project auto-confirms, we have a session now — route to
+    // /onboarding, which will complete Work Roles then continue to
+    // completionPath.
     if (data.session) {
-      router.push(completionPath);
+      router.push(postSignupPath);
       router.refresh();
       return;
     }
-    // Otherwise email confirmation is required; the confirm link returns them to
-    // completionPath, so the task still finishes after they confirm.
     setCheckEmail(true);
     setLoading(false);
   }

@@ -13,12 +13,16 @@ import {
   getDisplayName,
   getDefaultPerformerProfile,
   getGigFit,
+  getProfileWithWorkRoles,
+  hasPerformerRole,
 } from "@/lib/backoffice";
 import type { FilteredGig } from "@/lib/backoffice-types";
 import { fieldsSet, fitTierColor, type GigFitResult, type GigFitTier } from "@/lib/gigfit";
+import { isGrandfathered } from "@/lib/workRolesLaunch";
 import { Panel } from "@/components/app/ui";
 import MasterRow from "@/components/app/MasterRow";
 import TodayGreeting from "@/components/app/TodayGreeting";
+import WorkRolesBanner from "@/components/app/WorkRolesBanner";
 import { PartialReveal } from "@/components/app/pro";
 import { money, shortDate, shortDateNoYear } from "@/lib/format";
 
@@ -37,7 +41,7 @@ export default async function TodayPage() {
   const todayStr = fmt(now);
   const tomorrowStr = fmt(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
 
-  const [earnedM, earnedP, receivedM, allSummary, workM, workP, attention, gigs, companies, payments, oppsRaw, displayName, profile] = await Promise.all([
+  const [earnedM, earnedP, receivedM, allSummary, workM, workP, attention, gigs, companies, payments, oppsRaw, displayName, profile, roleGate, isPerformer] = await Promise.all([
     getEarnedInRange(fmt(mStart), fmt(mEnd)),
     getEarnedInRange(fmt(pStart), fmt(mStart)),
     getReceivedInRange(fmt(mStart), fmt(mEnd)),
@@ -51,12 +55,26 @@ export default async function TodayPage() {
     getRecentOpportunities(30),
     getDisplayName(),
     getDefaultPerformerProfile(),
+    getProfileWithWorkRoles(),
+    hasPerformerRole(),
   ]);
 
-  // "Opportunities for you" — when the user has GigFit criteria, show only the
-  // ones they qualify for (eligible), ranked strong/good first; otherwise fall
-  // back to the latest few. Fit labels appear on the cards when GigFit is on.
-  const gigfitOn = !!profile && fieldsSet(profile).length > 0;
+  // Role-aware routing:
+  //  - Grandfathered users (created before WORK_ROLES_LAUNCH_DATE, never
+  //    answered roles) see the soft banner and retain existing GigFit
+  //    behavior — do not break their current experience mid-transition.
+  //  - Crew-only users (answered roles, none performer-triggering) get
+  //    no GigFit UI on Today.
+  //  - Performer / mixed users get the existing GigFit experience.
+  const grandfathered = roleGate
+    ? isGrandfathered(roleGate)
+    : false;
+  const showGigFit = grandfathered || isPerformer;
+
+  // "Opportunities for you" — when the user is performer-eligible and has
+  // any GigFit criteria set, show only the ones they qualify for (eligible),
+  // ranked strong/good first; otherwise fall back to the latest few.
+  const gigfitOn = showGigFit && !!profile && fieldsSet(profile).length > 0;
   const fitById = new Map<string, GigFitResult>();
   if (gigfitOn && profile) {
     for (const r of await getGigFit(profile.id)) fitById.set(r.opportunity_id, r);
@@ -107,6 +125,8 @@ export default async function TodayPage() {
         <TodayGreeting name={displayName} />
         <span className="text-sm text-zinc-400 dark:text-zinc-500">{dateLabel}</span>
       </div>
+
+      {grandfathered && <WorkRolesBanner />}
 
       {/* 1 — Next up (full width, image-forward) */}
       {nextUp && (
@@ -213,14 +233,18 @@ export default async function TodayPage() {
         )}
       </div>
 
-      {/* Opportunities — GigFit-personalized when the user has a profile */}
+      {/* Opportunities — GigFit-personalized when the user has a profile.
+          Crew-only users still see opportunities (no personalization); the
+          "Set up GigFit" nudge is suppressed for them. */}
       {(opps.length > 0 || gigfitOn) && (
         <div className="mt-8">
           <div className="flex items-baseline justify-between mb-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Opportunities for you</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              {showGigFit ? "Opportunities for you" : "Recent opportunities"}
+            </h2>
             <Link href="/opportunities" className="text-xs font-medium text-blue-600 dark:text-blue-400">View all →</Link>
           </div>
-          {!gigfitOn && (
+          {showGigFit && !gigfitOn && (
             <p className="mb-2 text-xs text-zinc-400 dark:text-zinc-500">
               <Link href="/profile" className="text-blue-600 dark:text-blue-400 hover:underline">Set up GigFit</Link> to see the ones that match you.
             </p>
