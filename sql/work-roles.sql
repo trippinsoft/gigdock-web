@@ -9,25 +9,32 @@
 --
 -- This file introduces:
 --   1. profiles work-role columns (work_roles, work_roles_other,
---      work_roles_set_at, work_roles_grandfathered_at)
+--      work_roles_set_at). No dedicated grandfather-marker column — we use
+--      the existing verified public.profiles.created_at against a
+--      WORK_ROLES_LAUNCH_DATE constant chosen at Phase 2 launch. This means
+--      anyone who signs up between Phase 1a and Phase 2 launch is still
+--      treated as an existing/grandfathered user by that later logic.
 --   2. work_roles_catalog — the authoritative catalog of allowed role keys,
 --      labels, categories, and is_performer flag. THE catalog. Not a mirror.
---   3. A validating RPC set_work_roles() that is the only sanctioned writer
---      of the role columns. A BEFORE UPDATE trigger blocks any other write
---      path so the RPC cannot be bypassed by clients hitting PostgREST
---      directly.
---   4. has_performer_role(user_id) — a single server-side authority for
---      whether a user's current work roles include any performer role,
---      derived from work_roles_catalog.is_performer. Both surfaces call this
---      helper rather than maintaining their own hard-coded performer key
---      lists.
---   5. A grandfather marker (work_roles_grandfathered_at) set to now() for
---      every profile that exists at migration time. We do NOT use
---      profiles.created_at for grandfathering because it is not read anywhere
---      in shipping code today and is not a reliable "when did this account
---      exist" signal for the trigger-created rows in production.
+--   3. A validating RPC set_work_roles(text[], text) that is the only
+--      sanctioned writer of the role columns. A BEFORE UPDATE trigger on
+--      profiles blocks any other write path so the RPC cannot be bypassed
+--      by clients hitting PostgREST directly. The trigger is the sole
+--      authoritative enforcement mechanism: per-column REVOKEs against
+--      anon/authenticated would be no-ops in this project because both
+--      roles hold table-wide UPDATE on public.profiles (audited 2026-09-12
+--      via the Supabase MCP), and revoking table-wide UPDATE and re-granting
+--      dozens of columns individually would create brittle per-column
+--      maintenance on every future profiles change.
+--   4. has_performer_role() — a single self-only server-side authority for
+--      whether the SIGNED-IN user's work roles include any performer role,
+--      derived from work_roles_catalog.is_performer. Self-only: no user_id
+--      argument, so one user cannot inspect another user's performer state.
+--      Both surfaces call this helper rather than maintaining their own
+--      hard-coded performer key lists.
 --
--- Idempotent — safe to re-run. Applied to production <date TBD>.
+-- Idempotent — safe to re-run. Applied to May 22 Backup <date> as rehearsal
+-- and to production RolePay <date> after review.
 -- ============================================================================
 
 
@@ -45,16 +52,16 @@ create table if not exists public.work_roles_catalog (
 
 alter table public.work_roles_catalog enable row level security;
 
--- Public read (needed for the picker on the anonymous marketing pages later
--- and for authenticated screens). Writes are restricted to service_role
--- (default Supabase grant); no policy for INSERT/UPDATE/DELETE is defined.
+-- Public read (needed for the picker on anonymous marketing pages later and
+-- for authenticated screens). Writes are restricted to service_role (default
+-- Supabase grant); no policy for INSERT/UPDATE/DELETE is defined.
 drop policy if exists work_roles_catalog_select_all on public.work_roles_catalog;
 create policy work_roles_catalog_select_all
   on public.work_roles_catalog
   for select
   using (true);
 
--- Seed the catalog. Uses upsert so re-running preserves DB-managed additions.
+-- Seed the catalog. Upsert so re-running preserves DB-managed additions.
 insert into public.work_roles_catalog (role_key, label, category, is_performer, sort_order)
 values
   ('background_actor',       'Background Actor',         'performing', true,  100),
@@ -80,34 +87,28 @@ on conflict (role_key) do update
 
 
 -- 2) profiles columns =======================================================
+-- New columns only. No grandfather-marker column: grandfathering uses the
+-- existing verified profiles.created_at column against a
+-- WORK_ROLES_LAUNCH_DATE constant set at Phase 2 launch (users created
+-- before that timestamp are treated as existing users). Intentionally NO
+-- GIN index in Phase 1 — add one when a real "find users by role" query
+-- surfaces.
 alter table public.profiles
-  add column if not exists work_roles                 text[]      not null default '{}'::text[],
-  add column if not exists work_roles_other           text,
-  add column if not exists work_roles_set_at          timestamptz,
-  add column if not exists work_roles_grandfathered_at timestamptz;
-
--- One-time grandfather marker: every row present at migration time is
--- flagged. New rows created after this migration have NULL, distinguishing
--- them from grandfathered users in later middleware logic.
-update public.profiles
-   set work_roles_grandfathered_at = now()
- where work_roles_grandfathered_at is null
-   and work_roles_set_at is null;
-
--- Intentionally NO GIN index in Phase 1. Add one when a real
--- "find users by role" query surfaces.
+  add column if not exists work_roles       text[]      not null default '{}'::text[],
+  add column if not exists work_roles_other text,
+  add column if not exists work_roles_set_at timestamptz;
 
 
 -- 3) Enforce set_work_roles as the only writer ==============================
 -- BEFORE UPDATE trigger rejects any change to the work-role columns that did
 -- not originate inside set_work_roles(). We prove that origin via a
 -- transaction-local GUC that only set_work_roles is allowed to set. The
--- server_role bypass keeps admin/backfill scripts working.
+-- service_role bypass keeps admin/backfill scripts working.
 create or replace function public.enforce_work_roles_via_rpc()
 returns trigger
 language plpgsql
 security invoker
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   jwt_role text;
@@ -129,7 +130,6 @@ begin
   if new.work_roles is distinct from old.work_roles
      or new.work_roles_other is distinct from old.work_roles_other
      or new.work_roles_set_at is distinct from old.work_roles_set_at
-     or new.work_roles_grandfathered_at is distinct from old.work_roles_grandfathered_at
   then
     raise exception 'Work-role columns can only be modified via set_work_roles()';
   end if;
@@ -146,7 +146,9 @@ create trigger enforce_work_roles_via_rpc_trg
 -- 4) set_work_roles(): the sanctioned writer ================================
 -- SECURITY DEFINER so it bypasses RLS on profiles (we validate the target
 -- user ourselves via auth.uid()). Sets the transaction-local guard so the
--- enforce trigger admits the write. Validates:
+-- enforce trigger admits the write. `search_path` pinned to `public,
+-- pg_temp` (defender against search-path shim attacks); every object is
+-- schema-qualified. Validates:
 --   - caller is authenticated
 --   - at least one role provided
 --   - every provided key exists AND is active in work_roles_catalog
@@ -159,7 +161,7 @@ create or replace function public.set_work_roles(
 ) returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   uid          uuid;
@@ -219,27 +221,35 @@ revoke execute on function public.set_work_roles(text[], text) from public;
 grant  execute on function public.set_work_roles(text[], text) to authenticated;
 
 
--- 5) has_performer_role(): single server-side authority =====================
--- Derived from work_roles_catalog.is_performer. There is no hard-coded list
--- of performer role keys on either surface — both call this helper so adding
--- a new performer role in the catalog automatically propagates.
-create or replace function public.has_performer_role(p_user_id uuid)
+-- 5) has_performer_role(): self-only server-side authority ==================
+-- No arguments. Derives the caller from auth.uid(). Prevents one user from
+-- inspecting another user's performer state. Backed by
+-- work_roles_catalog.is_performer — there is no hard-coded list of performer
+-- role keys on either surface; both call this helper.
+create or replace function public.has_performer_role()
 returns boolean
-language sql
+language plpgsql
 stable
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
-  select exists (
+declare
+  uid uuid;
+begin
+  uid := auth.uid();
+  if uid is null then
+    return false;
+  end if;
+  return exists (
     select 1
       from public.profiles p
       join public.work_roles_catalog c
         on c.role_key = any(p.work_roles)
        and c.is_performer
        and c.is_active
-     where p.user_id = p_user_id
+     where p.user_id = uid
   );
-$$;
+end $$;
 
-revoke execute on function public.has_performer_role(uuid) from public;
-grant  execute on function public.has_performer_role(uuid) to authenticated;
+revoke execute on function public.has_performer_role() from public;
+grant  execute on function public.has_performer_role() to authenticated;

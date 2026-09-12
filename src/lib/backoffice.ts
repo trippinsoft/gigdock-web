@@ -475,7 +475,8 @@ export async function getWorkRolesCatalog(): Promise<
   return (data ?? []) as import("./workRoles").WorkRoleCatalogRow[];
 }
 
-/** The signed-in user's profile plus its work-role fields. Returns null when
+/** The signed-in user's profile plus its work-role fields and created_at
+ * (used for grandfather-vs-new-user routing at Phase 2). Returns null when
  * unauthenticated. Compatibility helper so callers don't have to know which
  * columns are new. */
 export async function getProfileWithWorkRoles(): Promise<
@@ -483,6 +484,7 @@ export async function getProfileWithWorkRoles(): Promise<
       user_id: string;
       display_name: string | null;
       username: string | null;
+      created_at: string | null;
     } & import("./workRoles").ProfileWorkRoles)
   | null
 > {
@@ -492,7 +494,7 @@ export async function getProfileWithWorkRoles(): Promise<
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "user_id, display_name, username, work_roles, work_roles_other, work_roles_set_at, work_roles_grandfathered_at"
+      "user_id, display_name, username, created_at, work_roles, work_roles_other, work_roles_set_at"
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -502,23 +504,22 @@ export async function getProfileWithWorkRoles(): Promise<
     user_id: data.user_id as string,
     display_name: (data.display_name as string | null) ?? null,
     username: (data.username as string | null) ?? null,
+    created_at: (data.created_at as string | null) ?? null,
     work_roles: (data.work_roles as string[] | null) ?? [],
     work_roles_other: (data.work_roles_other as string | null) ?? null,
     work_roles_set_at: (data.work_roles_set_at as string | null) ?? null,
-    work_roles_grandfathered_at:
-      (data.work_roles_grandfathered_at as string | null) ?? null,
   };
 }
 
-/** Server-side authority for "does this user have any performer role?".
- * Wraps public.has_performer_role(uuid), which derives from
- * work_roles_catalog.is_performer — no hard-coded key list. Returns false
- * on error rather than throwing so callers can gate UI safely. */
-export async function hasPerformerRole(userId: string): Promise<boolean> {
+/** Server-side authority for "does the SIGNED-IN user have any performer
+ * role?". Wraps public.has_performer_role() (self-only, no argument),
+ * which derives from work_roles_catalog.is_performer and auth.uid() — no
+ * hard-coded key list and no ability to inspect other users' state.
+ * Returns false on error rather than throwing so callers can gate UI
+ * safely. */
+export async function hasPerformerRole(): Promise<boolean> {
   const supabase = await createSupabaseServer();
-  const { data, error } = await supabase.rpc("has_performer_role", {
-    p_user_id: userId,
-  });
+  const { data, error } = await supabase.rpc("has_performer_role");
   if (error) return false;
   return Boolean(data);
 }

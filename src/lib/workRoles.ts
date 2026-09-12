@@ -21,12 +21,16 @@ export interface WorkRoleCatalogRow {
 }
 
 /** The work-role fields on public.profiles. Read alongside the rest of the
- * profile row where the caller needs them. */
+ * profile row where the caller needs them. There is no dedicated
+ * grandfather column — grandfathering uses the existing verified
+ * profiles.created_at against a WORK_ROLES_LAUNCH_DATE constant that will
+ * be set at Phase 2 launch, so anyone who signs up between Phase 1a and
+ * Phase 2 launch is treated as an existing/grandfathered user by that
+ * later logic. */
 export interface ProfileWorkRoles {
   work_roles: string[];
   work_roles_other: string | null;
   work_roles_set_at: string | null;
-  work_roles_grandfathered_at: string | null;
 }
 
 /** True iff any of the given role keys refers to a performer role in the
