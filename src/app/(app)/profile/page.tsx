@@ -63,6 +63,22 @@ const BLANK: Draft = {
   notify_matches: false,
 };
 
+/** True when the draft carries at least one real performer/GigFit field.
+ * `label` and `notify_matches` don't count — they exist on every empty
+ * form. Used to prevent the onboarding Save & continue path from creating
+ * an empty performer_profiles row when the user has entered nothing. */
+function hasAnyPerformerData(d: Draft): boolean {
+  return (
+    d.markets.length > 0 ||
+    d.gender != null ||
+    d.ethnicity.length > 0 ||
+    d.date_of_birth != null ||
+    d.union_status != null ||
+    d.height_inches != null ||
+    d.weight_lbs != null
+  );
+}
+
 /** How many active gigs specify each criterion — powers the value-framed nudges. */
 type Coverage = {
   gender: number;
@@ -369,8 +385,21 @@ function ProfilePageInner() {
 
   /** Save + treat this as completing onboarding when we entered from
    * /onboarding. Fires onboarding_completed and navigates to the validated
-   * next path. Idempotent — the ref guard prevents double-fire. */
+   * next path. Idempotent — the ref guard prevents double-fire.
+   *
+   * IMPORTANT: never inserts an empty performer_profiles row. If the user
+   * has no existing profile AND has entered no performer/GigFit data, the
+   * caller is responsible for disabling this action (see canSaveInOnboarding
+   * gating) or routing to Skip. This function double-checks the same
+   * condition so an accidental invocation cannot create an empty row. */
   async function saveAndFinish() {
+    // Guard: no existing profile + no data means "the user really means
+    // Skip, but clicked the wrong button." Fail closed by silently
+    // returning without calling save() — the UI disables the button so
+    // this branch shouldn't be reachable, but defense in depth is cheap.
+    if (!profileId && !hasAnyPerformerData(draft)) {
+      return;
+    }
     const ok = await save();
     if (!ok) return;
     if (fromOnboarding && !onboardingFiredRef.current) {
@@ -407,6 +436,12 @@ function ProfilePageInner() {
   }
 
   const age = ageFromDob(draft.date_of_birth);
+  // Save & continue is only valid when there's something to save — either
+  // an existing performer_profiles row to update (profileId set) OR at
+  // least one performer/GigFit field entered in the current draft. When
+  // neither is true, we disable the "Save & continue" button and route
+  // the user to "Skip for now" so onboarding never creates an empty row.
+  const canSaveInOnboarding = !!profileId || hasAnyPerformerData(draft);
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -440,12 +475,22 @@ function ProfilePageInner() {
             <button
               type="button"
               onClick={saveAndFinish}
-              disabled={saving}
+              disabled={saving || !canSaveInOnboarding}
+              title={
+                !canSaveInOnboarding
+                  ? "Add at least one detail below, or use Skip for now."
+                  : undefined
+              }
               className="inline-flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-700 px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
             >
               {saving ? "Saving…" : "Save & continue"}
             </button>
           </div>
+          {!canSaveInOnboarding && (
+            <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400 text-right">
+              Add at least one detail below, or use <span className="font-semibold">Skip for now</span>.
+            </p>
+          )}
         </div>
       )}
 
@@ -735,14 +780,22 @@ function ProfilePageInner() {
         </div>
       </Section>
 
-      {/* Save. Regular /profile visit: normal Save. Onboarding return path:
-          save also completes onboarding and navigates so the user isn't
-          stranded on the page. */}
+      {/* Save. Regular /profile visit: normal Save (unchanged). Onboarding
+          return path: save also completes onboarding and navigates so the
+          user isn't stranded. In the onboarding path we ALSO disable this
+          button when the draft is empty and there's no existing profile,
+          matching the banner rule, so no empty performer_profiles row can
+          be inserted. */}
       <div className="flex items-center gap-3 sticky bottom-0 bg-zinc-50 dark:bg-zinc-950 py-3 border-t border-zinc-200 dark:border-zinc-800">
         <button
           type="button"
           onClick={fromOnboarding ? saveAndFinish : save}
-          disabled={saving}
+          disabled={saving || (fromOnboarding && !canSaveInOnboarding)}
+          title={
+            fromOnboarding && !canSaveInOnboarding
+              ? "Add at least one detail above, or use Skip for now."
+              : undefined
+          }
           className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg font-medium text-sm"
         >
           {saving ? "Saving…" : fromOnboarding ? "Save & continue" : "Save profile"}
