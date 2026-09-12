@@ -61,6 +61,13 @@ create policy work_roles_catalog_select_all
   for select
   using (true);
 
+-- Explicit catalog permissions. Don't rely on Supabase default table grants:
+-- SELECT is granted to anon + authenticated so the picker renders for signed-
+-- out visitors and signed-in users alike, and any writes from those roles are
+-- explicitly revoked so only service_role can mutate the catalog.
+grant  select on public.work_roles_catalog to anon, authenticated;
+revoke insert, update, delete on public.work_roles_catalog from anon, authenticated;
+
 -- Seed the catalog. Upsert so re-running preserves DB-managed additions.
 insert into public.work_roles_catalog (role_key, label, category, is_performer, sort_order)
 values
