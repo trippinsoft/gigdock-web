@@ -22,10 +22,10 @@
 --      by clients hitting PostgREST directly. The trigger is the sole
 --      authoritative enforcement mechanism: per-column REVOKEs against
 --      anon/authenticated would be no-ops in this project because both
---      roles hold table-wide UPDATE on public.profiles (audited 2026-09-12
---      via the Supabase MCP), and revoking table-wide UPDATE and re-granting
---      dozens of columns individually would create brittle per-column
---      maintenance on every future profiles change.
+--      roles hold table-wide UPDATE on public.profiles, and revoking
+--      table-wide UPDATE and re-granting dozens of columns individually
+--      would create brittle per-column maintenance on every future profiles
+--      change.
 --   4. has_performer_role() — a single self-only server-side authority for
 --      whether the SIGNED-IN user's work roles include any performer role,
 --      derived from work_roles_catalog.is_performer. Self-only: no user_id
@@ -33,8 +33,8 @@
 --      Both surfaces call this helper rather than maintaining their own
 --      hard-coded performer key lists.
 --
--- Idempotent — safe to re-run. Applied to May 22 Backup <date> as rehearsal
--- and to production RolePay <date> after review.
+-- Idempotent — safe to re-run. Awaits explicit authorization before being
+-- applied to production RolePay.
 -- ============================================================================
 
 
@@ -207,14 +207,24 @@ begin
     other_norm := null;
   end if;
 
-  -- Admit this write to the enforce trigger for THIS transaction only.
+  -- Admit this write to the enforce trigger. The guard is scoped to the
+  -- current transaction (is_local=true); we CLEAR it back to 'false'
+  -- immediately after the sanctioned UPDATE so a subsequent direct UPDATE
+  -- to work_roles inside the same transaction cannot piggyback on this
+  -- authorization. `false` (not empty) is used so re-entry into this
+  -- function within the same transaction sets it back to `true` cleanly.
   perform set_config('gigdock.set_work_roles_ok', 'true', true);
-
-  update public.profiles
-     set work_roles       = dedup_keys,
-         work_roles_other = other_norm,
-         work_roles_set_at = now()
-   where user_id = uid;
+  begin
+    update public.profiles
+       set work_roles       = dedup_keys,
+           work_roles_other = other_norm,
+           work_roles_set_at = now()
+     where user_id = uid;
+    perform set_config('gigdock.set_work_roles_ok', 'false', true);
+  exception when others then
+    perform set_config('gigdock.set_work_roles_ok', 'false', true);
+    raise;
+  end;
 end $$;
 
 revoke execute on function public.set_work_roles(text[], text) from public;
