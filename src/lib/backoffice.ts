@@ -457,6 +457,72 @@ export async function getRecentOpportunities(limit = 3) {
   }[];
 }
 
+/** The work-role catalog (public.work_roles_catalog). Active rows only,
+ * ordered for the picker. This is the AUTHORITATIVE source of truth for
+ * allowed role keys, labels, and is_performer — never hard-code a list.
+ * Fetched every request; the row count is small (14 today) and Next.js
+ * segment caching will fold identical requests. */
+export async function getWorkRolesCatalog(): Promise<
+  import("./workRoles").WorkRoleCatalogRow[]
+> {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase
+    .from("work_roles_catalog")
+    .select("role_key, label, category, is_performer, sort_order, is_active")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as import("./workRoles").WorkRoleCatalogRow[];
+}
+
+/** The signed-in user's profile plus its work-role fields. Returns null when
+ * unauthenticated. Compatibility helper so callers don't have to know which
+ * columns are new. */
+export async function getProfileWithWorkRoles(): Promise<
+  | ({
+      user_id: string;
+      display_name: string | null;
+      username: string | null;
+    } & import("./workRoles").ProfileWorkRoles)
+  | null
+> {
+  const supabase = await createSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(
+      "user_id, display_name, username, work_roles, work_roles_other, work_roles_set_at, work_roles_grandfathered_at"
+    )
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    user_id: data.user_id as string,
+    display_name: (data.display_name as string | null) ?? null,
+    username: (data.username as string | null) ?? null,
+    work_roles: (data.work_roles as string[] | null) ?? [],
+    work_roles_other: (data.work_roles_other as string | null) ?? null,
+    work_roles_set_at: (data.work_roles_set_at as string | null) ?? null,
+    work_roles_grandfathered_at:
+      (data.work_roles_grandfathered_at as string | null) ?? null,
+  };
+}
+
+/** Server-side authority for "does this user have any performer role?".
+ * Wraps public.has_performer_role(uuid), which derives from
+ * work_roles_catalog.is_performer — no hard-coded key list. Returns false
+ * on error rather than throwing so callers can gate UI safely. */
+export async function hasPerformerRole(userId: string): Promise<boolean> {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase.rpc("has_performer_role", {
+    p_user_id: userId,
+  });
+  if (error) return false;
+  return Boolean(data);
+}
+
 /** The signed-in user's posting display name (profiles.display_name) — used for
  * the Today greeting. Intentionally no fallback to a legacy first_name. */
 export async function getDisplayName(): Promise<string | null> {

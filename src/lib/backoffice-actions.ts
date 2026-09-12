@@ -755,6 +755,31 @@ export async function deleteDocument(
   }
 }
 
+/* ── Work roles ─────────────────────────────────────────────────────────── */
+
+/** Set the caller's work roles. Thin wrapper over the public.set_work_roles
+ * RPC — that RPC is the ONLY sanctioned writer (a BEFORE UPDATE trigger on
+ * profiles rejects direct writes to these columns from clients). Server-side
+ * validates against work_roles_catalog (unknown/inactive keys rejected),
+ * requires ≥1 role, deduplicates, and enforces the "only carry
+ * work_roles_other when 'other' is selected" + 60-char cap rules. */
+export async function updateWorkRoles(
+  roleKeys: string[],
+  otherDetail: string | null = null
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await client();
+    const { error } = await supabase.rpc("set_work_roles", {
+      p_role_keys: roleKeys,
+      p_other_detail: otherDetail,
+    });
+    if (error) throw error;
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
 function msg(e: unknown): string {
   if (e && typeof e === "object" && "message" in e) return String((e as { message: unknown }).message);
   return "Something went wrong.";
