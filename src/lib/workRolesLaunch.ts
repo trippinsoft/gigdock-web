@@ -1,17 +1,50 @@
-// Phase 2 launch cutoff. A single ISO timestamp — anyone whose profile
-// created_at is strictly before this moment is grandfathered (Today shows a
-// modest banner; onboarding is not enforced). Anyone at/after this moment is
-// a "new user" and must complete Work Roles before entering the authenticated
-// product. work_roles_set_at IS NOT NULL always means done, regardless of
-// created_at.
+// Phase 2 launch cutoff. Read from the WORK_ROLES_LAUNCH_DATE environment
+// variable at build/runtime, so ops can set the real production-deploy
+// timestamp on Vercel immediately before releasing — no code change, no
+// guessing.
 //
-// The value is a plain code constant so it can be reviewed in diff and does
-// not depend on runtime configuration. Set to 2026-09-13T00:00:00Z — one
-// day's safety margin past the moment this file lands so any signups that
-// slip in during the window between Phase 2 commit and actual production
-// deploy still count as grandfathered users (per the intent-preserving
-// grandfather policy).
-export const WORK_ROLES_LAUNCH_DATE = "2026-09-13T00:00:00.000Z";
+// The variable is server-only. Every code path that uses it
+// (src/middleware.ts, src/app/(app)/today/page.tsx,
+// src/app/opportunities/page.tsx) is server-side, so we do NOT need the
+// NEXT_PUBLIC_ prefix and never leak the cutoff to the client bundle.
+//
+// SAFE FALLBACK: if the env var is missing or malformed, we default to a
+// far-future ISO date. That means "created_at >= WORK_ROLES_LAUNCH_DATE"
+// is false for every real user — nobody is forced through onboarding —
+// and the soft grandfather banner path (created_at < cutoff, work_roles
+// not set) is used everywhere. This fails safe rather than failing open.
+//
+// TO DEPLOY: set the Vercel env var immediately before publishing Phase 2:
+//   WORK_ROLES_LAUNCH_DATE=2026-09-15T22:00:00Z    # example
+// (Use the real UTC moment you promoted the deploy. String comparisons on
+// ISO 8601 with a Z suffix are lexicographically correct, so we compare
+// created_at directly.)
+
+const FAR_FUTURE = "9999-01-01T00:00:00.000Z";
+
+function resolveLaunchDate(): string {
+  const raw = process.env.WORK_ROLES_LAUNCH_DATE;
+  if (!raw) {
+    if (typeof console !== "undefined") {
+      console.warn(
+        "[work-roles] WORK_ROLES_LAUNCH_DATE not set — grandfathering everyone (safe fallback)."
+      );
+    }
+    return FAR_FUTURE;
+  }
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) {
+    if (typeof console !== "undefined") {
+      console.warn(
+        `[work-roles] WORK_ROLES_LAUNCH_DATE=${raw} is not a valid ISO date — grandfathering everyone (safe fallback).`
+      );
+    }
+    return FAR_FUTURE;
+  }
+  return parsed.toISOString();
+}
+
+export const WORK_ROLES_LAUNCH_DATE = resolveLaunchDate();
 
 export interface RoleGateProfile {
   created_at: string | null;
@@ -47,7 +80,6 @@ export function safeNext(raw: string | null | undefined, fallback: string = "/to
   if (!raw.startsWith("/")) return fallback;
   if (raw.startsWith("//") || raw.startsWith("/\\")) return fallback;
   if (raw.includes("://")) return fallback;
-  // "javascript:" would already fail the "/" prefix test — belt-and-braces.
   if (/^\/[^\/]*javascript:/i.test(raw)) return fallback;
   return raw;
 }

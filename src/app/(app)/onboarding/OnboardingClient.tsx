@@ -181,12 +181,6 @@ export default function OnboardingClient({
             </button>
             <Link
               href={`/profile?from=onboarding&next=${encodeURIComponent(nextPath)}`}
-              onClick={() =>
-                trackOnboarding("onboarding_completed", {
-                  flow: "performer_full",
-                  has_performer_role: true,
-                })
-              }
               className="inline-flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-700 px-5 py-2 text-sm font-semibold text-white transition-colors"
             >
               Set up my casting profile →

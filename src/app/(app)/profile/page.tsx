@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import { stateLabel } from "@/components/FilterChips";
 import {
@@ -14,6 +15,7 @@ import WorkRolesPicker from "@/components/app/WorkRolesPicker";
 import { hasPerformerRole, type WorkRoleCatalogRow } from "@/lib/workRoles";
 import { updateWorkRoles } from "@/lib/backoffice-actions";
 import { trackOnboarding } from "@/lib/onboardingEvents";
+import { safeNext } from "@/lib/workRolesLaunch";
 
 // Major production markets first — most users pick one of these.
 const TOP_MARKETS = ["GA", "CA", "NY", "NM", "IL", "LA", "TX", "NC", "NV", "FL", "ON", "BC"];
@@ -72,7 +74,24 @@ type Coverage = {
 };
 
 export default function ProfilePage() {
+  // Suspense wrapper — useSearchParams() suspends during initial CSR and
+  // Next requires the boundary. Nothing else changes.
+  return (
+    <Suspense>
+      <ProfilePageInner />
+    </Suspense>
+  );
+}
+
+function ProfilePageInner() {
   const supabase = createSupabaseBrowser();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromOnboarding = searchParams.get("from") === "onboarding";
+  const nextPath = safeNext(searchParams.get("next"), "/today");
+  // Guards double-fire of onboarding_completed if the user saves twice
+  // before router.replace unmounts the page.
+  const onboardingFiredRef = useRef(false);
 
   const [profileId, setProfileId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(BLANK);
@@ -304,12 +323,12 @@ export default function ProfilePage() {
     });
   }
 
-  async function save() {
+  async function save(): Promise<boolean> {
     setSaving(true);
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) {
       setSaving(false);
-      return;
+      return false;
     }
     const payload = {
       user_id: auth.user.id,
@@ -325,18 +344,58 @@ export default function ProfilePage() {
       is_default: true,
     };
 
+    let ok = true;
     if (profileId) {
-      await supabase.from("performer_profiles").update(payload).eq("id", profileId);
+      const { error } = await supabase
+        .from("performer_profiles")
+        .update(payload)
+        .eq("id", profileId);
+      if (error) ok = false;
     } else {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("performer_profiles")
         .insert(payload)
         .select()
         .single();
+      if (error) ok = false;
       if (data) setProfileId((data as PerformerProfile).id);
     }
     setSaving(false);
-    setSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
+    if (ok) {
+      setSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
+    }
+    return ok;
+  }
+
+  /** Save + treat this as completing onboarding when we entered from
+   * /onboarding. Fires onboarding_completed and navigates to the validated
+   * next path. Idempotent — the ref guard prevents double-fire. */
+  async function saveAndFinish() {
+    const ok = await save();
+    if (!ok) return;
+    if (fromOnboarding && !onboardingFiredRef.current) {
+      onboardingFiredRef.current = true;
+      trackOnboarding("onboarding_completed", {
+        flow: "performer_full",
+        has_performer_role: true,
+      });
+      router.replace(nextPath);
+    }
+  }
+
+  /** Skip the casting profile from the onboarding return path. Fires the
+   * skipped + completed events and navigates. Idempotent. */
+  function skipAndFinish() {
+    if (onboardingFiredRef.current) return;
+    onboardingFiredRef.current = true;
+    trackOnboarding("performer_profile_skipped", {
+      steps_skipped: "casting_basics",
+    });
+    trackOnboarding("onboarding_completed", {
+      flow: "performer_skipped",
+      has_performer_role: true,
+    });
+    router.replace(nextPath);
   }
 
   if (loading) {
@@ -360,6 +419,35 @@ export default function ProfilePage() {
           profile fields help GigFit match you to relevant opportunities.
         </p>
       </div>
+
+      {fromOnboarding && (
+        <div className="rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/60 dark:bg-blue-950/20 px-5 py-4 sm:px-6">
+          <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            Optional — set up your casting profile
+          </div>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
+            GigFit uses these details to compare your profile with each opportunity&rsquo;s casting requirements. Fill in as much or as little as you want, or skip for now and come back later.
+          </p>
+          <div className="mt-3 flex flex-col sm:flex-row gap-2 sm:justify-end">
+            <button
+              type="button"
+              onClick={skipAndFinish}
+              disabled={saving}
+              className="inline-flex items-center justify-center rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-2 text-sm font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60"
+            >
+              Skip for now
+            </button>
+            <button
+              type="button"
+              onClick={saveAndFinish}
+              disabled={saving}
+              className="inline-flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-700 px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {saving ? "Saving…" : "Save & continue"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Work roles — always visible */}
       <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
@@ -647,17 +735,19 @@ export default function ProfilePage() {
         </div>
       </Section>
 
-      {/* Save */}
+      {/* Save. Regular /profile visit: normal Save. Onboarding return path:
+          save also completes onboarding and navigates so the user isn't
+          stranded on the page. */}
       <div className="flex items-center gap-3 sticky bottom-0 bg-zinc-50 dark:bg-zinc-950 py-3 border-t border-zinc-200 dark:border-zinc-800">
         <button
           type="button"
-          onClick={save}
+          onClick={fromOnboarding ? saveAndFinish : save}
           disabled={saving}
           className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg font-medium text-sm"
         >
-          {saving ? "Saving…" : "Save profile"}
+          {saving ? "Saving…" : fromOnboarding ? "Save & continue" : "Save profile"}
         </button>
-        {savedAt && (
+        {savedAt && !fromOnboarding && (
           <span className="text-xs text-green-600 dark:text-green-400">
             Saved at {savedAt}
           </span>
