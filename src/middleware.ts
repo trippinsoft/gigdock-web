@@ -31,7 +31,7 @@ export async function middleware(request: NextRequest) {
 
   // Authenticated back-office surfaces — require a signed-in user, and bounce
   // guests to login with a return path so they land back where they were.
-  const APP_PREFIXES = ["/gigs", "/today", "/calendar", "/payments", "/insights", "/documents", "/profile", "/onboarding"];
+  const APP_PREFIXES = ["/gigs", "/today", "/calendar", "/payments", "/insights", "/documents", "/profile"];
   const inAppSurface = APP_PREFIXES.some((p) => request.nextUrl.pathname.startsWith(p));
   if (inAppSurface) {
     if (!user) {
@@ -41,10 +41,10 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // No middleware-level Work Roles gate. The normal signup path routes
-    // new accounts through /onboarding to answer roles up front, and Today
-    // shows an optional banner for anyone still at work_roles_set_at IS
-    // NULL. Reaching the product without answering is an acceptable state.
+    // No middleware-level Work Roles / Work Markets gate. The pre-account
+    // wizard at /signup collects both up front and /signup/complete
+    // persists them; existing users see the Today banner if either is
+    // still NULL. Reaching the product with either NULL is acceptable.
   }
 
   if (request.nextUrl.pathname.startsWith("/admin")) {
@@ -96,6 +96,5 @@ export const config = {
     "/insights/:path*",
     "/documents/:path*",
     "/profile/:path*",
-    "/onboarding/:path*",
   ],
 };

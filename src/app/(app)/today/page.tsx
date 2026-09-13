@@ -12,16 +12,21 @@ import {
   getRecentOpportunities,
   getDisplayName,
   getDefaultPerformerProfile,
-  getGigFit,
+  getGigFitForUser,
   getProfileWithWorkRoles,
   hasPerformerRole,
 } from "@/lib/backoffice";
 import type { FilteredGig } from "@/lib/backoffice-types";
-import { fieldsSet, fitTierColor, type GigFitResult, type GigFitTier } from "@/lib/gigfit";
+import {
+  canRunGigFit,
+  fitTierColor,
+  type GigFitResult,
+  type GigFitTier,
+} from "@/lib/gigfit";
 import { Panel } from "@/components/app/ui";
 import MasterRow from "@/components/app/MasterRow";
 import TodayGreeting from "@/components/app/TodayGreeting";
-import WorkRolesBanner from "@/components/app/WorkRolesBanner";
+import WorkProfileBanner from "@/components/app/WorkProfileBanner";
 import { PartialReveal } from "@/components/app/pro";
 import { money, shortDate, shortDateNoYear } from "@/lib/format";
 
@@ -58,21 +63,27 @@ export default async function TodayPage() {
     hasPerformerRole(),
   ]);
 
-  // Role-aware routing derived from a single signal:
-  //  - work_roles_set_at IS NULL → not yet answered. Show the optional
-  //    banner and retain legacy GigFit behavior.
-  //  - answered + performer / mixed → GigFit stays on.
-  //  - answered + crew-only → GigFit UI is suppressed.
+  // Universal GigFit gating.
+  //  - GigFit-visible whenever the user has ANY GigFit signal — universal
+  //    (work_roles / work_markets) or (for transitional performers)
+  //    legacy performer_profile criteria. Crew-only users with markets
+  //    set now qualify without a performer_profiles row.
+  //  - Banner shown when either work_roles_set_at or work_markets_set_at
+  //    is NULL — nudges the user toward the missing piece of the
+  //    universal profile.
   const workRolesSet = !!roleGate?.work_roles_set_at;
-  const showGigFit = !workRolesSet || isPerformer;
-
-  // "Opportunities for you" — when the user is performer-eligible and has
-  // any GigFit criteria set, show only the ones they qualify for (eligible),
-  // ranked strong/good first; otherwise fall back to the latest few.
-  const gigfitOn = showGigFit && !!profile && fieldsSet(profile).length > 0;
+  const workMarketsSet = !!roleGate?.work_markets_set_at;
+  const workRoles = roleGate?.work_roles ?? [];
+  const workMarkets = roleGate?.work_markets ?? [];
+  const gigfitOn = canRunGigFit({
+    workRoles,
+    workMarkets,
+    performer: profile,
+    isPerformer,
+  });
   const fitById = new Map<string, GigFitResult>();
-  if (gigfitOn && profile) {
-    for (const r of await getGigFit(profile.id)) fitById.set(r.opportunity_id, r);
+  if (gigfitOn) {
+    for (const r of await getGigFitForUser()) fitById.set(r.opportunity_id, r);
   }
   const TIER_RANK: Record<GigFitTier, number> = { strong: 4, good: 3, open: 2, poor: 1, ineligible: 0 };
   const opps = gigfitOn
@@ -121,7 +132,9 @@ export default async function TodayPage() {
         <span className="text-sm text-zinc-400 dark:text-zinc-500">{dateLabel}</span>
       </div>
 
-      {!workRolesSet && <WorkRolesBanner />}
+      {(!workRolesSet || !workMarketsSet) && (
+        <WorkProfileBanner workRolesSet={workRolesSet} workMarketsSet={workMarketsSet} />
+      )}
 
       {/* 1 — Next up (full width, image-forward) */}
       {nextUp && (
@@ -235,13 +248,13 @@ export default async function TodayPage() {
         <div className="mt-8">
           <div className="flex items-baseline justify-between mb-3">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-              {showGigFit ? "Opportunities for you" : "Recent opportunities"}
+              {gigfitOn ? "Opportunities for you" : "Recent opportunities"}
             </h2>
             <Link href="/opportunities" className="text-xs font-medium text-blue-600 dark:text-blue-400">View all →</Link>
           </div>
-          {showGigFit && !gigfitOn && (
+          {!gigfitOn && (
             <p className="mb-2 text-xs text-zinc-400 dark:text-zinc-500">
-              <Link href="/profile" className="text-blue-600 dark:text-blue-400 hover:underline">Set up GigFit</Link> to see the ones that match you.
+              <Link href="/profile" className="text-blue-600 dark:text-blue-400 hover:underline">Set up your work profile</Link> to see the ones that match you.
             </p>
           )}
           {opps.length > 0 ? (

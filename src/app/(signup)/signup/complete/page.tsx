@@ -1,35 +1,37 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import {
   getProfileWithWorkRoles,
   getSessionUser,
-  getWorkRolesCatalog,
 } from "@/lib/backoffice";
-import { updateWorkRoles } from "@/lib/backoffice-actions";
+import {
+  persistOnboardingDraft,
+  type OnboardingPerformerPayload,
+} from "@/lib/backoffice-actions";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { safeNext } from "@/lib/workRolesLaunch";
-import CompleteRecovery from "./CompleteRecovery";
 
 // URL: /signup/complete?next=<safe-path>
 //
-// The single post-auth handoff for BOTH auto-confirm and email-confirm
-// signups. Runs under the (signup) route-group shell (no app nav).
+// Single post-auth handoff for BOTH auto-confirm and email-confirm signups.
+// Runs under the (signup) route-group shell (no app nav).
 //
-// Behavior:
-//   1. Requires an authenticated session. No session → bounce to /signup.
-//   2. If work_roles_set_at is already populated, treat as idempotent
-//      success: clear any stale pending metadata and redirect to `next`
-//      (or /profile?from=onboarding&next=... if the user opted into
-//      GigFit setup).
-//   3. Otherwise, if the session carries pending_work_roles metadata,
-//      call updateWorkRoles (the existing set_work_roles RPC wrapper).
-//      On success + verified persistence, clear metadata and redirect.
-//   4. If the write fails, or pending metadata is missing/incomplete,
-//      keep the user on this page and render the recovery UI
-//      (WorkRolesPicker + retry). We deliberately do NOT bounce to the
-//      authenticated /onboarding: the (app) transient guard would send
-//      them right back here as long as pending metadata + unset roles
-//      persist, creating a redirect loop.
+// Behavior — idempotent:
+//   1. Require an authenticated session (bounce to /signup otherwise).
+//   2. If work_roles_set_at is already populated, treat as a successful
+//      completion: clear any stale metadata and redirect to `next`.
+//   3. Otherwise, if the session carries a pending_draft_id, call
+//      claim_onboarding_draft(...) — the RPC verifies the caller's email
+//      hashes to the draft's owner hash before returning the JSON — then
+//      call persistOnboardingDraft(...) to write work_roles, work_markets,
+//      and (optionally) the performer_profiles row. On verified success
+//      clear the metadata and redirect to `next`.
+//   4. Any failure → render a small "we couldn't finish" panel with a
+//      "Try again" link (which just re-loads this same URL, re-running
+//      the handoff). Users are kept on this route by the (app) guard for
+//      as long as pending metadata + unset roles persist, so /signup/complete
+//      is the exclusive locus of the failure/retry loop.
 
 export const dynamic = "force-dynamic";
 
@@ -38,32 +40,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-type PendingMeta = {
-  pending_work_roles?: unknown;
-  pending_work_roles_other?: unknown;
-  pending_wants_gigfit?: unknown;
-};
+type PendingMeta = { pending_draft_id?: unknown };
 
-function readPending(meta: unknown): {
-  roles: string[] | null;
-  other: string | null;
-  wantsGigfit: boolean;
-} {
+function readPendingDraftId(meta: unknown): string | null {
   const m = (meta ?? {}) as PendingMeta;
-  const rawRoles = m.pending_work_roles;
-  const roles =
-    Array.isArray(rawRoles) && rawRoles.every((v) => typeof v === "string")
-      ? (rawRoles as string[])
-      : null;
-  const other = typeof m.pending_work_roles_other === "string" ? m.pending_work_roles_other : null;
-  const wantsGigfit = m.pending_wants_gigfit === true;
-  return { roles, other, wantsGigfit };
-}
-
-function successDestination(nextPath: string, wantsGigfit: boolean): string {
-  return wantsGigfit
-    ? `/profile?from=onboarding&next=${encodeURIComponent(nextPath)}`
-    : nextPath;
+  return typeof m.pending_draft_id === "string" ? m.pending_draft_id : null;
 }
 
 async function clearPending(): Promise<void> {
@@ -71,18 +52,67 @@ async function clearPending(): Promise<void> {
   try {
     await supabase.auth.updateUser({
       data: {
+        pending_draft_id: null,
+        // Also clear the older-scheme keys just in case any user_metadata
+        // rows still carry them from prior wizard versions.
         pending_work_roles: null,
         pending_work_roles_other: null,
         pending_has_performer_role: null,
         pending_wants_gigfit: null,
+        pending_performer_profile: null,
       },
     });
   } catch {
-    // Non-fatal: metadata will linger but roles are set, so the (app)
-    // guard's `pending_work_roles is truthy` check may still trip. We
-    // guard against that by also treating an empty array / null as
-    // absent in the (app) layout check.
+    /* non-fatal */
   }
+}
+
+type DraftPayload = {
+  work_roles?: unknown;
+  work_roles_other?: unknown;
+  work_markets?: unknown;
+  performer?: unknown;
+};
+
+function extractDraft(payload: unknown): {
+  roleKeys: string[];
+  roleOther: string | null;
+  marketCodes: string[];
+  performer: OnboardingPerformerPayload | null;
+} | null {
+  if (!payload || typeof payload !== "object") return null;
+  const p = payload as DraftPayload;
+  const roles = Array.isArray(p.work_roles)
+    ? (p.work_roles as unknown[]).filter((v): v is string => typeof v === "string")
+    : [];
+  const markets = Array.isArray(p.work_markets)
+    ? (p.work_markets as unknown[]).filter((v): v is string => typeof v === "string")
+    : [];
+  if (roles.length === 0 || markets.length === 0) return null;
+  const roleOther =
+    typeof p.work_roles_other === "string" ? p.work_roles_other : null;
+
+  let performer: OnboardingPerformerPayload | null = null;
+  if (p.performer && typeof p.performer === "object") {
+    const perf = p.performer as Record<string, unknown>;
+    performer = {
+      gender: typeof perf.gender === "string" ? perf.gender : null,
+      ethnicity: Array.isArray(perf.ethnicity)
+        ? (perf.ethnicity as unknown[]).filter(
+            (v): v is string => typeof v === "string"
+          )
+        : [],
+      date_of_birth:
+        typeof perf.date_of_birth === "string" ? perf.date_of_birth : null,
+      union_status:
+        typeof perf.union_status === "string" ? perf.union_status : null,
+      height_inches:
+        typeof perf.height_inches === "number" && perf.height_inches > 0
+          ? Math.round(perf.height_inches)
+          : null,
+    };
+  }
+  return { roleKeys: roles, roleOther, marketCodes: markets, performer };
 }
 
 export default async function CompleteSignupPage({
@@ -98,43 +128,110 @@ export default async function CompleteSignupPage({
     redirect(`/signup?next=${encodeURIComponent(nextPath)}`);
   }
 
-  const { roles: pendingRoles, other: pendingOther, wantsGigfit } = readPending(
-    user.user_metadata
-  );
-
   const profile = await getProfileWithWorkRoles();
 
-  // (2) Idempotent success — roles already recorded.
+  // (1) Already done — clear stale metadata and redirect out.
   if (profile?.work_roles_set_at) {
-    if (pendingRoles || pendingOther !== null || wantsGigfit) {
-      await clearPending();
-    }
-    redirect(successDestination(nextPath, wantsGigfit));
+    await clearPending();
+    redirect(nextPath);
   }
 
-  // (3) Attempt the handoff write if pending metadata is well-formed.
-  if (pendingRoles && pendingRoles.length > 0) {
-    const res = await updateWorkRoles(pendingRoles, pendingOther);
-    if (res.ok) {
-      const verify = await getProfileWithWorkRoles();
-      if (verify?.work_roles_set_at) {
-        await clearPending();
-        redirect(successDestination(nextPath, wantsGigfit));
-      }
-    }
+  const draftId = readPendingDraftId(user!.user_metadata);
+  if (!draftId) {
+    return <ErrorPanel nextPath={nextPath} reason="no_draft" />;
   }
 
-  // (4) Recovery — either no usable pending metadata or the write failed.
-  //     Render the picker in-place and let the user save. The (app) guard
-  //     keeps them contained here until work_roles_set_at is populated.
-  const catalog = await getWorkRolesCatalog();
+  // (2) Claim the draft. The RPC enforces email-hash ownership.
+  const supabase = await createSupabaseServer();
+  const claimRes = await supabase.rpc("claim_onboarding_draft", {
+    p_draft_id: draftId,
+  });
+  if (claimRes.error) {
+    return (
+      <ErrorPanel
+        nextPath={nextPath}
+        reason="claim_failed"
+        detail={claimRes.error.message ?? undefined}
+      />
+    );
+  }
+
+  const draft = extractDraft(claimRes.data);
+  if (!draft) {
+    return <ErrorPanel nextPath={nextPath} reason="malformed_draft" />;
+  }
+
+  // (3) Persist. Each write is individually idempotent.
+  const persistRes = await persistOnboardingDraft({
+    roleKeys: draft.roleKeys,
+    roleOther: draft.roleOther,
+    marketCodes: draft.marketCodes,
+    performer: draft.performer,
+  });
+  if (!persistRes.ok) {
+    return (
+      <ErrorPanel
+        nextPath={nextPath}
+        reason="persist_failed"
+        detail={persistRes.error}
+      />
+    );
+  }
+
+  // (4) Verify.
+  const verify = await getProfileWithWorkRoles();
+  if (!verify?.work_roles_set_at) {
+    return <ErrorPanel nextPath={nextPath} reason="verify_failed" />;
+  }
+
+  await clearPending();
+  redirect(nextPath);
+}
+
+function ErrorPanel({
+  nextPath,
+  reason,
+  detail,
+}: {
+  nextPath: string;
+  reason: "no_draft" | "claim_failed" | "malformed_draft" | "persist_failed" | "verify_failed";
+  detail?: string;
+}) {
+  const headline: Record<typeof reason, string> = {
+    no_draft: "We couldn't find your onboarding draft.",
+    claim_failed: "We couldn't finish setting up your account.",
+    malformed_draft: "Your onboarding draft is incomplete.",
+    persist_failed: "We couldn't save your onboarding details.",
+    verify_failed: "Setup didn't complete — please try again.",
+  };
+  const retryHref = `/signup/complete?next=${encodeURIComponent(nextPath)}`;
   return (
-    <CompleteRecovery
-      catalog={catalog}
-      nextPath={nextPath}
-      wantsGigfit={wantsGigfit}
-      initialSelected={pendingRoles ?? []}
-      initialOther={pendingOther ?? ""}
-    />
+    <div className="pt-10 mx-auto max-w-xl">
+      <div className="rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6">
+        <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+          {headline[reason]}
+        </h1>
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
+          Your account is created but we hit a snag finishing setup. Try again — most of the time this resolves itself.
+        </p>
+        {detail && (
+          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 font-mono">{detail}</p>
+        )}
+        <div className="mt-4 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-end">
+          <Link
+            href="/signup"
+            className="inline-flex items-center justify-center rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-2 text-sm font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+          >
+            Start over
+          </Link>
+          <Link
+            href={retryHref}
+            className="inline-flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-700 px-5 py-2 text-sm font-semibold text-white"
+          >
+            Try again
+          </Link>
+        </div>
+      </div>
+    </div>
   );
 }

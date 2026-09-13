@@ -475,10 +475,12 @@ export async function getWorkRolesCatalog(): Promise<
   return (data ?? []) as import("./workRoles").WorkRoleCatalogRow[];
 }
 
-/** The signed-in user's profile plus its work-role fields. Returns null when
- * unauthenticated. Callers gate GigFit UI on `work_roles_set_at` — NULL
- * means "not yet answered" (optional banner + legacy behavior); NOT NULL
- * means "answered" (role-aware behavior). No grandfathering column. */
+/** The signed-in user's profile plus its universal work fields (Work Roles
+ * and Work Markets — both derived directly on public.profiles). Returns
+ * null when unauthenticated. Callers gate GigFit UI on `work_roles_set_at`
+ * (NULL means "not yet answered" → optional banner + legacy behavior; NOT
+ * NULL means "answered" → role-aware behavior). Markets follow the same
+ * pattern via `work_markets_set_at`. No grandfathering column. */
 export async function getProfileWithWorkRoles(): Promise<
   | ({
       user_id: string;
@@ -493,7 +495,7 @@ export async function getProfileWithWorkRoles(): Promise<
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "user_id, display_name, username, work_roles, work_roles_other, work_roles_set_at"
+      "user_id, display_name, username, work_roles, work_roles_other, work_roles_set_at, work_markets, work_markets_set_at"
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -506,7 +508,36 @@ export async function getProfileWithWorkRoles(): Promise<
     work_roles: (data.work_roles as string[] | null) ?? [],
     work_roles_other: (data.work_roles_other as string | null) ?? null,
     work_roles_set_at: (data.work_roles_set_at as string | null) ?? null,
+    work_markets: (data.work_markets as string[] | null) ?? [],
+    work_markets_set_at: (data.work_markets_set_at as string | null) ?? null,
   };
+}
+
+/** The active markets catalog (public.markets). Anonymous-readable —
+ * used by the pre-account signup wizard as well as authenticated
+ * screens. SELECT is granted to anon+authenticated at the SQL level. */
+export async function getMarketsCatalog(): Promise<
+  { code: string; name: string; sort_order: number }[]
+> {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase
+    .from("markets")
+    .select("code, name, sort_order")
+    .eq("active", true)
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as { code: string; name: string; sort_order: number }[];
+}
+
+/** Universal-generic GigFit for the signed-in user. Sources work_roles +
+ * work_markets from public.profiles; loads performer-specific criteria
+ * from the user's default performer_profiles row ONLY when at least one
+ * selected role is is_performer. Backed by public.gigfit_for_user(). */
+export async function getGigFitForUser(): Promise<GigFitRow[]> {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase.rpc("gigfit_for_user");
+  if (error) return [];
+  return (data ?? []) as GigFitRow[];
 }
 
 /** Server-side authority for "does the SIGNED-IN user have any performer

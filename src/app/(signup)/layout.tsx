@@ -4,7 +4,7 @@ import SignupShell from "@/components/signup/SignupShell";
 // Route-group layout for the standalone onboarding surface. Deliberately
 // dumb: no `searchParams` interpretation, no step state, no auth handling —
 // those live in the individual pages (/signup, /signup/complete) and in
-// `SignupWizard`. Its only job is to swap the visual chrome away from
+// `OnboardingWizard`. Its only job is to swap the visual chrome away from
 // AppShell / PublicShell so a new user never sees app navigation before
 // their Work Roles are persisted.
 

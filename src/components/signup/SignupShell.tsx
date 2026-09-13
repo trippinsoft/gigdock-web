@@ -5,8 +5,9 @@
 // there is nowhere clickable that leads into GigDock. The only escape hatch
 // is "Already have an account? Sign in" in the footer.
 //
-// Progress indicators live INSIDE `SignupWizard`, where the actual step
-// state exists — this component takes no step / next / searchParams input.
+// Progress indicators live INSIDE `OnboardingWizard`, where the actual
+// step state exists — this component takes no step / next / searchParams
+// input.
 
 import Link from "next/link";
 

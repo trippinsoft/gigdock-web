@@ -20,7 +20,46 @@ Adding a new user work role is a `work_roles_catalog` UPSERT via SQL — no clie
 
 Onboarding state: derived directly from `profiles.work_roles_set_at` — no grandfathering column, no launch-date cutoff, no forced middleware redirect. Two states:
 
-- `work_roles_set_at IS NULL` → not yet answered. Users see an optional "Tell GigDock what kind of work you do" banner on Today and retain legacy GigFit behavior. They are NOT blocked from any surface.
+- `work_roles_set_at IS NULL` → not yet answered. Users see the optional unified Work Profile banner on Today and retain legacy GigFit behavior. They are NOT blocked from any surface.
 - `work_roles_set_at IS NOT NULL` → answered. Role-aware behavior: performer/mixed keep GigFit, crew-only suppress performer-specific GigFit UI.
 
-The normal signup path still routes new accounts through `/onboarding` to answer roles up front; reaching the product with NULL is an acceptable state.
+The normal signup path routes new accounts through the pre-account wizard at `/signup` (Work Roles → Where → GigFit Details (performers only) → Preview → Create Account) with `/signup/complete` claiming the server-side draft and persisting; reaching the product with NULL is an acceptable state.
+
+# Work Markets (universal)
+
+Location preference is universal, not performer-specific. Lives on `public.profiles.work_markets text[]` alongside `profiles.work_markets_set_at`. Written only through the `set_work_markets(text[])` RPC — the same `enforce_work_roles_via_rpc` trigger that guards the work-role columns also rejects direct writes to these two. Codes come from `public.markets` (anonymous-readable). Web reads via the extended `getProfileWithWorkRoles()` / `getMarketsCatalog()` in `src/lib/backoffice.ts`; writes via `updateWorkMarkets()` in `src/lib/backoffice-actions.ts`.
+
+`performer_profiles.markets` is deprecated but not yet dropped. Web stops reading and writing it entirely; the legacy `gigfit(p_profile_id)` wrapper temporarily falls back to it when `profiles.work_markets` is empty, so mobile (Draftbit) users still match on location until Draftbit ships the universal wiring. Rough phase plan: (1) additive columns + backfill + web cutover — DONE; (2) Draftbit adopts `profiles.work_markets`; (3) legacy `coalesce` fallback removed once audit shows zero writes to `performer_profiles.markets` for 14+ days; (4) column dropped.
+
+# GigFit (universal)
+
+Matching lives server-side in one core Postgres function, `public.gigfit_match(work_roles, work_markets, ...optional performer criteria...)`. Three entry points share it:
+
+- `public.gigfit_preview(...)` — anonymous public wrapper, used by the pre-account Opportunity Preview.
+- `public.gigfit_for_user()` — authenticated generic. Sources `work_roles` + `work_markets` from `profiles`. Loads performer criteria (`performer_profiles`) ONLY when at least one selected work_role is `is_performer` — crew-only users NEVER inherit stale performer data even if an old row exists.
+- `public.gigfit(p_profile_id)` — legacy wrapper preserved for mobile. Reads universal work_roles + work_markets from `profiles`; markets fall back to `performer_profiles.markets` when the universal field is empty (transitional).
+
+Universal signals (both trigger tri-state matching):
+
+- **Market** — soft. `opportunities.match_state` compared against user's `work_markets`. Mismatch → soft "Outside your markets"; match → `location` matched.
+- **Role** — soft, tri-state. Each user role_key carries `opportunity_work_types` and `opportunity_role_families` in `work_roles_catalog` (mapping seeded by `sql/work-roles-catalog-mapping.sql`). Compared against `opportunities.casting_specs.work_type` and `opportunities.role_families`.
+  - MATCH: overlap → `role` matched.
+  - MISMATCH: opportunity has structured classification and no overlap → soft "Different work role from yours".
+  - UNKNOWN: opportunity has no structured role classification → SILENT (never counted as mismatch).
+
+`opportunities.role_families text[]` is a coarse classifier populated by a conservative keyword backfill over title/summary/requirements (see `sql/opportunity-role-families.sql`). The backfill only labels rows the extractor did NOT already mark with a performer `casting_specs.work_type`; performer castings that use crew vocabulary as scene description ("background talent portraying camera operators") stay unclassified. Future extractor patches should emit `role_families` natively at ingest.
+
+Tiers: **Poor / Good / Strong / Ineligible / Open**. Never percentages. Missing information reduces confidence and prevents `strong`; explicit contradictory requirements (hard gates on gender / ethnicity / age far outside range / height far outside range) produce `ineligible`. Universal fields on their own can only produce up to `good` — `strong` requires ≥3 matched signals or a skills/vehicles bonus match.
+
+Completeness (`src/lib/gigfit.ts`) is split by scope: `universalFieldsSet(...)` counts `work_roles` and `work_markets`; `performerFieldsSet(...)` counts `gender`/`ethnicity`/`date_of_birth`/`union_status`/`height_inches`. `canRunGigFit(ctx)` returns true when the user has ANY universal signal — crew-only users are eligible without a performer_profiles row.
+
+# Onboarding drafts (pre-account handoff)
+
+`public.onboarding_drafts` holds the pre-account wizard's captured selections between the "Create account" click and `/signup/complete`. Table has deny-all RLS; every touch goes through SECURITY DEFINER RPCs:
+
+- `create_onboarding_draft(p_data jsonb, p_intended_email text) returns uuid` — anon+auth. Stores the payload plus a SHA-256 hash of the normalized intended email. Returns the opaque `draft_id`.
+- `update_onboarding_draft(p_draft_id, p_data)` — anon+auth. Unused by the current wizard (state is client-only until account submit) but available for future resume flows.
+- `claim_onboarding_draft(p_draft_id) returns jsonb` — authenticated only. Requires `auth.email()` to hash to the stored owner hash. Returns the JSON payload once. Race-safe.
+- `purge_expired_onboarding_drafts()` — service_role only; also called opportunistically by `create_onboarding_draft`.
+
+Sensitive fields (gender / ethnicity / dob / union / height) NEVER go into Supabase user_metadata — the auth handoff carries ONLY the opaque `pending_draft_id`. `/signup/complete` claims the draft, calls `persistOnboardingDraft(...)` to write work_roles + work_markets + optional performer_profiles row, verifies persistence, and clears the metadata. The `(app)` layout has a narrow transient guard that redirects any signed-in user with `pending_draft_id` metadata AND `work_roles_set_at IS NULL` back to `/signup/complete` — ONLY that combination; existing users with unset roles but no pending draft are never redirected.

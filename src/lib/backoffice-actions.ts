@@ -780,6 +780,113 @@ export async function updateWorkRoles(
   }
 }
 
+/** Set the caller's universal work markets. Thin wrapper over the
+ * public.set_work_markets RPC — that RPC is the only sanctioned writer of
+ * profiles.work_markets and work_markets_set_at (a BEFORE UPDATE trigger
+ * on profiles rejects direct writes). Server-side validates every code
+ * against public.markets.active and requires ≥1 code. */
+export async function updateWorkMarkets(
+  codes: string[]
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await client();
+    const { error } = await supabase.rpc("set_work_markets", {
+      p_codes: codes,
+    });
+    if (error) throw error;
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+/** Optional performer-profile fields captured during the pre-account
+ * wizard. All are individually optional. */
+export interface OnboardingPerformerPayload {
+  gender?: string | null;
+  ethnicity?: string[] | null;
+  date_of_birth?: string | null;
+  union_status?: string | null;
+  height_inches?: number | null;
+}
+
+/** Consume the pre-account onboarding draft (must have already been
+ * claimed to this session's user via claim_onboarding_draft) and persist:
+ *   1. set_work_roles(role_keys, other_detail)
+ *   2. set_work_markets(market_codes)
+ *   3. optional upsert of performer_profiles for the default row
+ *
+ * Returns the final destination hint the caller wants (routes on to
+ * /profile?from=... or straight to `next`) — but the CALLER decides where
+ * to redirect. This action only writes.
+ *
+ * Each write is idempotent — safe to retry after a partial failure. */
+export async function persistOnboardingDraft(input: {
+  roleKeys: string[];
+  roleOther: string | null;
+  marketCodes: string[];
+  performer: OnboardingPerformerPayload | null;
+}): Promise<ActionResult> {
+  try {
+    const { supabase, user } = await client();
+
+    const { error: rolesErr } = await supabase.rpc("set_work_roles", {
+      p_role_keys: input.roleKeys,
+      p_other_detail: input.roleOther,
+    });
+    if (rolesErr) throw rolesErr;
+
+    const { error: mktErr } = await supabase.rpc("set_work_markets", {
+      p_codes: input.marketCodes,
+    });
+    if (mktErr) throw mktErr;
+
+    if (input.performer) {
+      // Upsert the user's default performer_profiles row with only the
+      // fields the wizard collects (never markets — that's universal now).
+      // Idempotent: match on (user_id, is_default = true).
+      const perf = input.performer;
+      const payload: Record<string, unknown> = {
+        user_id: user.id,
+        is_default: true,
+        label: "My Profile",
+        gender: perf.gender ?? null,
+        ethnicity: perf.ethnicity ?? [],
+        date_of_birth: perf.date_of_birth ?? null,
+        union_status: perf.union_status ?? null,
+        height_inches:
+          typeof perf.height_inches === "number" && perf.height_inches > 0
+            ? perf.height_inches
+            : null,
+      };
+
+      const { data: existing } = await supabase
+        .from("performer_profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("is_default", true)
+        .maybeSingle();
+
+      if (existing?.id) {
+        const { error: upErr } = await supabase
+          .from("performer_profiles")
+          .update(payload)
+          .eq("id", existing.id as string);
+        if (upErr) throw upErr;
+      } else {
+        const { error: insErr } = await supabase
+          .from("performer_profiles")
+          .insert(payload);
+        if (insErr) throw insErr;
+      }
+    }
+
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
 function msg(e: unknown): string {
   if (e && typeof e === "object" && "message" in e) return String((e as { message: unknown }).message);
   return "Something went wrong.";

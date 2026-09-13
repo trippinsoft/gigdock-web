@@ -20,15 +20,18 @@ export interface WorkRoleCatalogRow {
   is_active: boolean;
 }
 
-/** The work-role fields on public.profiles. Read alongside the rest of the
- * profile row where the caller needs them. `work_roles_set_at` is the only
- * onboarding-state signal: NULL means "not yet answered" (show the optional
- * banner + legacy GigFit); NOT NULL means "answered" (role-aware GigFit).
- * There is no grandfathering column and no launch-date cutoff. */
+/** The universal work fields on public.profiles — Work Roles + Work
+ * Markets. Read alongside the rest of the profile row where the caller
+ * needs them. Each pair (values + set_at) follows the same two-state
+ * model: NULL means "not yet answered" (soft banner + legacy behavior),
+ * NOT NULL means "answered" (universal role/market-aware behavior). No
+ * grandfathering column, no launch-date cutoff. */
 export interface ProfileWorkRoles {
   work_roles: string[];
   work_roles_other: string | null;
   work_roles_set_at: string | null;
+  work_markets: string[];
+  work_markets_set_at: string | null;
 }
 
 /** True iff any of the given role keys refers to a performer role in the

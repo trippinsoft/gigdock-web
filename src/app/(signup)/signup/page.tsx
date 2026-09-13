@@ -1,17 +1,26 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getSessionUser, getWorkRolesCatalog } from "@/lib/backoffice";
+import {
+  getSessionUser,
+  getWorkRolesCatalog,
+  getMarketsCatalog,
+} from "@/lib/backoffice";
 import { safeNext } from "@/lib/workRolesLaunch";
-import SignupWizard from "@/components/signup/SignupWizard";
+import { loadActiveOpportunities } from "@/lib/load-opportunities";
+import OnboardingWizard from "@/components/signup/OnboardingWizard";
+import type { PreviewOpportunity } from "@/components/signup/OpportunityPreview";
 
 // URL: /signup (route group `(signup)` supplies the standalone shell).
 //
-// The canonical new-user entry point. Every step of the pre-signup wizard
-// runs inside SignupWizard on the client; this server component just
-// resolves `safeNext(next)` + the anonymous work_roles_catalog and hands
-// them down. Signed-in visitors are bounced away — they either already
-// have an account (send to `next`) or are mid-handoff (send to
-// /signup/complete which resolves the pending metadata + redirects).
+// Canonical new-user entry point. Loads:
+//   - the anonymous work_roles_catalog
+//   - the anonymous markets catalog
+//   - a lightweight active-opportunities list (for the Preview step)
+// and mounts the unified OnboardingWizard.
+//
+// Signed-in visitors are bounced away — either directly to the intended
+// destination (no pending draft) or to /signup/complete which resolves
+// their pending draft first.
 
 export const dynamic = "force-dynamic";
 
@@ -57,23 +66,45 @@ export default async function SignupPage({
   const oppId = safeOppId(sp.opportunity);
   const nextPath = pickCompletionPath(sp.next, intent, oppId);
 
-  // Signed-in already? Send them where they intended.
-  //  - If they have pending signup metadata → /signup/complete resolves it.
-  //  - Else → straight to `nextPath`. Reaching the app with
-  //    work_roles_set_at IS NULL and no metadata is an acceptable state:
-  //    the Today banner will invite them back to answer roles.
   const user = await getSessionUser();
   if (user) {
-    const hasPending = !!(user.user_metadata as { pending_work_roles?: unknown })
-      ?.pending_work_roles;
+    const hasPending =
+      typeof (user.user_metadata as { pending_draft_id?: unknown })
+        ?.pending_draft_id === "string";
     redirect(
-      hasPending ? `/signup/complete?next=${encodeURIComponent(nextPath)}` : nextPath
+      hasPending
+        ? `/signup/complete?next=${encodeURIComponent(nextPath)}`
+        : nextPath
     );
   }
 
-  // Anonymous catalog fetch — SELECT on work_roles_catalog is granted to
-  // `anon`; the SSR client resolves as anon when there's no auth cookie.
-  const catalog = await getWorkRolesCatalog();
+  const [catalog, markets, opportunitiesRaw] = await Promise.all([
+    getWorkRolesCatalog(),
+    getMarketsCatalog(),
+    loadActiveOpportunities(),
+  ]);
 
-  return <SignupWizard catalog={catalog} nextPath={nextPath} intent={intent} />;
+  // Trim opportunities down to what the Preview needs. Cap the list to a
+  // manageable size for anonymous RPC round-trips.
+  const previewOpportunities: PreviewOpportunity[] = opportunitiesRaw
+    .slice(0, 200)
+    .map((o) => ({
+      id: o.id,
+      title: o.title,
+      location: o.location,
+      work_date: o.work_date,
+      pay_rate: o.pay_rate,
+      image_url: o.image_url,
+      match_state: o.match_state,
+    }));
+
+  return (
+    <OnboardingWizard
+      catalog={catalog}
+      markets={markets}
+      previewOpportunities={previewOpportunities}
+      nextPath={nextPath}
+      intent={intent}
+    />
+  );
 }

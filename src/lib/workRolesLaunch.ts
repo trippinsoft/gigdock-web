@@ -10,8 +10,11 @@
 //                                    performer/mixed keeps GigFit,
 //                                    crew-only suppresses it.
 //
-// The normal signup path still routes new accounts through /onboarding to
-// answer roles up front — middleware no longer forces that redirect.
+// The normal signup path routes new accounts through the pre-account
+// wizard at /signup, which collects Work Roles + Work Markets (and, for
+// performers, GigFit details) and persists them via /signup/complete.
+// Middleware never forces any redirect based on work_roles/work_markets
+// state.
 //
 // This file name is legacy (there is no launch-date logic anymore); left
 // as-is to keep the diff focused.

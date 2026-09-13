@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import { stateLabel } from "@/components/FilterChips";
 import {
@@ -13,20 +12,19 @@ import {
 } from "@/lib/gigfit";
 import WorkRolesPicker from "@/components/app/WorkRolesPicker";
 import { hasPerformerRole, type WorkRoleCatalogRow } from "@/lib/workRoles";
-import { updateWorkRoles } from "@/lib/backoffice-actions";
+import { updateWorkRoles, updateWorkMarkets } from "@/lib/backoffice-actions";
 import { trackOnboarding } from "@/lib/onboardingEvents";
-import { safeNext } from "@/lib/workRolesLaunch";
 
-// Major production markets first — most users pick one of these.
-const TOP_MARKETS = ["GA", "CA", "NY", "NM", "IL", "LA", "TX", "NC", "NV", "FL", "ON", "BC"];
-const OTHER_MARKETS = [
-  "AL", "AK", "AZ", "AR", "CO", "CT", "DE", "DC", "HI", "ID", "IN", "IA", "KS",
-  "KY", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NH", "NJ", "ND",
-  "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "UT", "VT", "VA", "WA", "WV",
-  "WI", "WY", "AB", "MB", "NB", "NL", "NS", "PE", "QC", "SK",
-];
-// Full picker list, common markets first.
-const ALL_MARKETS = [...TOP_MARKETS, ...OTHER_MARKETS];
+// Profile is normal account management — three focused sections stacked:
+//   1. Work Roles       — universal (profiles.work_roles)
+//   2. Work Markets     — universal (profiles.work_markets)
+//   3. Casting Profile  — performer-only, rendered only when the current
+//                         Work Roles selection contains a performer role.
+//
+// No onboarding controls: there is no ?from=onboarding banner, no sticky
+// "Save & continue" footer, no Skip actions. New-user onboarding lives in
+// the pre-account wizard at /signup and terminates at /signup/complete;
+// this screen is only for editing later.
 
 const GENDERS = [
   { value: "male", label: "Male" },
@@ -41,7 +39,6 @@ const UNIONS = [
 
 type Draft = {
   label: string;
-  markets: string[];
   gender: string | null;
   ethnicity: string[];
   date_of_birth: string | null;
@@ -53,7 +50,6 @@ type Draft = {
 
 const BLANK: Draft = {
   label: "My Profile",
-  markets: [],
   gender: null,
   ethnicity: [],
   date_of_birth: null,
@@ -63,23 +59,6 @@ const BLANK: Draft = {
   notify_matches: false,
 };
 
-/** True when the draft carries at least one real performer/GigFit field.
- * `label` and `notify_matches` don't count — they exist on every empty
- * form. Used to prevent the onboarding Save & continue path from creating
- * an empty performer_profiles row when the user has entered nothing. */
-function hasAnyPerformerData(d: Draft): boolean {
-  return (
-    d.markets.length > 0 ||
-    d.gender != null ||
-    d.ethnicity.length > 0 ||
-    d.date_of_birth != null ||
-    d.union_status != null ||
-    d.height_inches != null ||
-    d.weight_lbs != null
-  );
-}
-
-/** How many active gigs specify each criterion — powers the value-framed nudges. */
 type Coverage = {
   gender: number;
   ethnicity: number;
@@ -90,8 +69,6 @@ type Coverage = {
 };
 
 export default function ProfilePage() {
-  // Suspense wrapper — useSearchParams() suspends during initial CSR and
-  // Next requires the boundary. Nothing else changes.
   return (
     <Suspense>
       <ProfilePageInner />
@@ -101,26 +78,24 @@ export default function ProfilePage() {
 
 function ProfilePageInner() {
   const supabase = createSupabaseBrowser();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const fromOnboarding = searchParams.get("from") === "onboarding";
-  const nextPath = safeNext(searchParams.get("next"), "/today");
-  // Guards double-fire of onboarding_completed if the user saves twice
-  // before router.replace unmounts the page.
-  const onboardingFiredRef = useRef(false);
 
   const [profileId, setProfileId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(BLANK);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
-  const [showAllMarkets, setShowAllMarkets] = useState(false);
   const [coverage, setCoverage] = useState<Coverage | null>(null);
-  // Served markets come from the admin-managed `markets` table so the list can
-  // change without a redeploy; the hardcoded ALL_MARKETS is a safe fallback.
-  const [marketOptions, setMarketOptions] = useState<string[]>(ALL_MARKETS);
-  // Work roles — top-of-page editor. The casting section below only renders
-  // when the current selection contains a performer role.
+
+  // Universal Work Markets state.
+  const [marketOptions, setMarketOptions] = useState<{ code: string; name: string }[]>([]);
+  const [markets, setMarkets] = useState<string[]>([]);
+  const [showAllMarkets, setShowAllMarkets] = useState(false);
+  const [marketsDirty, setMarketsDirty] = useState(false);
+  const [marketsSaving, setMarketsSaving] = useState(false);
+  const [marketsSavedAt, setMarketsSavedAt] = useState<string | null>(null);
+  const [marketsError, setMarketsError] = useState<string | null>(null);
+
+  // Universal Work Roles state.
   const [catalog, setCatalog] = useState<WorkRoleCatalogRow[]>([]);
   const [roleSelection, setRoleSelection] = useState<Set<string>>(() => new Set());
   const [roleOther, setRoleOther] = useState("");
@@ -130,19 +105,20 @@ function ProfilePageInner() {
   const [rolesError, setRolesError] = useState<string | null>(null);
   const rolesLoadedRef = useRef(false);
 
+  // Load anonymous-readable markets catalog once.
   useEffect(() => {
     (async () => {
       const { data } = await supabase
         .from("markets")
-        .select("code")
+        .select("code, name")
         .eq("active", true)
         .order("sort_order", { ascending: true });
-      if (data && data.length) setMarketOptions(data.map((m) => m.code as string));
+      if (data) setMarketOptions(data as { code: string; name: string }[]);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load the work-roles catalog + current selection once.
+  // Load the work-roles catalog + current universal selection (roles + markets) once.
   useEffect(() => {
     if (rolesLoadedRef.current) return;
     rolesLoadedRef.current = true;
@@ -157,7 +133,7 @@ function ProfilePageInner() {
           if (!data.user) return null;
           const { data: p } = await supabase
             .from("profiles")
-            .select("work_roles, work_roles_other")
+            .select("work_roles, work_roles_other, work_markets")
             .eq("user_id", data.user.id)
             .maybeSingle();
           return p;
@@ -167,6 +143,7 @@ function ProfilePageInner() {
       if (profileRes) {
         setRoleSelection(new Set((profileRes.work_roles as string[] | null) ?? []));
         setRoleOther((profileRes.work_roles_other as string | null) ?? "");
+        setMarkets((profileRes.work_markets as string[] | null) ?? []);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -218,6 +195,35 @@ function ProfilePageInner() {
     setRolesSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
   }
 
+  function toggleMarket(code: string) {
+    setMarketsDirty(true);
+    setMarketsSavedAt(null);
+    setMarketsError(null);
+    setMarkets((cur) => {
+      const set = new Set(cur);
+      if (set.has(code)) set.delete(code);
+      else set.add(code);
+      return Array.from(set).sort();
+    });
+  }
+
+  async function saveMarkets() {
+    setMarketsError(null);
+    if (markets.length === 0) {
+      setMarketsError("Choose at least one market to save.");
+      return;
+    }
+    setMarketsSaving(true);
+    const res = await updateWorkMarkets(markets);
+    setMarketsSaving(false);
+    if (!res.ok) {
+      setMarketsError(res.error);
+      return;
+    }
+    setMarketsDirty(false);
+    setMarketsSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
+  }
+
   const load = useCallback(async () => {
     setLoading(true);
     const { data: auth } = await supabase.auth.getUser();
@@ -238,7 +244,6 @@ function ProfilePageInner() {
       setProfileId(p.id);
       setDraft({
         label: p.label ?? "My Profile",
-        markets: p.markets ?? [],
         gender: p.gender,
         ethnicity: p.ethnicity ?? [],
         date_of_birth: p.date_of_birth,
@@ -255,7 +260,6 @@ function ProfilePageInner() {
     load();
   }, [load]);
 
-  // Load coverage stats so nudges can say what each field would unlock.
   useEffect(() => {
     (async () => {
       const todayStr = new Date().toISOString().slice(0, 10);
@@ -285,9 +289,7 @@ function ProfilePageInner() {
     if (!coverage) return null;
     switch (k) {
       case "markets":
-        return coverage.states > 0
-          ? `You're seeing gigs across ${coverage.states} state${coverage.states === 1 ? "" : "s"}. Set your regions to narrow this.`
-          : null;
+        return null; // Markets are now handled by the universal Work Markets section, not the casting profile.
       case "gender":
         return coverage.gender > 0
           ? `${coverage.gender} active gig${coverage.gender === 1 ? "" : "s"} specify a gender — add yours to match against them.`
@@ -305,15 +307,6 @@ function ProfilePageInner() {
           ? `${coverage.union} active gig${coverage.union === 1 ? "" : "s"} specify union status — add yours to match against them.`
           : null;
     }
-  }
-
-  function toggleMarket(code: string) {
-    setDraft((d) => {
-      const set = new Set(d.markets);
-      if (set.has(code)) set.delete(code);
-      else set.add(code);
-      return { ...d, markets: Array.from(set).sort() };
-    });
   }
 
   function toggleEthnicity(value: string) {
@@ -346,10 +339,11 @@ function ProfilePageInner() {
       setSaving(false);
       return false;
     }
+    // Note: `markets` is intentionally OMITTED from this write — it now
+    // lives on profiles.work_markets, updated via updateWorkMarkets.
     const payload = {
       user_id: auth.user.id,
       label: draft.label || "My Profile",
-      markets: draft.markets,
       gender: draft.gender,
       ethnicity: draft.ethnicity,
       date_of_birth: draft.date_of_birth,
@@ -383,50 +377,6 @@ function ProfilePageInner() {
     return ok;
   }
 
-  /** Save + treat this as completing onboarding when we entered from
-   * /onboarding. Fires onboarding_completed and navigates to the validated
-   * next path. Idempotent — the ref guard prevents double-fire.
-   *
-   * IMPORTANT: never inserts an empty performer_profiles row. If the user
-   * has no existing profile AND has entered no performer/GigFit data, the
-   * caller is responsible for disabling this action (see canSaveInOnboarding
-   * gating) or routing to Skip. This function double-checks the same
-   * condition so an accidental invocation cannot create an empty row. */
-  async function saveAndFinish() {
-    // Guard: no existing profile + no data means "the user really means
-    // Skip, but clicked the wrong button." Fail closed by silently
-    // returning without calling save() — the UI disables the button so
-    // this branch shouldn't be reachable, but defense in depth is cheap.
-    if (!profileId && !hasAnyPerformerData(draft)) {
-      return;
-    }
-    const ok = await save();
-    if (!ok) return;
-    if (fromOnboarding && !onboardingFiredRef.current) {
-      onboardingFiredRef.current = true;
-      trackOnboarding("onboarding_completed", {
-        flow: "performer_full",
-        has_performer_role: true,
-      });
-      router.replace(nextPath);
-    }
-  }
-
-  /** Skip the casting profile from the onboarding return path. Fires the
-   * skipped + completed events and navigates. Idempotent. */
-  function skipAndFinish() {
-    if (onboardingFiredRef.current) return;
-    onboardingFiredRef.current = true;
-    trackOnboarding("performer_profile_skipped", {
-      steps_skipped: "casting_basics",
-    });
-    trackOnboarding("onboarding_completed", {
-      flow: "performer_skipped",
-      has_performer_role: true,
-    });
-    router.replace(nextPath);
-  }
-
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -436,12 +386,6 @@ function ProfilePageInner() {
   }
 
   const age = ageFromDob(draft.date_of_birth);
-  // Save & continue is only valid when there's something to save — either
-  // an existing performer_profiles row to update (profileId set) OR at
-  // least one performer/GigFit field entered in the current draft. When
-  // neither is true, we disable the "Save & continue" button and route
-  // the user to "Skip for now" so onboarding never creates an empty row.
-  const canSaveInOnboarding = !!profileId || hasAnyPerformerData(draft);
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -450,52 +394,14 @@ function ProfilePageInner() {
           Profile
         </h2>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-          Your work roles tailor GigDock to the kind of work you do. Casting
-          profile fields help GigFit match you to relevant opportunities.
+          Your work roles and markets tailor GigDock to the kind of work you do
+          and where you do it. If you&rsquo;re a performer, your casting profile
+          helps GigFit compare you against each opportunity&rsquo;s requirements.
         </p>
       </div>
 
-      {fromOnboarding && (
-        <div className="rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/60 dark:bg-blue-950/20 px-5 py-4 sm:px-6">
-          <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            Optional — set up your casting profile
-          </div>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
-            GigFit uses these details to compare your profile with each opportunity&rsquo;s casting requirements. Fill in as much or as little as you want, or skip for now and come back later.
-          </p>
-          <div className="mt-3 flex flex-col sm:flex-row gap-2 sm:justify-end">
-            <button
-              type="button"
-              onClick={skipAndFinish}
-              disabled={saving}
-              className="inline-flex items-center justify-center rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-2 text-sm font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60"
-            >
-              Skip for now
-            </button>
-            <button
-              type="button"
-              onClick={saveAndFinish}
-              disabled={saving || !canSaveInOnboarding}
-              title={
-                !canSaveInOnboarding
-                  ? "Add at least one detail below, or use Skip for now."
-                  : undefined
-              }
-              className="inline-flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-700 px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
-            >
-              {saving ? "Saving…" : "Save & continue"}
-            </button>
-          </div>
-          {!canSaveInOnboarding && (
-            <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400 text-right">
-              Add at least one detail below, or use <span className="font-semibold">Skip for now</span>.
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Work roles — always visible */}
-      <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
+      {/* Work roles — universal, always visible */}
+      <div id="work-roles" className="scroll-mt-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
         <div className="mb-3">
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
             Work roles
@@ -541,6 +447,80 @@ function ProfilePageInner() {
         )}
       </div>
 
+      {/* Work markets — universal, always visible */}
+      <div id="work-markets" className="scroll-mt-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
+        <div className="mb-3">
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            Work markets
+          </h3>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+            Where do you want to work? Opportunities outside your markets are surfaced as lower matches.
+          </p>
+        </div>
+        {marketOptions.length === 0 ? (
+          <div className="text-xs text-zinc-500 dark:text-zinc-400">Loading…</div>
+        ) : (
+          <>
+            {showAllMarkets || markets.length === 0 ? (
+              <>
+                <div className="flex flex-wrap gap-1.5">
+                  {marketOptions.map(({ code }) => (
+                    <MarketChip
+                      key={code}
+                      code={code}
+                      selected={markets.includes(code)}
+                      onToggle={() => toggleMarket(code)}
+                    />
+                  ))}
+                </div>
+                {markets.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllMarkets(false)}
+                    className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 mt-2"
+                  >
+                    Done
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-1.5">
+                  {markets.map((code) => (
+                    <MarketChip key={code} code={code} selected onToggle={() => toggleMarket(code)} />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAllMarkets(true)}
+                  className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 mt-2"
+                >
+                  + Add or edit markets
+                </button>
+              </>
+            )}
+            {marketsError && (
+              <p className="mt-3 text-xs text-red-600 dark:text-red-400">{marketsError}</p>
+            )}
+            <div className="mt-4 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={saveMarkets}
+                disabled={marketsSaving || !marketsDirty || markets.length === 0}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-lg text-sm font-medium"
+              >
+                {marketsSaving ? "Saving…" : "Save work markets"}
+              </button>
+              {marketsSavedAt && (
+                <span className="text-xs text-green-600 dark:text-green-400">
+                  Saved at {marketsSavedAt}
+                </span>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
       {isPerformer ? (
         <>
           <div className="pt-2">
@@ -552,260 +532,190 @@ function ProfilePageInner() {
             </p>
           </div>
 
-      {/* Profile name */}
-      <Section
-        title="Profile name"
-        hint="What to call this profile — usually your name. This is the label shown when choosing which profile to match (GigFit)."
-      >
-        <input
-          type="text"
-          value={draft.label}
-          onChange={(e) => setDraft((d) => ({ ...d, label: e.target.value }))}
-          placeholder="e.g. Alan"
-          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </Section>
+          <Section
+            title="Profile name"
+            hint="What to call this profile — usually your name. This is the label shown when choosing which profile to match (GigFit)."
+          >
+            <input
+              type="text"
+              value={draft.label}
+              onChange={(e) => setDraft((d) => ({ ...d, label: e.target.value }))}
+              placeholder="e.g. Alan"
+              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </Section>
 
-      {/* Markets — collapsed shows only your selected states; expand to add.
-          With nothing selected the full picker opens automatically. */}
-      <Section
-        title="Regions"
-        hint="States you'll work in. Gigs outside these are filtered out."
-        nudge={!draft.markets.length ? nudgeFor("markets") : null}
-      >
-        {showAllMarkets || draft.markets.length === 0 ? (
-          <>
-            <div className="flex flex-wrap gap-1.5">
-              {marketOptions.map((code) => (
-                <MarketChip
-                  key={code}
-                  code={code}
-                  selected={draft.markets.includes(code)}
-                  onToggle={() => toggleMarket(code)}
+          <Section
+            title="Gender"
+            hint="Matched against roles that specify a gender."
+            nudge={!draft.gender ? nudgeFor("gender") : null}
+          >
+            <div className="flex flex-wrap gap-2">
+              {GENDERS.map((g) => (
+                <Radio
+                  key={g.value}
+                  label={g.label}
+                  checked={draft.gender === g.value}
+                  onSelect={() => setDraft((d) => ({ ...d, gender: g.value }))}
                 />
               ))}
+              {draft.gender && (
+                <button
+                  type="button"
+                  onClick={() => setDraft((d) => ({ ...d, gender: null }))}
+                  className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 px-2"
+                >
+                  Clear
+                </button>
+              )}
             </div>
-            {draft.markets.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowAllMarkets(false)}
-                className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 mt-2"
-              >
-                Done
-              </button>
-            )}
-          </>
-        ) : (
-          <>
-            <div className="flex flex-wrap gap-1.5">
-              {draft.markets.map((code) => (
-                <MarketChip
-                  key={code}
-                  code={code}
-                  selected
-                  onToggle={() => toggleMarket(code)}
-                />
+          </Section>
+
+          <Section
+            title="Ethnicity"
+            hint="Matched against roles that specify ethnicity. Select all that apply."
+            nudge={!draft.ethnicity.length ? nudgeFor("ethnicity") : null}
+          >
+            <div className="flex flex-wrap gap-2">
+              {ETHNICITY_OPTIONS.map((e) => (
+                <button
+                  key={e.value}
+                  type="button"
+                  onClick={() => toggleEthnicity(e.value)}
+                  className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
+                    draft.ethnicity.includes(e.value)
+                      ? "bg-blue-600 border-blue-600 text-white"
+                      : "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400"
+                  }`}
+                >
+                  {e.label}
+                </button>
               ))}
             </div>
-            <button
-              type="button"
-              onClick={() => setShowAllMarkets(true)}
-              className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 mt-2"
-            >
-              + Add or edit states
-            </button>
-          </>
-        )}
-      </Section>
+          </Section>
 
-      {/* Gender */}
-      <Section
-        title="Gender"
-        hint="Matched against roles that specify a gender."
-        nudge={!draft.gender ? nudgeFor("gender") : null}
-      >
-        <div className="flex flex-wrap gap-2">
-          {GENDERS.map((g) => (
-            <Radio
-              key={g.value}
-              label={g.label}
-              checked={draft.gender === g.value}
-              onSelect={() => setDraft((d) => ({ ...d, gender: g.value }))}
-            />
-          ))}
-          {draft.gender && (
-            <button
-              type="button"
-              onClick={() => setDraft((d) => ({ ...d, gender: null }))}
-              className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 px-2"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-      </Section>
-
-      {/* Ethnicity */}
-      <Section
-        title="Ethnicity"
-        hint="Matched against roles that specify ethnicity. Select all that apply."
-        nudge={!draft.ethnicity.length ? nudgeFor("ethnicity") : null}
-      >
-        <div className="flex flex-wrap gap-2">
-          {ETHNICITY_OPTIONS.map((e) => (
-            <button
-              key={e.value}
-              type="button"
-              onClick={() => toggleEthnicity(e.value)}
-              className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
-                draft.ethnicity.includes(e.value)
-                  ? "bg-blue-600 border-blue-600 text-white"
-                  : "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400"
-              }`}
-            >
-              {e.label}
-            </button>
-          ))}
-        </div>
-      </Section>
-
-      {/* Date of birth */}
-      <Section
-        title="Date of birth"
-        hint={age != null ? `Age ${age} — matched against role age ranges.` : "Used to match role age ranges. Never shown publicly."}
-        nudge={!draft.date_of_birth ? nudgeFor("date_of_birth") : null}
-      >
-        <input
-          type="date"
-          value={draft.date_of_birth ?? ""}
-          onChange={(e) =>
-            setDraft((d) => ({ ...d, date_of_birth: e.target.value || null }))
-          }
-          className="px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </Section>
-
-      {/* Union */}
-      <Section
-        title="Union status"
-        hint="Matched against roles that require a specific status."
-        nudge={!draft.union_status ? nudgeFor("union_status") : null}
-      >
-        <div className="flex flex-wrap gap-2">
-          {UNIONS.map((u) => (
-            <Radio
-              key={u.value}
-              label={u.label}
-              checked={draft.union_status === u.value}
-              onSelect={() => setDraft((d) => ({ ...d, union_status: u.value }))}
-            />
-          ))}
-          {draft.union_status && (
-            <button
-              type="button"
-              onClick={() => setDraft((d) => ({ ...d, union_status: null }))}
-              className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 px-2"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-      </Section>
-
-      {/* Height */}
-      <Section
-        title="Height"
-        hint={
-          heightLabel(draft.height_inches)
-            ? `${heightLabel(draft.height_inches)} — saved to your profile. Height matching comes later.`
-            : "Saved to your profile. Not yet used for matching."
-        }
-      >
-        <div className="flex items-center gap-2">
-          <select
-            value={draft.height_inches != null ? Math.floor(draft.height_inches / 12) : ""}
-            onChange={(e) => setFeet(e.target.value === "" ? null : Number(e.target.value))}
-            className="px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <Section
+            title="Date of birth"
+            hint={age != null ? `Age ${age} — matched against role age ranges.` : "Used to match role age ranges. Never shown publicly."}
+            nudge={!draft.date_of_birth ? nudgeFor("date_of_birth") : null}
           >
-            <option value="">— ft</option>
-            {[4, 5, 6, 7].map((f) => (
-              <option key={f} value={f}>{f} ft</option>
-            ))}
-          </select>
-          <select
-            value={draft.height_inches != null ? draft.height_inches % 12 : ""}
-            onChange={(e) => setInches(Number(e.target.value))}
-            disabled={draft.height_inches == null}
-            className="px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">— in</option>
-            {Array.from({ length: 12 }, (_, i) => (
-              <option key={i} value={i}>{i} in</option>
-            ))}
-          </select>
-          {draft.height_inches != null && (
-            <button
-              type="button"
-              onClick={() => setFeet(null)}
-              className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 px-2"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-      </Section>
+            <input
+              type="date"
+              value={draft.date_of_birth ?? ""}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, date_of_birth: e.target.value || null }))
+              }
+              className="px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </Section>
 
-      {/* Weight */}
-      <Section
-        title="Weight"
-        hint="Saved to your profile. Not yet used for matching."
-      >
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            inputMode="numeric"
-            min={50}
-            max={500}
-            value={draft.weight_lbs ?? ""}
-            onChange={(e) =>
-              setDraft((d) => ({
-                ...d,
-                weight_lbs: e.target.value === "" ? null : Number(e.target.value),
-              }))
+          <Section
+            title="Union status"
+            hint="Matched against roles that require a specific status."
+            nudge={!draft.union_status ? nudgeFor("union_status") : null}
+          >
+            <div className="flex flex-wrap gap-2">
+              {UNIONS.map((u) => (
+                <Radio
+                  key={u.value}
+                  label={u.label}
+                  checked={draft.union_status === u.value}
+                  onSelect={() => setDraft((d) => ({ ...d, union_status: u.value }))}
+                />
+              ))}
+              {draft.union_status && (
+                <button
+                  type="button"
+                  onClick={() => setDraft((d) => ({ ...d, union_status: null }))}
+                  className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 px-2"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </Section>
+
+          <Section
+            title="Height"
+            hint={
+              heightLabel(draft.height_inches)
+                ? `${heightLabel(draft.height_inches)} — used to match roles with a stated height range.`
+                : "Used to match roles with a stated height range."
             }
-            placeholder="—"
-            className="w-24 px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <span className="text-sm text-zinc-500 dark:text-zinc-400">lbs</span>
-        </div>
-      </Section>
+          >
+            <div className="flex items-center gap-2">
+              <select
+                value={draft.height_inches != null ? Math.floor(draft.height_inches / 12) : ""}
+                onChange={(e) => setFeet(e.target.value === "" ? null : Number(e.target.value))}
+                className="px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">— ft</option>
+                {[4, 5, 6, 7].map((f) => (
+                  <option key={f} value={f}>{f} ft</option>
+                ))}
+              </select>
+              <select
+                value={draft.height_inches != null ? draft.height_inches % 12 : ""}
+                onChange={(e) => setInches(Number(e.target.value))}
+                disabled={draft.height_inches == null}
+                className="px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">— in</option>
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i} value={i}>{i} in</option>
+                ))}
+              </select>
+              {draft.height_inches != null && (
+                <button
+                  type="button"
+                  onClick={() => setFeet(null)}
+                  className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 px-2"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </Section>
 
-      {/* Save. Regular /profile visit: normal Save (unchanged). Onboarding
-          return path: save also completes onboarding and navigates so the
-          user isn't stranded. In the onboarding path we ALSO disable this
-          button when the draft is empty and there's no existing profile,
-          matching the banner rule, so no empty performer_profiles row can
-          be inserted. */}
-      <div className="flex items-center gap-3 sticky bottom-0 bg-zinc-50 dark:bg-zinc-950 py-3 border-t border-zinc-200 dark:border-zinc-800">
-        <button
-          type="button"
-          onClick={fromOnboarding ? saveAndFinish : save}
-          disabled={saving || (fromOnboarding && !canSaveInOnboarding)}
-          title={
-            fromOnboarding && !canSaveInOnboarding
-              ? "Add at least one detail above, or use Skip for now."
-              : undefined
-          }
-          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg font-medium text-sm"
-        >
-          {saving ? "Saving…" : fromOnboarding ? "Save & continue" : "Save profile"}
-        </button>
-        {savedAt && !fromOnboarding && (
-          <span className="text-xs text-green-600 dark:text-green-400">
-            Saved at {savedAt}
-          </span>
-        )}
-      </div>
+          <Section
+            title="Weight"
+            hint="Saved to your profile. Not yet used for matching."
+          >
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                inputMode="numeric"
+                min={50}
+                max={500}
+                value={draft.weight_lbs ?? ""}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    weight_lbs: e.target.value === "" ? null : Number(e.target.value),
+                  }))
+                }
+                placeholder="—"
+                className="w-24 px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">lbs</span>
+            </div>
+          </Section>
+
+          <div className="flex items-center gap-3 py-3">
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving}
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg font-medium text-sm"
+            >
+              {saving ? "Saving…" : "Save casting profile"}
+            </button>
+            {savedAt && (
+              <span className="text-xs text-green-600 dark:text-green-400">
+                Saved at {savedAt}
+              </span>
+            )}
+          </div>
         </>
       ) : (
         <div className="rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 px-4 py-4 text-sm text-zinc-500 dark:text-zinc-400">
