@@ -1,7 +1,7 @@
 "use client";
 
 // Modest, dismissible-per-session banner rendered on Today for
-// grandfathered users (created before WORK_ROLES_LAUNCH_DATE with
+// grandfathered users (work_roles_grandfathered_at IS NOT NULL with
 // work_roles_set_at IS NULL). Once they answer via /onboarding, the
 // server-rendered gate stops emitting the banner permanently because
 // work_roles_set_at is populated.

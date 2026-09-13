@@ -475,16 +475,15 @@ export async function getWorkRolesCatalog(): Promise<
   return (data ?? []) as import("./workRoles").WorkRoleCatalogRow[];
 }
 
-/** The signed-in user's profile plus its work-role fields and created_at
- * (used for grandfather-vs-new-user routing at Phase 2). Returns null when
- * unauthenticated. Compatibility helper so callers don't have to know which
- * columns are new. */
+/** The signed-in user's profile plus its work-role fields. Returns null when
+ * unauthenticated. Grandfathering is expressed directly on the row via
+ * work_roles_grandfathered_at — see src/lib/workRolesLaunch.ts for the
+ * three-state predicates. */
 export async function getProfileWithWorkRoles(): Promise<
   | ({
       user_id: string;
       display_name: string | null;
       username: string | null;
-      created_at: string | null;
     } & import("./workRoles").ProfileWorkRoles)
   | null
 > {
@@ -494,7 +493,7 @@ export async function getProfileWithWorkRoles(): Promise<
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "user_id, display_name, username, created_at, work_roles, work_roles_other, work_roles_set_at"
+      "user_id, display_name, username, work_roles, work_roles_other, work_roles_set_at, work_roles_grandfathered_at"
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -504,10 +503,10 @@ export async function getProfileWithWorkRoles(): Promise<
     user_id: data.user_id as string,
     display_name: (data.display_name as string | null) ?? null,
     username: (data.username as string | null) ?? null,
-    created_at: (data.created_at as string | null) ?? null,
     work_roles: (data.work_roles as string[] | null) ?? [],
     work_roles_other: (data.work_roles_other as string | null) ?? null,
     work_roles_set_at: (data.work_roles_set_at as string | null) ?? null,
+    work_roles_grandfathered_at: (data.work_roles_grandfathered_at as string | null) ?? null,
   };
 }
 

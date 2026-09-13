@@ -18,4 +18,8 @@ Two different concepts that both use the word "role" or "work". Do not conflate 
 
 Adding a new user work role is a `work_roles_catalog` UPSERT via SQL — no client deploy is required to persist a new value. Clients render an unknown key with a de-snake-cased fallback label until they refresh their catalog cache.
 
-Grandfathering: no dedicated column. Uses the existing verified `profiles.created_at` against a `WORK_ROLES_LAUNCH_DATE` constant set at Phase 2 launch time (not during Phase 1a — anyone who signs up in the interim is treated as an existing/grandfathered user by that later logic). `work_roles_set_at IS NULL AND created_at < WORK_ROLES_LAUNCH_DATE` → grandfathered (soft banner). `work_roles_set_at IS NULL AND created_at >= WORK_ROLES_LAUNCH_DATE` → new user (must complete onboarding).
+Grandfathering: expressed directly on the row via `profiles.work_roles_grandfathered_at`, populated ONCE by the rollout migration for every existing user whose `created_at` is strictly before an immutable rollout timestamp. New signups after the rollout leave it NULL, and the enforce trigger protects it alongside the other work-role columns so clients cannot self-grandfather. Three-state model (used everywhere — no runtime launch-date comparison):
+
+- `work_roles_set_at IS NOT NULL` → roles answered.
+- `work_roles_set_at IS NULL AND work_roles_grandfathered_at IS NOT NULL` → grandfathered (soft banner, legacy behavior).
+- `work_roles_set_at IS NULL AND work_roles_grandfathered_at IS NULL` → new user or interrupted onboarding — must complete Work Roles before entering the authenticated product.

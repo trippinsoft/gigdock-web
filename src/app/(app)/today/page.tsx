@@ -60,9 +60,9 @@ export default async function TodayPage() {
   ]);
 
   // Role-aware routing:
-  //  - Grandfathered users (created before WORK_ROLES_LAUNCH_DATE, never
-  //    answered roles) see the soft banner and retain existing GigFit
-  //    behavior — do not break their current experience mid-transition.
+  //  - Grandfathered users (work_roles_grandfathered_at set, never answered
+  //    roles) see the soft banner and retain existing GigFit behavior — do
+  //    not break their current experience mid-transition.
   //  - Crew-only users (answered roles, none performer-triggering) get
   //    no GigFit UI on Today.
   //  - Performer / mixed users get the existing GigFit experience.

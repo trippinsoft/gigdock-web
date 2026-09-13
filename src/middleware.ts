@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { WORK_ROLES_LAUNCH_DATE, safeNext } from "@/lib/workRolesLaunch";
+import { safeNext } from "@/lib/workRolesLaunch";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -42,31 +42,28 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // Phase 2 onboarding gate. Users created at/after the launch cutoff who
-    // have not answered Work Roles are redirected to /onboarding, preserving
-    // their intended destination as ?next=. Grandfathered users (created
-    // before the cutoff) are NOT blocked here — they get the soft Today
-    // banner. work_roles_set_at IS NOT NULL means done, always.
+    // Phase 2 onboarding gate. Users who have not answered Work Roles and
+    // are NOT marked grandfathered are redirected to /onboarding, preserving
+    // their intended destination as ?next=. Grandfathered users (identified
+    // by work_roles_grandfathered_at set by the rollout migration) are NOT
+    // blocked here — they get the soft Today banner. work_roles_set_at IS
+    // NOT NULL means done, always.
     if (!request.nextUrl.pathname.startsWith("/onboarding")) {
       const { data: gate } = await supabase
         .from("profiles")
-        .select("created_at, work_roles_set_at")
+        .select("work_roles_set_at, work_roles_grandfathered_at")
         .eq("user_id", user.id)
         .maybeSingle();
-      if (gate && !gate.work_roles_set_at) {
-        const created = (gate.created_at as string | null) ?? null;
-        const isNewUser = !created || created >= WORK_ROLES_LAUNCH_DATE;
-        if (isNewUser) {
-          const url = request.nextUrl.clone();
-          url.pathname = "/onboarding";
-          const originalNext = safeNext(
-            request.nextUrl.pathname + request.nextUrl.search,
-            "/today"
-          );
-          url.search = "";
-          url.searchParams.set("next", originalNext);
-          return NextResponse.redirect(url);
-        }
+      if (gate && !gate.work_roles_set_at && !gate.work_roles_grandfathered_at) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/onboarding";
+        const originalNext = safeNext(
+          request.nextUrl.pathname + request.nextUrl.search,
+          "/today"
+        );
+        url.search = "";
+        url.searchParams.set("next", originalNext);
+        return NextResponse.redirect(url);
       }
     }
   }

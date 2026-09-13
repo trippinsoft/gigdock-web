@@ -1,71 +1,37 @@
-// Phase 2 launch cutoff. Read from the WORK_ROLES_LAUNCH_DATE environment
-// variable at build/runtime, so ops can set the real production-deploy
-// timestamp on Vercel immediately before releasing — no code change, no
-// guessing.
+// Phase 2/3 grandfather semantics for the work-role system. The three-state
+// model is expressed directly on the profile row — no runtime env var, no
+// launch-date comparison:
 //
-// The variable is server-only. Every code path that uses it
-// (src/middleware.ts, src/app/(app)/today/page.tsx,
-// src/app/opportunities/page.tsx) is server-side, so we do NOT need the
-// NEXT_PUBLIC_ prefix and never leak the cutoff to the client bundle.
+//   work_roles_set_at IS NOT NULL                                → roles answered
+//   work_roles_set_at IS NULL AND work_roles_grandfathered_at IS NOT NULL
+//                                                                → grandfathered
+//   work_roles_set_at IS NULL AND work_roles_grandfathered_at IS NULL
+//                                                                → new / incomplete
+//                                                                  onboarding
 //
-// SAFE FALLBACK: if the env var is missing or malformed, we default to a
-// far-future ISO date. That means "created_at >= WORK_ROLES_LAUNCH_DATE"
-// is false for every real user — nobody is forced through onboarding —
-// and the soft grandfather banner path (created_at < cutoff, work_roles
-// not set) is used everywhere. This fails safe rather than failing open.
-//
-// TO DEPLOY: set the Vercel env var immediately before publishing Phase 2:
-//   WORK_ROLES_LAUNCH_DATE=2026-09-15T22:00:00Z    # example
-// (Use the real UTC moment you promoted the deploy. String comparisons on
-// ISO 8601 with a Z suffix are lexicographically correct, so we compare
-// created_at directly.)
-
-const FAR_FUTURE = "9999-01-01T00:00:00.000Z";
-
-function resolveLaunchDate(): string {
-  const raw = process.env.WORK_ROLES_LAUNCH_DATE;
-  if (!raw) {
-    if (typeof console !== "undefined") {
-      console.warn(
-        "[work-roles] WORK_ROLES_LAUNCH_DATE not set — grandfathering everyone (safe fallback)."
-      );
-    }
-    return FAR_FUTURE;
-  }
-  const parsed = new Date(raw);
-  if (Number.isNaN(parsed.getTime())) {
-    if (typeof console !== "undefined") {
-      console.warn(
-        `[work-roles] WORK_ROLES_LAUNCH_DATE=${raw} is not a valid ISO date — grandfathering everyone (safe fallback).`
-      );
-    }
-    return FAR_FUTURE;
-  }
-  return parsed.toISOString();
-}
-
-export const WORK_ROLES_LAUNCH_DATE = resolveLaunchDate();
+// `work_roles_grandfathered_at` is populated ONCE by a one-time migration
+// backfill (see sql/work-roles.sql). New profiles created after the rollout
+// leave it NULL, which is exactly how we identify a genuine new user later.
+// The value is defended by the enforce_work_roles_via_rpc trigger so clients
+// cannot self-grandfather.
 
 export interface RoleGateProfile {
-  created_at: string | null;
   work_roles_set_at: string | null;
+  work_roles_grandfathered_at: string | null;
 }
 
-/** True when the user predates the launch cutoff and has not answered Work
+/** True when the user predates the rollout and has not answered Work
  * Roles. These users see a soft banner but are not blocked. */
 export function isGrandfathered(p: RoleGateProfile): boolean {
-  if (p.work_roles_set_at) return false;
-  if (!p.created_at) return false;
-  return p.created_at < WORK_ROLES_LAUNCH_DATE;
+  return !p.work_roles_set_at && !!p.work_roles_grandfathered_at;
 }
 
 /** True when the user is a "new user" who must complete Work Roles before
- * being allowed into the authenticated product. Missing created_at is
- * treated as a new user (safer default — happens only in edge cases). */
+ * being allowed into the authenticated product. Users who signed up after
+ * the rollout land here; so do users whose onboarding was interrupted
+ * before roles were persisted. */
 export function needsOnboarding(p: RoleGateProfile): boolean {
-  if (p.work_roles_set_at) return false;
-  if (!p.created_at) return true;
-  return p.created_at >= WORK_ROLES_LAUNCH_DATE;
+  return !p.work_roles_set_at && !p.work_roles_grandfathered_at;
 }
 
 /** Same-site path validator for ?next=. Rejects anything that could smuggle
