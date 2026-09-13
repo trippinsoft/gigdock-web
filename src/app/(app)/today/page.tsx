@@ -18,7 +18,6 @@ import {
 } from "@/lib/backoffice";
 import type { FilteredGig } from "@/lib/backoffice-types";
 import { fieldsSet, fitTierColor, type GigFitResult, type GigFitTier } from "@/lib/gigfit";
-import { isGrandfathered } from "@/lib/workRolesLaunch";
 import { Panel } from "@/components/app/ui";
 import MasterRow from "@/components/app/MasterRow";
 import TodayGreeting from "@/components/app/TodayGreeting";
@@ -59,17 +58,13 @@ export default async function TodayPage() {
     hasPerformerRole(),
   ]);
 
-  // Role-aware routing:
-  //  - Grandfathered users (work_roles_grandfathered_at set, never answered
-  //    roles) see the soft banner and retain existing GigFit behavior — do
-  //    not break their current experience mid-transition.
-  //  - Crew-only users (answered roles, none performer-triggering) get
-  //    no GigFit UI on Today.
-  //  - Performer / mixed users get the existing GigFit experience.
-  const grandfathered = roleGate
-    ? isGrandfathered(roleGate)
-    : false;
-  const showGigFit = grandfathered || isPerformer;
+  // Role-aware routing derived from a single signal:
+  //  - work_roles_set_at IS NULL → not yet answered. Show the optional
+  //    banner and retain legacy GigFit behavior.
+  //  - answered + performer / mixed → GigFit stays on.
+  //  - answered + crew-only → GigFit UI is suppressed.
+  const workRolesSet = !!roleGate?.work_roles_set_at;
+  const showGigFit = !workRolesSet || isPerformer;
 
   // "Opportunities for you" — when the user is performer-eligible and has
   // any GigFit criteria set, show only the ones they qualify for (eligible),
@@ -126,7 +121,7 @@ export default async function TodayPage() {
         <span className="text-sm text-zinc-400 dark:text-zinc-500">{dateLabel}</span>
       </div>
 
-      {grandfathered && <WorkRolesBanner />}
+      {!workRolesSet && <WorkRolesBanner />}
 
       {/* 1 — Next up (full width, image-forward) */}
       {nextUp && (

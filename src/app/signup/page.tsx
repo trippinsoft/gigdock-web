@@ -63,9 +63,10 @@ function SignupForm() {
   // Where to send the user after they have an account — and finish what they
   // started (auto-save / auto-mark-applied via ?do=, or GigFit setup). An
   // explicit same-site ?next= (e.g. bounced back from /login) wins. New
-  // users are routed through /onboarding first (middleware also enforces
-  // this on first authenticated request as belt-and-braces); the intended
-  // destination survives via the preserved ?next= query.
+  // users are routed through /onboarding first (middleware does not enforce
+  // this — anyone reaching the product at work_roles_set_at IS NULL just
+  // sees the optional Today banner); the intended destination survives via
+  // the preserved ?next= query.
   const nextParam = params.get("next");
   const completionPath = useMemo(() => {
     if (nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")) {
@@ -94,8 +95,8 @@ function SignupForm() {
   const [checkEmail, setCheckEmail] = useState(false);
 
   // Already signed in? Skip the gate and go straight to finishing the task.
-  // If they haven't answered work-roles yet the middleware will re-route
-  // them through /onboarding — cheap belt-and-braces.
+  // If they haven't answered work-roles yet, Today's optional banner
+  // invites them back to /onboarding without blocking.
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) router.replace(completionPath);

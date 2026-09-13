@@ -476,9 +476,9 @@ export async function getWorkRolesCatalog(): Promise<
 }
 
 /** The signed-in user's profile plus its work-role fields. Returns null when
- * unauthenticated. Grandfathering is expressed directly on the row via
- * work_roles_grandfathered_at — see src/lib/workRolesLaunch.ts for the
- * three-state predicates. */
+ * unauthenticated. Callers gate GigFit UI on `work_roles_set_at` — NULL
+ * means "not yet answered" (optional banner + legacy behavior); NOT NULL
+ * means "answered" (role-aware behavior). No grandfathering column. */
 export async function getProfileWithWorkRoles(): Promise<
   | ({
       user_id: string;
@@ -493,7 +493,7 @@ export async function getProfileWithWorkRoles(): Promise<
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "user_id, display_name, username, work_roles, work_roles_other, work_roles_set_at, work_roles_grandfathered_at"
+      "user_id, display_name, username, work_roles, work_roles_other, work_roles_set_at"
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -506,7 +506,6 @@ export async function getProfileWithWorkRoles(): Promise<
     work_roles: (data.work_roles as string[] | null) ?? [],
     work_roles_other: (data.work_roles_other as string | null) ?? null,
     work_roles_set_at: (data.work_roles_set_at as string | null) ?? null,
-    work_roles_grandfathered_at: (data.work_roles_grandfathered_at as string | null) ?? null,
   };
 }
 

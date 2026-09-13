@@ -21,15 +21,14 @@ export interface WorkRoleCatalogRow {
 }
 
 /** The work-role fields on public.profiles. Read alongside the rest of the
- * profile row where the caller needs them. Grandfathering is expressed
- * directly on the row via work_roles_grandfathered_at (set once by the
- * rollout migration for existing users, NULL for genuinely new users).
- * See src/lib/workRolesLaunch.ts for the three-state predicates. */
+ * profile row where the caller needs them. `work_roles_set_at` is the only
+ * onboarding-state signal: NULL means "not yet answered" (show the optional
+ * banner + legacy GigFit); NOT NULL means "answered" (role-aware GigFit).
+ * There is no grandfathering column and no launch-date cutoff. */
 export interface ProfileWorkRoles {
   work_roles: string[];
   work_roles_other: string | null;
   work_roles_set_at: string | null;
-  work_roles_grandfathered_at: string | null;
 }
 
 /** True iff any of the given role keys refers to a performer role in the

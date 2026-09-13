@@ -9,15 +9,13 @@
 --
 -- This file introduces:
 --   1. profiles work-role columns (work_roles, work_roles_other,
---      work_roles_set_at, work_roles_grandfathered_at). Grandfathering is
---      expressed directly on the row: work_roles_grandfathered_at is set
---      once, by the rollout migration, for every existing user whose
---      created_at predates the immutable rollout timestamp. New signups
---      after the rollout leave the column NULL, so a user with both
---      timestamps NULL is a genuine new / incomplete-onboarding user, and
---      no runtime app logic needs launch-date comparison. The
---      enforce_work_roles_via_rpc trigger protects the grandfather column
---      alongside the rest so clients cannot self-grandfather.
+--      work_roles_set_at). `work_roles_set_at` is the only
+--      onboarding-state signal: NULL means "not yet answered" (optional
+--      banner + legacy GigFit behavior); NOT NULL means "answered"
+--      (role-aware GigFit). No grandfathering column, no launch-date
+--      cutoff — the normal signup path routes new accounts through
+--      /onboarding, and reaching the product with NULL is an
+--      acceptable state.
 --   2. work_roles_catalog — the authoritative catalog of allowed role keys,
 --      labels, categories, and is_performer flag. THE catalog. Not a mirror.
 --   3. A validating RPC set_work_roles(text[], text) that is the only
@@ -98,17 +96,15 @@ on conflict (role_key) do update
 
 
 -- 2) profiles columns =======================================================
--- New columns only. Grandfathering is expressed directly on the row via
--- work_roles_grandfathered_at, populated ONCE by the rollout migration for
--- users whose created_at is strictly before an immutable rollout timestamp.
--- New signups after the rollout leave it NULL — that is exactly how we
--- identify a genuine new user later. Intentionally NO GIN index in Phase 1
--- — add one when a real "find users by role" query surfaces.
+-- New columns only. Onboarding state is derived directly from
+-- work_roles_set_at (NULL = not yet answered; NOT NULL = answered). No
+-- grandfathering column and no launch-date cutoff. Intentionally NO GIN
+-- index in Phase 1 — add one when a real "find users by role" query
+-- surfaces.
 alter table public.profiles
   add column if not exists work_roles       text[]      not null default '{}'::text[],
   add column if not exists work_roles_other text,
-  add column if not exists work_roles_set_at timestamptz,
-  add column if not exists work_roles_grandfathered_at timestamptz;
+  add column if not exists work_roles_set_at timestamptz;
 
 
 -- 3) Enforce set_work_roles as the only writer ==============================
@@ -142,7 +138,6 @@ begin
   if new.work_roles is distinct from old.work_roles
      or new.work_roles_other is distinct from old.work_roles_other
      or new.work_roles_set_at is distinct from old.work_roles_set_at
-     or new.work_roles_grandfathered_at is distinct from old.work_roles_grandfathered_at
   then
     raise exception 'Work-role columns can only be modified via set_work_roles()';
   end if;

@@ -98,9 +98,9 @@ export default function OnboardingClient({
     });
 
     if (anyPerformer) {
-      // Advance to the optional performer offer. Server refresh so the
-      // gate helpers (has_performer_role, needsOnboarding) see the new
-      // state on the next full navigation.
+      // Advance to the optional performer offer. Server refresh so
+      // has_performer_role and the work_roles_set_at readers see the
+      // new state on the next full navigation.
       trackOnboarding("performer_profile_started");
       router.refresh();
       setStep("gigfit_offer");
