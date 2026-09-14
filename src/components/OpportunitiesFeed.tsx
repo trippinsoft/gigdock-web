@@ -302,18 +302,18 @@ export default function OpportunitiesFeed({
     () => profiles.find((p) => p.id === gigfitProfileId) ?? null,
     [profiles, gigfitProfileId]
   );
-  // Matching runs for every signed-in user. When the user has explicitly
-  // picked a performer profile in the selector, honor that choice via
-  // `gigfit(p_profile_id)`. Otherwise (crew-only users with no
-  // performer_profiles row, or performer users who haven't picked a
-  // specific profile), call the universal `gigfit_for_user()` — which
-  // sources work_roles + work_markets from profiles and only pulls
-  // performer criteria when the selected roles include a performer role.
+  // GigFit ratings in Opportunities are shown ONLY for performer/mixed
+  // users right now. Crew-only users can browse the feed but see no
+  // rating badges — we have essentially no crew opportunity inventory
+  // and location-only matching would be misleading. When real crew
+  // opportunities begin flowing in and gigfit_for_user() has non-trivial
+  // crew signal, this gate can be relaxed.
   //
-  // `hideGigFit` from the parent means "the user isn't a performer, so
-  // hide the profile-selector UI." It does NOT disable matching — a crew
-  // user can still get Poor/Good/Strong based on universal signals.
-  const matchingActive = !!userId;
+  // `hideGigFit` from the parent (opportunities/page.tsx) is
+  // `workRolesSet && !isPerformer` — i.e., true exactly for crew-only
+  // users who have completed onboarding. It also hides the profile-
+  // selector UI further below.
+  const matchingActive = !hideGigFit && !!userId;
   const profileHasCriteria =
     !hideGigFit && !!selectedProfile && fieldsSet(selectedProfile).length > 0;
 
