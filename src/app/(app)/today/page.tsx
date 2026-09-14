@@ -344,9 +344,12 @@ const FIT_BADGE_CLS: Record<"green" | "blue" | "zinc" | "amber" | "red", string>
   red: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
 };
 
-// GigFit tier badge — matches the mobile app (strong=green with ★, good=blue,
-// open=neutral, poor=amber, ineligible=red).
+// GigFit tier badge. Only three ratings are user-facing: Strong / Good /
+// Poor. `open` (not enough signal for a responsible rating) and
+// `ineligible` (a hard blocker prevented matching) are internal states —
+// no badge is rendered for them.
 function FitBadge({ fit }: { fit: GigFitResult }) {
+  if (fit.tier === "open" || fit.tier === "ineligible") return null;
   const label = fit.tier === "strong" ? `★ ${fit.label}` : fit.label;
   return (
     <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold ${FIT_BADGE_CLS[fitTierColor(fit.tier)]}`}>

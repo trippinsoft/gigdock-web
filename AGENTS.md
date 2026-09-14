@@ -23,13 +23,18 @@ Onboarding state: derived directly from `profiles.work_roles_set_at` — no gran
 - `work_roles_set_at IS NULL` → not yet answered. Users see the optional unified Work Profile banner on Today and retain legacy GigFit behavior. They are NOT blocked from any surface.
 - `work_roles_set_at IS NOT NULL` → answered. Role-aware behavior: performer/mixed keep GigFit, crew-only suppress performer-specific GigFit UI.
 
-The normal signup path routes new accounts through the pre-account wizard at `/signup` (Work Roles → Where → GigFit Details (performers only) → Preview → Create Account) with `/signup/complete` claiming the server-side draft and persisting; reaching the product with NULL is an acceptable state.
+The normal signup path routes new accounts through the pre-account wizard at `/signup`. Flow branches on whether any selected role is a performer role:
+
+- **Performer / mixed** — Work Roles → Where → GigFit Profile (existing performer fields, optional) → Opportunities Preview → Create Account → intent-based landing (default `/opportunities`).
+- **Crew-only** — Work Roles → Where → Create Account → `/today`. GigDock provides gig-management value to crew workers before we have crew opportunity inventory, so their onboarding intentionally skips GigFit Details and the Opportunities Preview. If they had an explicit per-opportunity return path (`/opportunities/<id>?do=save|applied`), that's preserved.
+
+`/signup/complete` claims the server-side draft and persists; reaching the product with NULL work_roles_set_at is an acceptable state.
 
 # Work Markets (universal)
 
 Location preference is universal, not performer-specific. Lives on `public.profiles.work_markets text[]` alongside `profiles.work_markets_set_at`. Written only through the `set_work_markets(text[])` RPC — the same `enforce_work_roles_via_rpc` trigger that guards the work-role columns also rejects direct writes to these two. Codes come from `public.markets` (anonymous-readable). Web reads via the extended `getProfileWithWorkRoles()` / `getMarketsCatalog()` in `src/lib/backoffice.ts`; writes via `updateWorkMarkets()` in `src/lib/backoffice-actions.ts`.
 
-`performer_profiles.markets` is deprecated but not yet dropped. Web stops reading and writing it entirely; the legacy `gigfit(p_profile_id)` wrapper temporarily falls back to it when `profiles.work_markets` is empty, so mobile (Draftbit) users still match on location until Draftbit ships the universal wiring. Rough phase plan: (1) additive columns + backfill + web cutover — DONE; (2) Draftbit adopts `profiles.work_markets`; (3) legacy `coalesce` fallback removed once audit shows zero writes to `performer_profiles.markets` for 14+ days; (4) column dropped.
+`performer_profiles.markets` is deprecated but not yet dropped. Web stops reading and writing it entirely. **Two-way synchronization** keeps universal + legacy in sync during the Draftbit transition (migration `gigfit_and_markets_sync_v2`): (a) `set_work_markets()` writes to BOTH `profiles.work_markets` and the caller's default `performer_profiles.markets`; (b) an AFTER INSERT/UPDATE trigger on `performer_profiles.markets` mirrors legacy writes from released mobile builds INTO `profiles.work_markets`. Both directions guard against recursion via a transaction-local GUC (`gigdock.legacy_market_sync_ok`). The legacy `gigfit(p_profile_id)` wrapper's `coalesce` fallback remains as belt-and-suspenders. Rough phase plan: (1) additive columns + backfill + web cutover + two-way sync — DONE; (2) Draftbit adopts `profiles.work_markets`; (3) sync + coalesce removed once audit shows zero legacy writes for 14+ days; (4) column dropped.
 
 # GigFit (universal)
 
@@ -49,7 +54,9 @@ Universal signals (both trigger tri-state matching):
 
 `opportunities.role_families text[]` is a coarse classifier populated by a conservative keyword backfill over title/summary/requirements (see `sql/opportunity-role-families.sql`). The backfill only labels rows the extractor did NOT already mark with a performer `casting_specs.work_type`; performer castings that use crew vocabulary as scene description ("background talent portraying camera operators") stay unclassified. Future extractor patches should emit `role_families` natively at ingest.
 
-Tiers: **Poor / Good / Strong / Ineligible / Open**. Never percentages. Missing information reduces confidence and prevents `strong`; explicit contradictory requirements (hard gates on gender / ethnicity / age far outside range / height far outside range) produce `ineligible`. Universal fields on their own can only produce up to `good` — `strong` requires ≥3 matched signals or a skills/vehicles bonus match.
+**User-facing rating vocabulary is only Strong / Good / Poor.** Two additional server-side tier values exist internally but never render as a rating badge: `open` (not enough signal for a responsible rating) and `ineligible` (a hard blocker prevents matching). The blocker reason for an `ineligible` result may still be surfaced as descriptive text without the "ineligible" label. Never percentages.
+
+**Tier rule** (`gigfit_and_markets_sync_v2`): `strong` requires a special-signal match (skills / vehicles) OR ≥3 matched signals total. **`good` requires ≥1 matched signal OTHER than `location`** — location alone yields `open` (no badge). This prevents "Good match" from being manufactured out of a market match on an opportunity where the user has no other overlap.
 
 Completeness (`src/lib/gigfit.ts`) is split by scope: `universalFieldsSet(...)` counts `work_roles` and `work_markets`; `performerFieldsSet(...)` counts `gender`/`ethnicity`/`date_of_birth`/`union_status`/`height_inches`. `canRunGigFit(ctx)` returns true when the user has ANY universal signal — crew-only users are eligible without a performer_profiles row.
 

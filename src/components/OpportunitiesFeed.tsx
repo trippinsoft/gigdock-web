@@ -302,16 +302,27 @@ export default function OpportunitiesFeed({
     () => profiles.find((p) => p.id === gigfitProfileId) ?? null,
     [profiles, gigfitProfileId]
   );
-  // Crew-only viewers (hideGigFit=true) always report no criteria so every
-  // downstream GigFit branch collapses. The performer_profiles rows they
-  // may still carry from before are ignored for feed personalization.
+  // Matching runs for every signed-in user. When the user has explicitly
+  // picked a performer profile in the selector, honor that choice via
+  // `gigfit(p_profile_id)`. Otherwise (crew-only users with no
+  // performer_profiles row, or performer users who haven't picked a
+  // specific profile), call the universal `gigfit_for_user()` — which
+  // sources work_roles + work_markets from profiles and only pulls
+  // performer criteria when the selected roles include a performer role.
+  //
+  // `hideGigFit` from the parent means "the user isn't a performer, so
+  // hide the profile-selector UI." It does NOT disable matching — a crew
+  // user can still get Poor/Good/Strong based on universal signals.
+  const matchingActive = !!userId;
   const profileHasCriteria =
     !hideGigFit && !!selectedProfile && fieldsSet(selectedProfile).length > 0;
 
   useEffect(() => {
     (async () => {
-      if (!gigfitProfileId || !profileHasCriteria) { setFitById(new Map()); return; }
-      const { data, error } = await supabase.rpc("gigfit", { p_profile_id: gigfitProfileId });
+      if (!matchingActive) { setFitById(new Map()); return; }
+      const { data, error } = gigfitProfileId
+        ? await supabase.rpc("gigfit", { p_profile_id: gigfitProfileId })
+        : await supabase.rpc("gigfit_for_user");
       if (error) { console.error("GigFit RPC failed:", error.message ?? error); setFitById(new Map()); return; }
       const map = new Map<string, GigFitResult>();
       for (const row of (data ?? []) as GigFitRow[]) {
@@ -323,13 +334,13 @@ export default function OpportunitiesFeed({
       setFitById(map);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gigfitProfileId, profileHasCriteria, opps]);
+  }, [matchingActive, gigfitProfileId, opps]);
 
   useEffect(() => {
-    if (!profileHasCriteria && filters.eligibleOnly) {
+    if (!matchingActive && filters.eligibleOnly) {
       setFilters((f) => ({ ...f, eligibleOnly: false }));
     }
-  }, [profileHasCriteria, filters.eligibleOnly]);
+  }, [matchingActive, filters.eligibleOnly]);
 
   const availableStates = useMemo(() => {
     const set = new Set<string>();
@@ -353,7 +364,7 @@ export default function OpportunitiesFeed({
           .filter(Boolean).join(" ").toLowerCase().includes(q)
       );
     }
-    if (filters.eligibleOnly && profileHasCriteria) {
+    if (filters.eligibleOnly && matchingActive) {
       list = list.filter((o) => fitById.get(o.id)?.eligible);
     }
     const sorted = [...list];
@@ -361,7 +372,7 @@ export default function OpportunitiesFeed({
     else if (sort === "shoot-date") sorted.sort((a, b) => cmpDateAsc(a.work_date, b.work_date));
     else if (sort === "apply-by") sorted.sort((a, b) => cmpDateAsc(a.apply_by, b.apply_by));
     return sorted;
-  }, [opps, scopedOpps, scope, filters, debouncedSearch, sort, profileHasCriteria, fitById]);
+  }, [opps, scopedOpps, scope, filters, debouncedSearch, sort, matchingActive, fitById]);
 
   const visibleRoleCount = useMemo(
     () => visible.reduce((n, o) => n + matchingRolesForFilters(o, filters).length, 0),
@@ -711,7 +722,7 @@ export default function OpportunitiesFeed({
     </div>
   );
   const renderFilterFields = () => (
-    <FilterChips filters={filters} onChange={setFilters} availableStates={availableStates} availableSources={availableSources} layout="stacked" showEligibleOnly={profileHasCriteria} />
+    <FilterChips filters={filters} onChange={setFilters} availableStates={availableStates} availableSources={availableSources} layout="stacked" showEligibleOnly={matchingActive} />
   );
   const renderFilterApply = () => (
     <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 shrink-0">

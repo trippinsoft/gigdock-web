@@ -2,14 +2,24 @@
 
 // Unified pre-account onboarding wizard.
 //
-// Order:
+// Performer / mixed user (any performer role selected):
 //   Step 1  Work Roles      (universal, required — ≥1)
 //   Step 2  Where            (universal work markets, required — ≥1)
-//   Step 3  GigFit Details   (performer/mixed only, all fields optional)
-//   Step 4  Preview          (Opportunities for you, powered by gigfit_preview)
+//   Step 3  GigFit Profile   (existing performer fields, all optional)
+//   Step 4  Opportunities Preview (powered by gigfit_preview)
 //   Step 5  Create Account   (email + password → create draft → signUp)
+//     → land at intent-based nextPath (default /opportunities)
 //
-// Crew-only users skip Step 3.
+// Crew-only user (no performer role):
+//   Step 1  Work Roles
+//   Step 2  Where
+//   Step 3  Create Account
+//     → land at /today (unless the user had an explicit
+//       /opportunities/<id>?do=save|applied return path)
+//
+// GigDock provides gig-management value to crew workers without an
+// opportunity marketplace. Crew onboarding therefore skips the GigFit
+// Details step and the Opportunities Preview.
 //
 // Wizard state lives entirely on the client. A server-side draft is
 // created only when the user submits the final Create Account step; the
@@ -164,10 +174,13 @@ export default function OnboardingWizard({
     setHeightInches(f * 12 + i);
   }
 
-  const totalSteps = anyPerformer ? 5 : 4;
+  // Crew-only users skip both GigFit Details AND the Opportunities Preview —
+  // GigDock is valuable to crew as a gig-management system even before we
+  // surface crew opportunities. Performer/mixed users go through both steps.
+  const totalSteps = anyPerformer ? 5 : 3;
   const stepNumber: Record<Step, number> = anyPerformer
     ? { roles: 1, where: 2, gigfit_details: 3, preview: 4, account: 5 }
-    : { roles: 1, where: 2, gigfit_details: 0, preview: 3, account: 4 };
+    : { roles: 1, where: 2, gigfit_details: 0, preview: 0, account: 3 };
   const stepIndex = stepNumber[step];
 
   function advance() {
@@ -194,7 +207,10 @@ export default function OnboardingWizard({
         setError("Choose at least one market to continue.");
         return;
       }
-      setStep(anyPerformer ? "gigfit_details" : "preview");
+      // Crew-only → straight to account creation. GigFit Details and
+      // Opportunities Preview are only meaningful when the user has a
+      // performer role to match against today's inventory.
+      setStep(anyPerformer ? "gigfit_details" : "account");
       return;
     }
     if (step === "gigfit_details") {
@@ -212,14 +228,23 @@ export default function OnboardingWizard({
     setError(null);
     if (step === "where") setStep("roles");
     else if (step === "gigfit_details") setStep("where");
-    else if (step === "preview") setStep(anyPerformer ? "gigfit_details" : "where");
-    else if (step === "account") setStep("preview");
+    else if (step === "preview") setStep("gigfit_details");
+    else if (step === "account") setStep(anyPerformer ? "preview" : "where");
   }
 
   async function submitAccount(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setBusy(true);
+
+    // Crew-only users land in Today/GigDock, not Opportunities. Preserve an
+    // explicit per-opportunity return path (e.g. Save/Apply started before
+    // signup) — that's an intentional user action we shouldn't drop.
+    const effectiveNext = anyPerformer
+      ? nextPath
+      : nextPath.startsWith("/opportunities/")
+        ? nextPath
+        : "/today";
 
     // 1) Create the server-side draft (opaque draft_id).
     const performerPayload = anyPerformer
@@ -261,7 +286,7 @@ export default function OnboardingWizard({
     const emailRedirectTo =
       typeof window !== "undefined"
         ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(
-            `/signup/complete?next=${encodeURIComponent(nextPath)}`
+            `/signup/complete?next=${encodeURIComponent(effectiveNext)}`
           )}`
         : undefined;
 
@@ -283,7 +308,7 @@ export default function OnboardingWizard({
 
     // 3) Auto-confirm project → we have a session; go finish the handoff.
     if (signData.session) {
-      router.push(`/signup/complete?next=${encodeURIComponent(nextPath)}`);
+      router.push(`/signup/complete?next=${encodeURIComponent(effectiveNext)}`);
       router.refresh();
       return;
     }
@@ -406,12 +431,12 @@ export default function OnboardingWizard({
   );
 }
 
-function stepLabel(step: Step, anyPerformer: boolean): string {
+function stepLabel(step: Step, _anyPerformer: boolean): string {
   switch (step) {
     case "roles":          return "Work Roles";
     case "where":          return "Where";
-    case "gigfit_details": return "GigFit Details";
-    case "preview":        return anyPerformer ? "Opportunities for you" : "Opportunities in your markets";
+    case "gigfit_details": return "GigFit Profile";
+    case "preview":        return "Opportunities for you";
     case "account":        return "Create Account";
   }
 }
@@ -561,7 +586,7 @@ function StepGigFitDetails({
     <>
       <div className="mb-8">
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 leading-tight">
-          GigFit details
+          GigFit Profile
         </h1>
         <p className="mt-3 text-base text-zinc-600 dark:text-zinc-300 leading-relaxed">
           Optional — every field helps GigFit compare your profile with each opportunity&rsquo;s casting requirements. You can update or add these later.

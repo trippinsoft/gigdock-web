@@ -384,7 +384,7 @@ export default function OpportunityCard({
               <h3 className={`${dense ? "text-lg" : "text-xl sm:text-2xl"} font-bold text-zinc-900 dark:text-zinc-100 leading-snug`}>
                 {opp.title || "(No title)"}
               </h3>
-              {fit && (
+              {fit && fit.tier !== "open" && fit.tier !== "ineligible" && (
                 <Badge color={fitTierColor(fit.tier)}>
                   {fit.tier === "strong" ? "★ " : ""}{fit.label}
                 </Badge>
@@ -403,12 +403,16 @@ export default function OpportunityCard({
             {fit && (fit.matched.length > 0 || fit.blockers.length > 0) && (
               <p className={`${dense ? "text-xs mt-0.5" : "text-sm mt-1"} text-zinc-500 dark:text-zinc-400`}>
                 {fit.tier === "ineligible"
-                  ? `Not eligible — ${fit.blockers.join(" · ")}`
+                  ? // Hard blocker — internal state; surface only the
+                    // reason, without exposing "ineligible" as a rating.
+                    fit.blockers.join(" · ")
                   : fit.tier === "poor"
                   ? `Poor match — ${fit.blockers.join(" · ")}`
-                  : fit.matched.length > 0
-                  ? `Matches your ${fit.matched.join(", ")}`
-                  : null}
+                  : fit.tier === "good" || fit.tier === "strong"
+                  ? fit.matched.length > 0
+                    ? `Matches your ${fit.matched.join(", ")}`
+                    : null
+                  : null /* open → no rationale line */ }
               </p>
             )}
           </div>

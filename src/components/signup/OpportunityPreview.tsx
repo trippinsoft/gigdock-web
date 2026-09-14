@@ -187,6 +187,9 @@ export default function OpportunityPreview({
 }
 
 function FitBadge({ tier, label }: { tier: GigFitTier; label: string }) {
+  // Only Strong / Good / Poor render a badge. `open` and `ineligible`
+  // are internal-only states — the UI shows no rating.
+  if (tier === "open" || tier === "ineligible") return null;
   const color = fitTierColor(tier);
   const display = tier === "strong" ? `★ ${label}` : label;
   return (

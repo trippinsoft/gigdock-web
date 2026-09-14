@@ -18,8 +18,12 @@ import { trackOnboarding } from "@/lib/onboardingEvents";
 // Profile is normal account management — three focused sections stacked:
 //   1. Work Roles       — universal (profiles.work_roles)
 //   2. Work Markets     — universal (profiles.work_markets)
-//   3. Casting Profile  — performer-only, rendered only when the current
-//                         Work Roles selection contains a performer role.
+//   3. GigFit Profile   — role-relevant fields. Currently the performer
+//                         demographic fields, rendered only when the
+//                         current Work Roles selection contains a
+//                         performer role. Nothing rendered for crew-only
+//                         users in this release (no crew-specific fields
+//                         yet — will appear here when they add value).
 //
 // No onboarding controls: there is no ?from=onboarding banner, no sticky
 // "Save & continue" footer, no Skip actions. New-user onboarding lives in
@@ -289,7 +293,7 @@ function ProfilePageInner() {
     if (!coverage) return null;
     switch (k) {
       case "markets":
-        return null; // Markets are now handled by the universal Work Markets section, not the casting profile.
+        return null; // Markets are handled by the universal Work Markets section, not the GigFit Profile.
       case "gender":
         return coverage.gender > 0
           ? `${coverage.gender} active gig${coverage.gender === 1 ? "" : "s"} specify a gender — add yours to match against them.`
@@ -395,8 +399,9 @@ function ProfilePageInner() {
         </h2>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
           Your work roles and markets tailor GigDock to the kind of work you do
-          and where you do it. If you&rsquo;re a performer, your casting profile
-          helps GigFit compare you against each opportunity&rsquo;s requirements.
+          and where you do it. If your roles include performing work, your
+          GigFit Profile helps match you against each opportunity&rsquo;s
+          casting requirements.
         </p>
       </div>
 
@@ -525,10 +530,10 @@ function ProfilePageInner() {
         <>
           <div className="pt-2">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-              Casting profile
+              GigFit Profile
             </h3>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-              Used only to match you with relevant film &amp; TV casting opportunities. Every detail you add helps GigFit compare your profile with casting requirements — you don&apos;t have to fill it all in at once.
+              Used to match you with relevant film &amp; TV casting opportunities. Every detail you add helps GigFit compare your profile with casting requirements — you don&apos;t have to fill it all in at once.
             </p>
           </div>
 
@@ -708,7 +713,7 @@ function ProfilePageInner() {
               disabled={saving}
               className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg font-medium text-sm"
             >
-              {saving ? "Saving…" : "Save casting profile"}
+              {saving ? "Saving…" : "Save GigFit Profile"}
             </button>
             {savedAt && (
               <span className="text-xs text-green-600 dark:text-green-400">
@@ -717,11 +722,11 @@ function ProfilePageInner() {
             )}
           </div>
         </>
-      ) : (
-        <div className="rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 px-4 py-4 text-sm text-zinc-500 dark:text-zinc-400">
-          Casting profile is available when your work roles include a performing role (Background Actor, Stand-In / Photo Double, Actor, Voice Actor, or Model). Add one above and it will appear here — your existing casting data (if any) is preserved and will reappear when a performer role is selected again.
-        </div>
-      )}
+      ) : null /* No GigFit Profile section for crew-only users in this
+                    release. GigDock's core value for crew is gig
+                    management; role-specific GigFit fields will be
+                    introduced progressively when they provide clear
+                    matching value. */}
     </div>
   );
 }
