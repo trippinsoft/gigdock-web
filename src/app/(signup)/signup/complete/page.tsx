@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import {
   getProfileWithWorkRoles,
   getSessionUser,
@@ -11,6 +10,7 @@ import {
 } from "@/lib/backoffice-actions";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { safeNext } from "@/lib/workRolesLaunch";
+import CompleteRecoveryPanel from "./CompleteRecoveryPanel";
 
 // URL: /signup/complete?next=<safe-path>
 //
@@ -138,19 +138,24 @@ export default async function CompleteSignupPage({
 
   const draftId = readPendingDraftId(user!.user_metadata);
   if (!draftId) {
-    return <ErrorPanel nextPath={nextPath} reason="no_draft" />;
+    // No draft in metadata AND roles not set — the user is authenticated
+    // but the handoff data is missing. Let them finish in /profile without
+    // being trapped here by the (app) transient guard.
+    return <CompleteRecoveryPanel reason="no_draft" nextPath={nextPath} />;
   }
 
-  // (2) Claim the draft. The RPC enforces email-hash ownership.
+  // (2) Claim the draft. The RPC enforces email-hash ownership. Idempotent
+  // by design: if this user already claimed the draft, the RPC returns
+  // the same payload without re-updating claimed_by.
   const supabase = await createSupabaseServer();
   const claimRes = await supabase.rpc("claim_onboarding_draft", {
     p_draft_id: draftId,
   });
   if (claimRes.error) {
     return (
-      <ErrorPanel
-        nextPath={nextPath}
+      <CompleteRecoveryPanel
         reason="claim_failed"
+        nextPath={nextPath}
         detail={claimRes.error.message ?? undefined}
       />
     );
@@ -158,10 +163,12 @@ export default async function CompleteSignupPage({
 
   const draft = extractDraft(claimRes.data);
   if (!draft) {
-    return <ErrorPanel nextPath={nextPath} reason="malformed_draft" />;
+    return <CompleteRecoveryPanel reason="malformed_draft" nextPath={nextPath} />;
   }
 
-  // (3) Persist. Each write is individually idempotent.
+  // (3) Persist. Each write is individually idempotent. set_work_roles /
+  // set_work_markets now raise loudly (SQLSTATE P0002) if the profile
+  // row is missing, so a silent no-op no longer causes verify_failed.
   const persistRes = await persistOnboardingDraft({
     roleKeys: draft.roleKeys,
     roleOther: draft.roleOther,
@@ -170,9 +177,9 @@ export default async function CompleteSignupPage({
   });
   if (!persistRes.ok) {
     return (
-      <ErrorPanel
-        nextPath={nextPath}
+      <CompleteRecoveryPanel
         reason="persist_failed"
+        nextPath={nextPath}
         detail={persistRes.error}
       />
     );
@@ -181,57 +188,9 @@ export default async function CompleteSignupPage({
   // (4) Verify.
   const verify = await getProfileWithWorkRoles();
   if (!verify?.work_roles_set_at) {
-    return <ErrorPanel nextPath={nextPath} reason="verify_failed" />;
+    return <CompleteRecoveryPanel reason="verify_failed" nextPath={nextPath} />;
   }
 
   await clearPending();
   redirect(nextPath);
-}
-
-function ErrorPanel({
-  nextPath,
-  reason,
-  detail,
-}: {
-  nextPath: string;
-  reason: "no_draft" | "claim_failed" | "malformed_draft" | "persist_failed" | "verify_failed";
-  detail?: string;
-}) {
-  const headline: Record<typeof reason, string> = {
-    no_draft: "We couldn't find your onboarding draft.",
-    claim_failed: "We couldn't finish setting up your account.",
-    malformed_draft: "Your onboarding draft is incomplete.",
-    persist_failed: "We couldn't save your onboarding details.",
-    verify_failed: "Setup didn't complete — please try again.",
-  };
-  const retryHref = `/signup/complete?next=${encodeURIComponent(nextPath)}`;
-  return (
-    <div className="pt-10 mx-auto max-w-xl">
-      <div className="rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6">
-        <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-          {headline[reason]}
-        </h1>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-          Your account is created but we hit a snag finishing setup. Try again — most of the time this resolves itself.
-        </p>
-        {detail && (
-          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 font-mono">{detail}</p>
-        )}
-        <div className="mt-4 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-end">
-          <Link
-            href="/signup"
-            className="inline-flex items-center justify-center rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-2 text-sm font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-          >
-            Start over
-          </Link>
-          <Link
-            href={retryHref}
-            className="inline-flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-700 px-5 py-2 text-sm font-semibold text-white"
-          >
-            Try again
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
 }

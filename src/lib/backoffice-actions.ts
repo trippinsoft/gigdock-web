@@ -842,14 +842,24 @@ export async function persistOnboardingDraft(input: {
     if (mktErr) throw mktErr;
 
     if (input.performer) {
-      // Upsert the user's default performer_profiles row with only the
-      // fields the wizard collects (never markets — that's universal now).
-      // Idempotent: match on (user_id, is_default = true).
+      // Upsert the user's default performer_profiles row. Idempotent:
+      // match on (user_id, is_default = true).
+      //
+      // markets is intentionally included here even though the universal
+      // source of truth is profiles.work_markets. During the mobile
+      // transition, `sync_legacy_performer_markets_to_universal` fires on
+      // AFTER INSERT/UPDATE of performer_profiles and treats an empty
+      // new.markets as a legitimate legacy write, which could clobber
+      // the just-persisted universal value. Populating markets here with
+      // the same codes the caller just persisted makes the trigger a
+      // no-op (v_current matches new.markets). Belt to the trigger's
+      // v3 cardinality-guard suspenders.
       const perf = input.performer;
       const payload: Record<string, unknown> = {
         user_id: user.id,
         is_default: true,
         label: "My Profile",
+        markets: input.marketCodes,
         gender: perf.gender ?? null,
         ethnicity: perf.ethnicity ?? [],
         date_of_birth: perf.date_of_birth ?? null,
@@ -881,6 +891,31 @@ export async function persistOnboardingDraft(input: {
       }
     }
 
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+/** Clear the transient signup handoff metadata (pending_draft_id and its
+ *  older-scheme siblings) on the authenticated user. Used by the
+ *  /signup/complete recovery panel's "Complete in Profile" escape hatch —
+ *  removes the (app) transient guard so the user can finish setup
+ *  manually in /profile without being bounced back to /signup/complete. */
+export async function clearPendingOnboardingMetadata(): Promise<ActionResult> {
+  try {
+    const { supabase } = await client();
+    const { error } = await supabase.auth.updateUser({
+      data: {
+        pending_draft_id: null,
+        pending_work_roles: null,
+        pending_work_roles_other: null,
+        pending_has_performer_role: null,
+        pending_wants_gigfit: null,
+        pending_performer_profile: null,
+      },
+    });
+    if (error) throw error;
     return { ok: true };
   } catch (e) {
     return { ok: false, error: msg(e) };
