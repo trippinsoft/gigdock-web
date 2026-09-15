@@ -167,8 +167,19 @@ export default async function CompleteSignupPage({
   }
 
   // (3) Persist. Each write is individually idempotent. set_work_roles /
-  // set_work_markets now raise loudly (SQLSTATE P0002) if the profile
-  // row is missing, so a silent no-op no longer causes verify_failed.
+  // set_work_markets both raise loudly (SQLSTATE P0002) if the profile
+  // row is missing — a silent 0-row UPDATE is impossible. Therefore
+  // when persistRes.ok is true the writes DID land, and no additional
+  // verification read is needed. The old verify step re-ran
+  // getProfileWithWorkRoles (which does its own supabase.auth.getUser()
+  // network hop) and could return null on a transient hiccup, causing
+  // spurious verify_failed even after the DB was correctly written —
+  // observed in production for crew-only signup (user ob6: RPCs
+  // succeeded, DB fully populated, recovery panel still shown). This
+  // was especially likely for crew-only because that path has NO
+  // performer_profiles INSERT to serialize behind, so the verify read
+  // ran the fastest after the writes — right when transient auth-server
+  // latency is most likely to reject a token check.
   const persistRes = await persistOnboardingDraft({
     roleKeys: draft.roleKeys,
     roleOther: draft.roleOther,
@@ -183,12 +194,6 @@ export default async function CompleteSignupPage({
         detail={persistRes.error}
       />
     );
-  }
-
-  // (4) Verify.
-  const verify = await getProfileWithWorkRoles();
-  if (!verify?.work_roles_set_at) {
-    return <CompleteRecoveryPanel reason="verify_failed" nextPath={nextPath} />;
   }
 
   await clearPending();
