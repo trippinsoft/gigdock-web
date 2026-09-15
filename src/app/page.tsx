@@ -536,7 +536,12 @@ function OpportunitiesRail({ preview }: { preview: Opportunity[] }) {
   if (preview.length === 0) return null;
   return (
     <section className="py-12 sm:py-14 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-white dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800">
-      <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-8 lg:gap-10 items-start">
+      {/* Pinning the right (cards) column at 260–320px lets the left copy
+          column absorb the rest of the row. The prior [1.15fr_1fr] was
+          designed against PublicShell's old max-w-7xl content width; after
+          commit cef4281 standardized the shell on max-w-5xl the left
+          column was left too narrow, wrapping the headline into 6+ lines. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)] gap-8 lg:gap-10 items-start">
         <div>
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
             Find the next gig. Then keep everything that follows organized.
