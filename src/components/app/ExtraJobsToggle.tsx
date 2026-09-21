@@ -5,11 +5,20 @@
 // AdditionalPayEditor.tsx) so /connections and any inline reuse stay
 // visually consistent.
 //
-// State is server-authoritative: the parent server component reads
-// `getUserConnection("extrajobs_background")` and passes `initialEnabled`
-// here. On toggle we call `updateUserConnection` (which upserts via the
-// SECURITY DEFINER RPC and revalidates every layout), then let the
-// server-rendered surfaces reflect the new state.
+// Authoritative persistence — no optimistic UI:
+//   The parent server component reads the effective state through
+//   getUserConnection() and passes it as `initialEnabled`. On tap we
+//   disable the control, call set_user_connection() via
+//   `updateUserConnection`, and ONLY move the displayed state after the
+//   RPC confirms success. Nav / Today / Opportunities read the same
+//   server-side state via getUserConnection(), so the router refresh
+//   below re-runs those reads once the write has landed.
+//
+//   The previous optimistic-with-rollback pattern could briefly show
+//   nav or Today reacting as though the setting had flipped before the
+//   server confirmed the change — this authoritative flow avoids that
+//   and matches the "Supabase remains authoritative" contract for the
+//   canonical connection state.
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -23,53 +32,62 @@ export default function ExtraJobsToggle({
   disabled?: boolean;
 }) {
   const router = useRouter();
-  const [optimistic, setOptimistic] = useState(initialEnabled);
+  // `displayed` reflects ONLY server-confirmed state. It is initialized
+  // from the server-rendered read and moves only after the RPC succeeds.
+  const [displayed, setDisplayed] = useState(initialEnabled);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   function toggle() {
     if (pending || disabled) return;
-    const next = !optimistic;
-    setOptimistic(next);
+    const next = !displayed;
     setError(null);
     startTransition(async () => {
       const res = await updateUserConnection("extrajobs_background", next);
       if (!res.ok) {
-        // Rollback optimistic state on failure — the UI must not pretend
-        // the connection changed if the RPC didn't.
-        setOptimistic(!next);
+        // Retain the prior displayed state and surface the failure —
+        // the setting did not change on the server, so the UI must
+        // not pretend it did.
         setError(res.error || "Couldn't update the connection.");
         return;
       }
-      // Server has invalidated cache paths for this layout — trigger a
-      // Router refresh so the nav shell and Today re-render with the
-      // new connection state without a full navigation.
+      // Server accepted the write. Now (and only now) flip the
+      // displayed state and refresh the router so nav / Today /
+      // Opportunities re-read getUserConnection() with the new value.
+      setDisplayed(next);
       router.refresh();
     });
   }
 
+  const busy = pending || disabled;
   return (
     <div className="flex flex-col items-end gap-1">
       <button
         type="button"
         role="switch"
-        aria-checked={optimistic}
+        aria-checked={displayed}
+        aria-busy={pending || undefined}
         aria-label="Background opportunities powered by ExtraJobs"
         onClick={toggle}
-        disabled={disabled || pending}
+        disabled={busy}
         className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-zinc-900 ${
-          optimistic
+          displayed
             ? "bg-blue-600"
             : "bg-zinc-300 dark:bg-zinc-700"
-        } ${pending || disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
+        } ${busy ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
       >
         <span
           aria-hidden="true"
           className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-            optimistic ? "translate-x-5" : "translate-x-0.5"
+            displayed ? "translate-x-5" : "translate-x-0.5"
           }`}
         />
       </button>
+      {pending && (
+        <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+          Saving…
+        </p>
+      )}
       {error && (
         <p className="text-xs text-red-600 dark:text-red-400 max-w-[16rem] text-right">
           {error}

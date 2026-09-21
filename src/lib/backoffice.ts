@@ -631,54 +631,100 @@ export interface UserConnectionState {
   disabled_at: string | null;
 }
 
+/** Discriminated result of a connection read.
+ *
+ *  `ok`               — the RPC returned an authoritative state.
+ *  `unauthenticated`  — there is no signed-in user (belt-and-suspenders;
+ *                       the (app) layout already redirects to /login).
+ *  `error`            — the RPC failed. Callers MUST NOT interpret this
+ *                       as `enabled: false`. ExtraJobs OFF is a user
+ *                       preference, not a security boundary, so a
+ *                       transient failure must not silently pretend the
+ *                       user disabled it. The /connections page renders
+ *                       this as an explicit error state; nav / Today /
+ *                       Opportunities keep surfaces visible so an
+ *                       existing user's routes don't disappear.
+ */
+export type UserConnectionRead =
+  | { status: "ok"; state: UserConnectionState }
+  | { status: "unauthenticated" }
+  | { status: "error"; message: string };
+
 /** The effective connection state for the signed-in user, respecting the
- *  server-side legacy cutoff (no local heuristics). Fails closed to
- *  `enabled: false` when unauthenticated or on any RPC error, so no
- *  authenticated surface accidentally exposes ExtraJobs content if the
- *  RPC becomes unreachable. `cache()` so a single page render — nav,
- *  Today, Connections — shares one RPC result. */
+ *  server-side legacy cutoff (no local heuristics). Returns a
+ *  discriminated union so callers can distinguish an authoritative OFF
+ *  from a transient read failure — the latter must NOT be treated as
+ *  the user having disabled the connection. `cache()` so a single page
+ *  render — nav, Today, Connections — shares one RPC result. */
 export const getUserConnection = cache(
-  async (kind: ConnectionKey): Promise<UserConnectionState> => {
-    const fallback: UserConnectionState = {
-      connection_key: kind,
-      enabled: false,
-      enabled_at: null,
-      disabled_at: null,
-    };
+  async (kind: ConnectionKey): Promise<UserConnectionRead> => {
+    let supabase;
     try {
-      const supabase = await createSupabaseServer();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return fallback;
-      const { data, error } = await supabase.rpc("get_user_connection", {
-        p_connection_key: kind,
-      });
-      if (error || !data) return fallback;
-      const row = data as {
-        connection_key?: string;
-        enabled?: boolean;
-        enabled_at?: string | null;
-        disabled_at?: string | null;
-      };
+      supabase = await createSupabaseServer();
+    } catch (e) {
       return {
+        status: "error",
+        message: e instanceof Error ? e.message : "Supabase client unavailable",
+      };
+    }
+    const authRes = await supabase.auth.getUser();
+    if (authRes.error) {
+      return { status: "error", message: authRes.error.message };
+    }
+    if (!authRes.data.user) return { status: "unauthenticated" };
+
+    const { data, error } = await supabase.rpc("get_user_connection", {
+      p_connection_key: kind,
+    });
+    if (error) {
+      return { status: "error", message: error.message };
+    }
+    if (!data) {
+      // The RPC is defined to always return a jsonb row (synthesizing a
+      // legacy-enabled state when no user_connections row exists), so a
+      // null here is a contract violation — surface it, don't guess.
+      return { status: "error", message: "get_user_connection returned no data" };
+    }
+    const row = data as {
+      connection_key?: string;
+      enabled?: boolean;
+      enabled_at?: string | null;
+      disabled_at?: string | null;
+    };
+    return {
+      status: "ok",
+      state: {
         connection_key: kind,
         enabled: row.enabled === true,
         enabled_at: row.enabled_at ?? null,
         disabled_at: row.disabled_at ?? null,
-      };
-    } catch {
-      return fallback;
-    }
+      },
+    };
   }
 );
 
-/** Convenience: is the ExtraJobs background-opportunities connection ON
- *  for the current signed-in user? Any authenticated surface that
- *  currently references Opportunities/GigFit/alerts should gate on this. */
+/** Convenience for surfaces that gate whole Opportunity destinations
+ *  (nav, Today, Opportunities page): is the ExtraJobs background
+ *  connection ON for the current signed-in user?
+ *
+ *  Policy on a read failure: **fail open** — return `true`. Rationale:
+ *  ExtraJobs OFF is a user preference, not a security boundary, and
+ *  hiding the Opportunities nav / Today module on a transient RPC or
+ *  auth glitch would make it look like the setting had flipped OFF on
+ *  the user (violating the "no manufactured enabled=false" contract).
+ *  The /connections page reads `getUserConnection` directly and renders
+ *  an explicit error state instead, so the toggle never lies about the
+ *  stored value.
+ *
+ *  `unauthenticated` means there is no user to have a preference and is
+ *  unreachable from the (app) surfaces (the layout redirects first); we
+ *  return `false` there defensively so a signed-out render doesn't
+ *  briefly show gated content. */
 export async function hasExtraJobsBackground(): Promise<boolean> {
-  const state = await getUserConnection("extrajobs_background");
-  return state.enabled;
+  const read = await getUserConnection("extrajobs_background");
+  if (read.status === "ok") return read.state.enabled;
+  if (read.status === "unauthenticated") return false;
+  return true;
 }
 
 /** The signed-in user's plan. Features read this; billing changes it. Fails
