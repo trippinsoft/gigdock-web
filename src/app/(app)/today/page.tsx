@@ -15,6 +15,7 @@ import {
   getGigFitForUser,
   getProfileWithWorkRoles,
   hasPerformerRole,
+  hasExtraJobsBackground,
 } from "@/lib/backoffice";
 import type { FilteredGig } from "@/lib/backoffice-types";
 import {
@@ -45,6 +46,11 @@ export default async function TodayPage() {
   const todayStr = fmt(now);
   const tomorrowStr = fmt(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
 
+  // ExtraJobs background connection gates every opportunity surface on
+  // Today. When OFF we skip the network entirely — no opps to rank, no
+  // fit lookup, no "Opportunities for you" module.
+  const extrajobs = await hasExtraJobsBackground();
+
   const [earnedM, earnedP, receivedM, allSummary, workM, workP, attention, gigs, companies, payments, oppsRaw, displayName, profile, roleGate, isPerformer] = await Promise.all([
     getEarnedInRange(fmt(mStart), fmt(mEnd)),
     getEarnedInRange(fmt(pStart), fmt(mStart)),
@@ -56,7 +62,7 @@ export default async function TodayPage() {
     getGigs({ sort: "recent" }),
     getCompanies(),
     getAllPayments(),
-    getRecentOpportunities(30),
+    extrajobs ? getRecentOpportunities(30) : Promise.resolve([] as Awaited<ReturnType<typeof getRecentOpportunities>>),
     getDisplayName(),
     getDefaultPerformerProfile(),
     getProfileWithWorkRoles(),
@@ -75,7 +81,11 @@ export default async function TodayPage() {
   const workMarketsSet = !!roleGate?.work_markets_set_at;
   const workRoles = roleGate?.work_roles ?? [];
   const workMarkets = roleGate?.work_markets ?? [];
-  const gigfitOn = canRunGigFit({
+  // GigFit itself is unchanged — it stays useful for a user's own
+  // records — but its personalization of the Opportunities Today module
+  // only runs when the ExtraJobs connection is on. When OFF we neither
+  // read fit results nor surface the module at all.
+  const gigfitOn = extrajobs && canRunGigFit({
     workRoles,
     workMarkets,
     performer: profile,
@@ -243,8 +253,10 @@ export default async function TodayPage() {
 
       {/* Opportunities — GigFit-personalized when the user has a profile.
           Crew-only users still see opportunities (no personalization); the
-          "Set up GigFit" nudge is suppressed for them. */}
-      {(opps.length > 0 || gigfitOn) && (
+          "Set up GigFit" nudge is suppressed for them. Entire block is
+          gated on the ExtraJobs background connection: OFF means no
+          Opportunities anywhere in Today. */}
+      {extrajobs && (opps.length > 0 || gigfitOn) && (
         <div className="mt-8">
           <div className="flex items-baseline justify-between mb-3">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">

@@ -111,6 +111,22 @@ export default function OnboardingWizard({
   const [selectedRoles, setSelectedRoles] = useState<Set<string>>(() => new Set());
   const [roleOther, setRoleOther] = useState("");
 
+  // Optional inline ExtraJobs background-opportunities selection. Visible
+  // ONLY when the Background Actor role is chosen on the roles step:
+  //  - Defaults to ON the first time Background Actor is selected in
+  //    this wizard session (mirrors the mobile app; the user is
+  //    explicitly saying they do background work).
+  //  - If Background Actor is deselected, the pending selection is
+  //    cleared so a later re-select falls back to the ON default.
+  //  - Non-Background users never see the toggle and are never
+  //    auto-enabled for ExtraJobs, per contract.
+  // The selection is carried into create_onboarding_draft as
+  // `connections.extrajobs_background`; /signup/complete persists it via
+  // set_user_connection() after the account is created. State is not
+  // authoritative here — Supabase is — but this is the pre-account
+  // draft, before an auth.uid() exists.
+  const [extrajobsBackground, setExtrajobsBackground] = useState<boolean | null>(null);
+
   // Step 2: Work Markets.
   const [selectedMarkets, setSelectedMarkets] = useState<Set<string>>(() => new Set());
   const [showAllMarkets, setShowAllMarkets] = useState(true);
@@ -150,6 +166,18 @@ export default function OnboardingWizard({
       else next.add(roleKey);
       return next;
     });
+    if (roleKey === "background_actor") {
+      // Sync the inline ExtraJobs toggle with the Background role:
+      //  - selecting Background defaults ExtraJobs ON,
+      //  - deselecting Background clears the pending selection so
+      //    re-selecting returns to the ON default.
+      setExtrajobsBackground((prev) => {
+        const wasSelected = selectedRoles.has("background_actor");
+        // wasSelected reflects the value BEFORE this toggle; we're
+        // flipping it, so the new state is !wasSelected.
+        return wasSelected ? null : (prev ?? true);
+      });
+    }
   }
   function toggleMarket(code: string) {
     setSelectedMarkets((prev) => {
@@ -260,6 +288,18 @@ export default function OnboardingWizard({
         }
       : null;
 
+    // Persist the ExtraJobs background-opportunities selection ONLY
+    // when Background Actor is selected. Non-Background users are never
+    // auto-enabled; leaving `connections` off the draft means
+    // /signup/complete → persistOnboardingDraft skips set_user_connection
+    // and the user's server-side state (a fresh row with the catalog
+    // default) is left untouched. This preserves the contract that we
+    // never write on a user's behalf without an explicit choice.
+    const connectionsPayload =
+      selectedRoles.has("background_actor")
+        ? { extrajobs_background: extrajobsBackground ?? true }
+        : undefined;
+
     const { data: draftIdData, error: draftErr } = await supabase.rpc(
       "create_onboarding_draft",
       {
@@ -268,6 +308,7 @@ export default function OnboardingWizard({
           work_roles_other: selectedRoles.has("other") ? roleOther.trim().slice(0, 60) : null,
           work_markets: marketCodes,
           performer: performerPayload,
+          ...(connectionsPayload ? { connections: connectionsPayload } : {}),
         },
         p_intended_email: email,
       }
@@ -368,6 +409,8 @@ export default function OnboardingWizard({
           error={error}
           onContinue={advance}
           selectedCount={selectedRoles.size}
+          extrajobsEnabled={extrajobsBackground}
+          onToggleExtrajobs={() => setExtrajobsBackground((v) => !(v ?? true))}
         />
       )}
 
@@ -445,6 +488,7 @@ function stepLabel(step: Step, _anyPerformer: boolean): string {
 
 function StepRoles({
   catalog, selected, onToggle, otherDetail, onOtherDetailChange, error, onContinue, selectedCount,
+  extrajobsEnabled, onToggleExtrajobs,
 }: {
   catalog: WorkRoleCatalogRow[];
   selected: Set<string>;
@@ -454,7 +498,13 @@ function StepRoles({
   error: string | null;
   onContinue: () => void;
   selectedCount: number;
+  /** null = no explicit selection yet (default ON when Background is
+   *  selected); true/false = user's explicit toggle. */
+  extrajobsEnabled: boolean | null;
+  onToggleExtrajobs: () => void;
 }) {
+  const showExtraJobs = selected.has("background_actor");
+  const effectiveEnabled = extrajobsEnabled ?? true;
   return (
     <>
       <div className="mb-8">
@@ -473,6 +523,46 @@ function StepRoles({
         otherDetail={otherDetail}
         onOtherDetailChange={onOtherDetailChange}
       />
+
+      {showExtraJobs && (
+        <div className="mt-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                Want to find background jobs?
+              </h2>
+              <p className="mt-1.5 text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                Get relevant background opportunities and alerts powered by ExtraJobs.
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                  Background opportunities
+                </span>
+              </div>
+              <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-500">
+                Powered by ExtraJobs
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={effectiveEnabled}
+              aria-label="Background opportunities powered by ExtraJobs"
+              onClick={onToggleExtrajobs}
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-zinc-900 ${
+                effectiveEnabled ? "bg-blue-600" : "bg-zinc-300 dark:bg-zinc-700"
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                  effectiveEnabled ? "translate-x-5" : "translate-x-0.5"
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      )}
 
       {error && <p className="mt-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
 

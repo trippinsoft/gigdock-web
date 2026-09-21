@@ -14,65 +14,90 @@ type NavItem = { href: string; label: string; icon: React.ReactNode; match?: str
 type NavGroup = { label: string | null; items: NavItem[] };
 
 // Grouped by user job (Part IV): Today · Find work · Manage work · Money.
-const GROUPS: NavGroup[] = [
-  { label: null, items: [{ href: "/today", label: "Today", icon: iconHome() }] },
-  { label: "Find work", items: [{ href: "/opportunities", label: "Opportunities", icon: iconSearch() }] },
-  {
-    label: "Manage work",
-    items: [
-      { href: "/gigs", label: "My Gigs", icon: iconBriefcase() },
-      { href: "/calendar", label: "Calendar", icon: iconCalendar() },
-      { href: "/documents", label: "Documents", icon: iconDoc() },
-    ],
-  },
-  {
-    label: "Money",
-    items: [
-      { href: "/payments", label: "Payments", icon: iconDollar() },
-      { href: "/insights", label: "Insights", icon: iconChart() },
-      { href: "/reports", label: "Advanced Reports", icon: iconFileText(), pro: true },
-      { href: "/tax-ready", label: "Tax Ready", icon: iconTax(), pro: true },
-    ],
-  },
-  // Public reading pages — a real <a target=_blank> so the app tab (and rail)
-  // stays put. Guides and Get the app both live in PublicShell.
-  {
-    label: "Learn",
-    items: [
-      { href: "/guides", label: "Guides", icon: iconBook(), newTab: true },
-      { href: "/app", label: "Get the app", icon: iconPhone(), newTab: true },
-    ],
-  },
-  // Identity + app preferences. Profile, Settings, and Help & feedback are
-  // in-app pages (AppShell). Projects / gig companies / payroll live under Settings.
-  {
-    label: "Account",
-    items: [
-      { href: "/profile", label: "Profile / GigFit", icon: iconUser() },
-      { href: "/settings", label: "Settings", icon: iconGear(), match: ["/settings", "/projects", "/companies", "/payroll", "/delete-account"] },
-      { href: "/feedback", label: "Help & feedback", icon: iconHelp() },
-    ],
-  },
-];
+// The "Find work" group is only surfaced when the caller's
+// extrajobs_background connection is enabled; the layout at
+// src/app/(app)/layout.tsx passes `hasExtraJobs` down. See buildGroups().
+function buildGroups(hasExtraJobs: boolean): NavGroup[] {
+  const groups: NavGroup[] = [
+    { label: null, items: [{ href: "/today", label: "Today", icon: iconHome() }] },
+  ];
+  if (hasExtraJobs) {
+    groups.push({
+      label: "Find work",
+      items: [{ href: "/opportunities", label: "Opportunities", icon: iconSearch() }],
+    });
+  }
+  groups.push(
+    {
+      label: "Manage work",
+      items: [
+        { href: "/gigs", label: "My Gigs", icon: iconBriefcase() },
+        { href: "/calendar", label: "Calendar", icon: iconCalendar() },
+        { href: "/documents", label: "Documents", icon: iconDoc() },
+      ],
+    },
+    {
+      label: "Money",
+      items: [
+        { href: "/payments", label: "Payments", icon: iconDollar() },
+        { href: "/insights", label: "Insights", icon: iconChart() },
+        { href: "/reports", label: "Advanced Reports", icon: iconFileText(), pro: true },
+        { href: "/tax-ready", label: "Tax Ready", icon: iconTax(), pro: true },
+      ],
+    },
+    // Public reading pages — a real <a target=_blank> so the app tab (and rail)
+    // stays put. Guides and Get the app both live in PublicShell.
+    {
+      label: "Learn",
+      items: [
+        { href: "/guides", label: "Guides", icon: iconBook(), newTab: true },
+        { href: "/app", label: "Get the app", icon: iconPhone(), newTab: true },
+      ],
+    },
+    // Identity + app preferences. Profile, Settings, Connections, and
+    // Help & feedback are in-app pages (AppShell). Projects / gig companies
+    // / payroll live under Settings.
+    {
+      label: "Account",
+      items: [
+        { href: "/profile", label: "Profile / GigFit", icon: iconUser() },
+        { href: "/connections", label: "Connections", icon: iconLink() },
+        { href: "/settings", label: "Settings", icon: iconGear(), match: ["/settings", "/projects", "/companies", "/payroll", "/delete-account"] },
+        { href: "/feedback", label: "Help & feedback", icon: iconHelp() },
+      ],
+    }
+  );
+  return groups;
+}
 
 export default function AppShell({
   children,
   userEmail,
   plan = "free",
+  hasExtraJobs = false,
 }: {
   children: React.ReactNode;
   userEmail?: string | null;
   plan?: "free" | "pro";
+  /** ExtraJobs background-opportunities connection state, resolved by
+   *  the (app) layout via getUserConnection. When false the "Find work"
+   *  group and its Opportunities entry are omitted from the rail /
+   *  mobile menu. */
+  hasExtraJobs?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const supabase = createSupabaseBrowser();
+  const GROUPS = buildGroups(hasExtraJobs);
 
   async function signOut() {
     setMenuOpen(false);
     await supabase.auth.signOut();
-    router.push("/opportunities");
+    // Land on the public homepage rather than /opportunities — the
+    // latter presumes ExtraJobs is the destination, which it isn't for
+    // a disconnected or signed-out user.
+    router.push("/");
     router.refresh();
   }
 
@@ -232,5 +257,6 @@ function iconPhone() { return svg(<><rect x="7" y="2" width="10" height="20" rx=
 function iconUser() { return svg(<><circle cx="12" cy="8" r="4" /><path d="M5 21a7 7 0 0 1 14 0" /></>); }
 function iconGear() { return svg(<><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></>); }
 function iconHelp() { return svg(<><circle cx="12" cy="12" r="9" /><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></>); }
+function iconLink() { return svg(<><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07L11.75 5.25" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72" /></>); }
 function iconFileText() { return svg(<><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M9 13h6M9 17h4" /></>); }
 function iconTax() { return svg(<><rect x="4" y="7" width="16" height="13" rx="2" /><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M12 11v5M9.5 12.5h3.5a1.25 1.25 0 0 1 0 2.5H11a1.25 1.25 0 0 0 0 2.5h3.5" /></>); }

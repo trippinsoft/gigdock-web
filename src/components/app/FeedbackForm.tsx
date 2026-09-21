@@ -47,10 +47,10 @@ export default function FeedbackForm() {
             We read every note. It helps us cover more of the gigs that matter to you.
           </p>
           <Link
-            href="/opportunities"
+            href="/today"
             className="inline-block mt-5 px-6 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm"
           >
-            Browse opportunities
+            Back to Today
           </Link>
         </div>
       ) : (

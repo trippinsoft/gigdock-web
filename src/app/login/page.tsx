@@ -50,7 +50,11 @@ function LoginForm() {
           .maybeSingle();
         isCurator = !!profile?.is_curator;
       }
-      router.push(isCurator ? "/admin" : "/opportunities");
+      // Land general users on Today. /opportunities is only meaningful
+      // when the ExtraJobs background connection is enabled — routing
+      // there by default would drop OFF users on the "turned off" card
+      // instead of their working home.
+      router.push(isCurator ? "/admin" : "/today");
     }
     router.refresh();
   }

@@ -55,7 +55,9 @@ export default function SettingsPanel({
 
   async function signOut() {
     await supabase.auth.signOut();
-    router.push("/opportunities");
+    // Land on the public homepage. Opportunities presumes the ExtraJobs
+    // background connection is on, which isn't universally true.
+    router.push("/");
     router.refresh();
   }
 

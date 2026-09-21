@@ -72,6 +72,7 @@ type DraftPayload = {
   work_roles_other?: unknown;
   work_markets?: unknown;
   performer?: unknown;
+  connections?: unknown;
 };
 
 function extractDraft(payload: unknown): {
@@ -79,6 +80,7 @@ function extractDraft(payload: unknown): {
   roleOther: string | null;
   marketCodes: string[];
   performer: OnboardingPerformerPayload | null;
+  connections: Partial<Record<"extrajobs_background", boolean>>;
 } | null {
   if (!payload || typeof payload !== "object") return null;
   const p = payload as DraftPayload;
@@ -112,7 +114,20 @@ function extractDraft(payload: unknown): {
           : null,
     };
   }
-  return { roleKeys: roles, roleOther, marketCodes: markets, performer };
+
+  // Pre-account connection selections carried through the draft. Only
+  // the extrajobs_background key is recognized today; the wizard only
+  // ever sets it when Background Actor was chosen. Anything else in the
+  // bag is ignored so we never enable a connection the user didn't pick.
+  const connections: Partial<Record<"extrajobs_background", boolean>> = {};
+  if (p.connections && typeof p.connections === "object") {
+    const c = p.connections as Record<string, unknown>;
+    if (typeof c.extrajobs_background === "boolean") {
+      connections.extrajobs_background = c.extrajobs_background;
+    }
+  }
+
+  return { roleKeys: roles, roleOther, marketCodes: markets, performer, connections };
 }
 
 export default async function CompleteSignupPage({
@@ -185,6 +200,7 @@ export default async function CompleteSignupPage({
     roleOther: draft.roleOther,
     marketCodes: draft.marketCodes,
     performer: draft.performer,
+    connections: draft.connections,
   });
   if (!persistRes.ok) {
     return (

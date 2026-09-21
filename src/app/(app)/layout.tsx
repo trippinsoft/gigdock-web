@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
-import { getSessionUser, getPlan, getProfileWithWorkRoles } from "@/lib/backoffice";
+import {
+  getSessionUser,
+  getPlan,
+  getProfileWithWorkRoles,
+  hasExtraJobsBackground,
+} from "@/lib/backoffice";
 
 // The authenticated back-office is per-user and never cached or indexed.
 export const dynamic = "force-dynamic";
@@ -56,6 +61,13 @@ export default async function AppLayout({
     }
   }
 
-  const plan = await getPlan();
-  return <AppShell userEmail={user.email} plan={plan}>{children}</AppShell>;
+  const [plan, hasExtraJobs] = await Promise.all([
+    getPlan(),
+    hasExtraJobsBackground(),
+  ]);
+  return (
+    <AppShell userEmail={user.email} plan={plan} hasExtraJobs={hasExtraJobs}>
+      {children}
+    </AppShell>
+  );
 }

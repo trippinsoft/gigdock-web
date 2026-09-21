@@ -607,6 +607,80 @@ export async function hasActiveEntitlement(
   return !!data;
 }
 
+/** ────────────────────────────────────────────────────────────────────────
+ *  Account-level connections (shared with mobile).
+ *
+ *  Opportunities on GigDock are supplied by ExtraJobs and exposed as an
+ *  optional account-level connection: `extrajobs_background`. State is
+ *  server-owned via SECURITY DEFINER RPCs — never poll the underlying
+ *  `user_connections` table directly, and never reproduce the legacy
+ *  cutoff (`connection_catalog.legacy_enabled_before`) here. The RPC
+ *  resolves it for us.
+ *
+ *  Read:  get_user_connection(p_connection_key text) → jsonb
+ *  Write: set_user_connection(p_connection_key text, p_enabled boolean)
+ *         — see `src/lib/backoffice-actions.ts` (`updateUserConnection`).
+ *  ────────────────────────────────────────────────────────────────────── */
+
+export type ConnectionKey = "extrajobs_background";
+
+export interface UserConnectionState {
+  connection_key: ConnectionKey;
+  enabled: boolean;
+  enabled_at: string | null;
+  disabled_at: string | null;
+}
+
+/** The effective connection state for the signed-in user, respecting the
+ *  server-side legacy cutoff (no local heuristics). Fails closed to
+ *  `enabled: false` when unauthenticated or on any RPC error, so no
+ *  authenticated surface accidentally exposes ExtraJobs content if the
+ *  RPC becomes unreachable. `cache()` so a single page render — nav,
+ *  Today, Connections — shares one RPC result. */
+export const getUserConnection = cache(
+  async (kind: ConnectionKey): Promise<UserConnectionState> => {
+    const fallback: UserConnectionState = {
+      connection_key: kind,
+      enabled: false,
+      enabled_at: null,
+      disabled_at: null,
+    };
+    try {
+      const supabase = await createSupabaseServer();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return fallback;
+      const { data, error } = await supabase.rpc("get_user_connection", {
+        p_connection_key: kind,
+      });
+      if (error || !data) return fallback;
+      const row = data as {
+        connection_key?: string;
+        enabled?: boolean;
+        enabled_at?: string | null;
+        disabled_at?: string | null;
+      };
+      return {
+        connection_key: kind,
+        enabled: row.enabled === true,
+        enabled_at: row.enabled_at ?? null,
+        disabled_at: row.disabled_at ?? null,
+      };
+    } catch {
+      return fallback;
+    }
+  }
+);
+
+/** Convenience: is the ExtraJobs background-opportunities connection ON
+ *  for the current signed-in user? Any authenticated surface that
+ *  currently references Opportunities/GigFit/alerts should gate on this. */
+export async function hasExtraJobsBackground(): Promise<boolean> {
+  const state = await getUserConnection("extrajobs_background");
+  return state.enabled;
+}
+
 /** The signed-in user's plan. Features read this; billing changes it. Fails
  * closed to "free" so a resolver error never accidentally grants Pro.
  * `cache()` so layout, Settings, Insights, and reports share one RPC result

@@ -780,6 +780,34 @@ export async function updateWorkRoles(
   }
 }
 
+/** Toggle an account-level connection. Thin wrapper over the
+ * public.set_user_connection RPC. Direct table writes to user_connections
+ * are denied — the RPC is the only sanctioned writer.
+ *
+ * `revalidatePath` is deliberately called AFTER the RPC succeeds — we
+ * refresh every route that changes with connection state (nav shell,
+ * Today, /opportunities, /connections). No client-side cache is
+ * authoritative; server state via `getUserConnection` is. */
+export async function updateUserConnection(
+  connectionKey: "extrajobs_background",
+  enabled: boolean
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await client();
+    const { error } = await supabase.rpc("set_user_connection", {
+      p_connection_key: connectionKey,
+      p_enabled: enabled,
+    });
+    if (error) throw error;
+    // Invalidate every server-rendered surface that gates on this
+    // connection so a subsequent navigation reflects the new state.
+    revalidatePath("/", "layout");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
 /** Set the caller's universal work markets. Thin wrapper over the
  * public.set_work_markets RPC — that RPC is the only sanctioned writer of
  * profiles.work_markets and work_markets_set_at (a BEFORE UPDATE trigger
@@ -826,6 +854,12 @@ export async function persistOnboardingDraft(input: {
   roleOther: string | null;
   marketCodes: string[];
   performer: OnboardingPerformerPayload | null;
+  /** Connection choices captured during the pre-account wizard, applied
+   *  post-authentication via set_user_connection. Only present keys are
+   *  written — an absent key leaves the server-side legacy default
+   *  (from connection_catalog.legacy_enabled_before) untouched. Today
+   *  only `extrajobs_background` is wired here. */
+  connections?: Partial<Record<"extrajobs_background", boolean>>;
 }): Promise<ActionResult> {
   try {
     const { supabase, user } = await client();
@@ -840,6 +874,23 @@ export async function persistOnboardingDraft(input: {
       p_codes: input.marketCodes,
     });
     if (mktErr) throw mktErr;
+
+    // Apply captured connection choices. Independent of Work Roles /
+    // Casting Profile — a wizard choice is the ONLY thing that flips
+    // ExtraJobs. Later Profile edits must never silently change this.
+    if (input.connections) {
+      for (const [key, enabled] of Object.entries(input.connections) as [
+        "extrajobs_background",
+        boolean
+      ][]) {
+        if (typeof enabled !== "boolean") continue;
+        const { error: connErr } = await supabase.rpc("set_user_connection", {
+          p_connection_key: key,
+          p_enabled: enabled,
+        });
+        if (connErr) throw connErr;
+      }
+    }
 
     if (input.performer) {
       // Upsert the user's default performer_profiles row. Idempotent:
