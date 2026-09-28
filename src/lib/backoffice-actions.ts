@@ -11,6 +11,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { dayGrossEarned, type PayType } from "@/lib/pay";
 import { isDocumentType } from "@/lib/documentTypes";
+import { EXPENSE_CATEGORIES } from "@/lib/workFinancials";
 
 type ActionResult<T = undefined> =
   | { ok: true; data?: T }
@@ -971,6 +972,196 @@ export async function clearPendingOnboardingMetadata(): Promise<ActionResult> {
   } catch (e) {
     return { ok: false, error: msg(e) };
   }
+}
+
+/* ── Expenses & Mileage ──────────────────────────────────────────────────── */
+// Writes to `work_expenses` and `work_mileage`. The tables are Pro-gated by
+// RLS + a validation trigger (see backend/expenses/README.md in gigvault); we
+// do not re-check Pro here — the trigger will refuse the insert/update with a
+// permission error we relay to the caller.
+
+const CATEGORY_KEY_SET: ReadonlySet<string> = new Set(
+  EXPENSE_CATEGORIES.map(([k]) => k),
+);
+
+function isValidDate(s: string | null | undefined): s is string {
+  return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
+}
+
+export interface WorkExpenseFields {
+  id?: string;
+  gig_id: string | null;
+  receipt_document_id: string | null;
+  amount: number;
+  category_key: string;
+  expense_date: string;
+  merchant: string | null;
+  notes: string | null;
+}
+
+export async function saveWorkExpense(
+  fields: WorkExpenseFields,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    const { supabase, user } = await client();
+    if (!Number.isFinite(fields.amount) || fields.amount <= 0) {
+      return { ok: false, error: "Enter an expense amount greater than $0." };
+    }
+    if (!CATEGORY_KEY_SET.has(fields.category_key)) {
+      return { ok: false, error: "Choose a valid category." };
+    }
+    if (!isValidDate(fields.expense_date)) {
+      return { ok: false, error: "Enter the expense date as YYYY-MM-DD." };
+    }
+
+    const payload = {
+      user_id: user.id,
+      gig_id: fields.gig_id,
+      receipt_document_id: fields.receipt_document_id,
+      amount: Math.round(fields.amount * 100) / 100,
+      category_key: fields.category_key,
+      expense_date: fields.expense_date,
+      merchant: fields.merchant?.trim() || null,
+      notes: fields.notes?.trim() || null,
+    };
+
+    if (fields.id) {
+      const { data, error } = await supabase
+        .from("work_expenses")
+        .update(payload)
+        .eq("id", fields.id)
+        .is("deleted_at", null)
+        .select("id")
+        .single();
+      if (error) throw error;
+      revalidateExpenseSurfaces(fields.gig_id);
+      return { ok: true, data: { id: data.id as string } };
+    }
+    const { data, error } = await supabase
+      .from("work_expenses")
+      .insert(payload)
+      .select("id")
+      .single();
+    if (error) throw error;
+    revalidateExpenseSurfaces(fields.gig_id);
+    return { ok: true, data: { id: data.id as string } };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+/** Soft-delete an expense. There is no client DELETE grant on the table —
+ *  the shared contract only allows UPDATE that sets `deleted_at`. */
+export async function deleteWorkExpense(
+  id: string,
+): Promise<ActionResult<{ id: string; gig_id: string | null }>> {
+  try {
+    const { supabase } = await client();
+    const { data, error } = await supabase
+      .from("work_expenses")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id)
+      .is("deleted_at", null)
+      .select("id,gig_id")
+      .single();
+    if (error) throw error;
+    const gigId = (data.gig_id as string | null) ?? null;
+    revalidateExpenseSurfaces(gigId);
+    return { ok: true, data: { id: data.id as string, gig_id: gigId } };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+export interface WorkMileageFields {
+  id?: string;
+  gig_id: string | null;
+  miles: number;
+  trip_date: string;
+  purpose: string;
+  start_location: string | null;
+  end_location: string | null;
+  notes: string | null;
+}
+
+export async function saveWorkMileage(
+  fields: WorkMileageFields,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    const { supabase, user } = await client();
+    if (!Number.isFinite(fields.miles) || fields.miles <= 0) {
+      return { ok: false, error: "Enter miles greater than 0." };
+    }
+    if (!isValidDate(fields.trip_date)) {
+      return { ok: false, error: "Enter the trip date as YYYY-MM-DD." };
+    }
+    const purpose = fields.purpose?.trim() ?? "";
+    if (!purpose) {
+      return { ok: false, error: "Enter a business purpose for the trip." };
+    }
+
+    const payload = {
+      user_id: user.id,
+      gig_id: fields.gig_id,
+      miles: Math.round(fields.miles * 100) / 100,
+      trip_date: fields.trip_date,
+      purpose,
+      start_location: fields.start_location?.trim() || null,
+      end_location: fields.end_location?.trim() || null,
+      notes: fields.notes?.trim() || null,
+    };
+
+    if (fields.id) {
+      const { data, error } = await supabase
+        .from("work_mileage")
+        .update(payload)
+        .eq("id", fields.id)
+        .is("deleted_at", null)
+        .select("id")
+        .single();
+      if (error) throw error;
+      revalidateExpenseSurfaces(fields.gig_id);
+      return { ok: true, data: { id: data.id as string } };
+    }
+    const { data, error } = await supabase
+      .from("work_mileage")
+      .insert(payload)
+      .select("id")
+      .single();
+    if (error) throw error;
+    revalidateExpenseSurfaces(fields.gig_id);
+    return { ok: true, data: { id: data.id as string } };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+export async function deleteWorkMileage(
+  id: string,
+): Promise<ActionResult<{ id: string; gig_id: string | null }>> {
+  try {
+    const { supabase } = await client();
+    const { data, error } = await supabase
+      .from("work_mileage")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id)
+      .is("deleted_at", null)
+      .select("id,gig_id")
+      .single();
+    if (error) throw error;
+    const gigId = (data.gig_id as string | null) ?? null;
+    revalidateExpenseSurfaces(gigId);
+    return { ok: true, data: { id: data.id as string, gig_id: gigId } };
+  } catch (e) {
+    return { ok: false, error: msg(e) };
+  }
+}
+
+function revalidateExpenseSurfaces(gigId: string | null): void {
+  revalidatePath("/expenses");
+  revalidatePath("/insights");
+  revalidatePath("/tax-ready");
+  if (gigId) revalidatePath(`/gigs/${gigId}`);
 }
 
 function msg(e: unknown): string {

@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getInsights, getDocuments, getPlan } from "@/lib/backoffice";
+import {
+  getBusinessMileageRates,
+  getDocuments,
+  getInsights,
+  getPlan,
+  getWorkExpenses,
+  getWorkMileage,
+} from "@/lib/backoffice";
 import { money } from "@/lib/format";
 import { ProBadge } from "@/components/app/pro";
 import { paymentNetStats } from "@/lib/reportDefs";
@@ -9,10 +16,21 @@ import {
   taxDocumentsForYear,
   taxDocumentsLibraryHref,
 } from "@/lib/documentTypes";
-import type { DocumentRow, InsightsOverview } from "@/lib/backoffice-types";
+import type {
+  DocumentRow,
+  InsightsOverview,
+  WorkExpense,
+  WorkMileage,
+} from "@/lib/backoffice-types";
 import TrackEvent from "@/components/TrackEvent";
 import TrackedLink from "@/components/app/TrackedLink";
 import ExplorePro from "@/components/app/ExplorePro";
+import {
+  categoryLabel,
+  milesLabel,
+  summarizeWorkFinancials,
+  type WorkFinancialsSummary,
+} from "@/lib/workFinancials";
 
 export const metadata: Metadata = {
   title: "Tax Ready",
@@ -150,10 +168,14 @@ function TaxReadyExperience({
   year,
   data,
   allDocs,
+  expenseSummary,
+  linkedReceiptCount,
 }: {
   year: number;
   data: InsightsOverview | null;
   allDocs: Doc[];
+  expenseSummary: WorkFinancialsSummary;
+  linkedReceiptCount: number;
 }) {
   const { paymentCount, netComplete, missingNet, recordedNet } = paymentNetStats(data);
   const gigsWorked = data?.gigs_worked ?? 0;
@@ -203,6 +225,78 @@ function TaxReadyExperience({
         )}
       </div>
 
+      {/* Annual Expenses & Mileage summary */}
+      <Card title="Expenses & mileage" subtitle="Business costs and mileage recorded across the year.">
+        <div className="px-4 py-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+              Total expenses
+            </div>
+            <div className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">
+              {money(expenseSummary.actualExpenses)}
+            </div>
+          </div>
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+              Business mileage
+            </div>
+            <div className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">
+              {milesLabel(expenseSummary.businessMiles)}
+            </div>
+          </div>
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+              Potential mileage deduction
+            </div>
+            <div className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">
+              {expenseSummary.potentialDeduction === null
+                ? "Rate unavailable"
+                : money(expenseSummary.potentialDeduction)}
+            </div>
+          </div>
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+              Linked receipts
+            </div>
+            <div className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">
+              {linkedReceiptCount}
+            </div>
+          </div>
+        </div>
+        {Object.keys(expenseSummary.categoryTotals).length > 0 && (
+          <div className="px-4 pb-4">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500 mb-2">
+              Expenses by category
+            </div>
+            <ul className="divide-y divide-zinc-100 dark:divide-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
+              {Object.entries(expenseSummary.categoryTotals)
+                .sort((a, b) => b[1] - a[1])
+                .map(([key, amount]) => (
+                  <li
+                    key={key}
+                    className="flex items-center justify-between gap-3 px-4 py-2 text-sm"
+                  >
+                    <span className="text-zinc-700 dark:text-zinc-200">
+                      {categoryLabel(key)}
+                    </span>
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-100 tabular-nums">
+                      {money(amount)}
+                    </span>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        )}
+        <div className="px-4 pb-4">
+          <Link
+            href="/expenses"
+            className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            Manage expenses &amp; mileage →
+          </Link>
+        </div>
+      </Card>
+
       {/* Tax-time records */}
       <Card title="Tax-time records" subtitle={DISCLAIMER}>
         <TrackedLink href={taxCount ? reviewDocsHref : "/documents"} event="tax_ready_item_reviewed" props={{ item: "documents" }} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
@@ -231,8 +325,36 @@ function TaxReadyExperience({
           desc={missingNet > 0 ? `Net amounts missing from ${missingNet} applicable ${missingNet === 1 ? "payment" : "payments"}` : `${paymentCount} payments recorded`}
           action={missingNet > 0 ? { label: "Review Payments", href: "/payments", event: "tax_ready_item_reviewed", props: { item: "payments" } } : undefined}
         />
-        <ChecklistRow label="Expenses" status="No Data" desc="No expenses recorded yet" />
-        <ChecklistRow label="Mileage" status="No Data" desc="No mileage recorded" />
+        <ChecklistRow
+          label="Expenses"
+          status={expenseSummary.actualExpenses > 0 ? "Recorded" : "No Data"}
+          desc={
+            expenseSummary.actualExpenses > 0
+              ? `${money(expenseSummary.actualExpenses)} across ${Object.keys(expenseSummary.categoryTotals).length} ${Object.keys(expenseSummary.categoryTotals).length === 1 ? "category" : "categories"}${linkedReceiptCount ? ` · ${linkedReceiptCount} linked ${linkedReceiptCount === 1 ? "receipt" : "receipts"}` : ""}`
+              : "No expenses recorded yet"
+          }
+          action={{
+            label: "Manage Expenses",
+            href: "/expenses",
+            event: "tax_ready_item_reviewed",
+            props: { item: "expenses" },
+          }}
+        />
+        <ChecklistRow
+          label="Mileage"
+          status={expenseSummary.businessMiles > 0 ? "Recorded" : "No Data"}
+          desc={
+            expenseSummary.businessMiles > 0
+              ? `${milesLabel(expenseSummary.businessMiles)}${expenseSummary.potentialDeduction === null ? " · Potential deduction rate unavailable" : ` · ${money(expenseSummary.potentialDeduction)} potential deduction`}`
+              : "No mileage recorded"
+          }
+          action={{
+            label: "Manage Mileage",
+            href: "/expenses",
+            event: "tax_ready_item_reviewed",
+            props: { item: "mileage" },
+          }}
+        />
         <ChecklistRow
           label="Tax Documents"
           status={taxCount ? "Recorded" : "No Data"}
@@ -283,5 +405,31 @@ export default async function TaxReadyPage({ searchParams }: { searchParams: Pro
   if (plan !== "pro") {
     return <LockedSplash year={year} gross={data?.gross_earned} taxDocs={taxDocs} />;
   }
-  return <TaxReadyExperience year={year} data={data} allDocs={allDocs} />;
+
+  // Live Expense/Mileage summary for the year, plus a count of Expense records
+  // that link to a Receipt document.
+  const [expenses, mileage, rates] = await Promise.all([
+    getWorkExpenses({ start, end }),
+    getWorkMileage({ start, end }),
+    getBusinessMileageRates(),
+  ]);
+  const expenseSummary = summarizeWorkFinancials(
+    expenses as WorkExpense[],
+    mileage as WorkMileage[],
+    rates,
+    data?.gross_earned ?? 0,
+  );
+  const linkedReceiptCount = (expenses as WorkExpense[]).filter(
+    (e) => e.receipt_document_id != null,
+  ).length;
+
+  return (
+    <TaxReadyExperience
+      year={year}
+      data={data}
+      allDocs={allDocs}
+      expenseSummary={expenseSummary}
+      linkedReceiptCount={linkedReceiptCount}
+    />
+  );
 }

@@ -9,8 +9,10 @@ import {
   getGigDocuments,
   getGigEarnings,
   getGigPayments,
+  getPlan,
   getSessionUser,
 } from "@/lib/backoffice";
+import AfterExpensesRow from "@/components/app/AfterExpensesRow";
 import AdditionalPayLauncher from "@/components/app/AdditionalPayLauncher";
 import DayStatusPill from "@/components/app/DayStatusPill";
 import { additionalPayTypeLabel } from "@/lib/additionalPayLabels";
@@ -41,7 +43,7 @@ export default async function GigWorkspacePage({
   const gig = await getGig(id);
   if (!gig) notFound();
 
-  const [earnings, dates, payments, bumps, docs, user, datesRaw] = await Promise.all([
+  const [earnings, dates, payments, bumps, docs, user, datesRaw, plan] = await Promise.all([
     getGigEarnings(id),
     getGigDates(id),
     getGigPayments(id),
@@ -49,6 +51,7 @@ export default async function GigWorkspacePage({
     getGigDocuments(id),
     getSessionUser(),
     getGigDatesRaw(id),
+    getPlan(),
   ]);
   const userId = user?.id ?? "";
   // Dates flagged as "additional pay only" — regular pay doesn't apply, only
@@ -153,6 +156,13 @@ export default async function GigWorkspacePage({
         </div>
       )}
 
+      {/* Compact tappable "After expenses" row appended to Earnings Summary.
+          Mirrors the approved mobile Gig Detail design (gigvault:origin/main).
+          Never adds `+ Expense`, `+ Mileage`, or `View all` controls here — a
+          separate financial card was explicitly rejected. */}
+      <AfterExpensesRow gigId={id} gross={earned} plan={plan} />
+
+
       {/* Tabs swap only the panel below */}
       <div className="mt-5">
         <GigTabs tabs={tabs} />
@@ -173,7 +183,7 @@ function OverviewPanel({ gig, dates, bumps, gigId, userId, bumpsOnlyDateIds }: {
         <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
           <Row label="Production company" value={gig.gig_company_name} />
           <Row label="Payroll company" value={gig.payroll_company_name} />
-          <Row label="Project" value={gig.project_title} />
+          <Row label="Production" value={gig.project_title} />
           <Row label="Location" value={gig.location} />
           <Row label="Status" value={statusLabel(gig.status_overall)} />
           <Row label="Pay structure" value={describePay(gig)} />

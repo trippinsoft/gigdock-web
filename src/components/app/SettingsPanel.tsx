@@ -83,7 +83,7 @@ export default function SettingsPanel({
       </Card>
 
       <Card title="Setup">
-        <NavRow href="/projects" label="Projects" hint="Productions you work on" />
+        <NavRow href="/projects" label="Productions" hint="Productions you work on" />
         <NavRow href="/companies" label="Gig companies" hint="Companies you’ve worked with" />
         <NavRow href="/payroll" label="Payroll companies" hint="Companies that process your payments" />
       </Card>

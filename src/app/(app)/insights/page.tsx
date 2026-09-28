@@ -1,6 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getInsights, getPlan } from "@/lib/backoffice";
+import {
+  getBusinessMileageRates,
+  getInsights,
+  getPlan,
+  getWorkExpenses,
+  getWorkMileage,
+} from "@/lib/backoffice";
+import { milesLabel, summarizeWorkFinancials } from "@/lib/workFinancials";
 import { money, shortDate } from "@/lib/format";
 import { EarningsBars, AgingBars, PaidRing, type DonutSeg } from "@/components/app/charts";
 import { PartialReveal, ProBadge } from "@/components/app/pro";
@@ -78,7 +85,19 @@ export default async function InsightsPage({
   const detail: Detail = sp.detail === "gigs" || sp.detail === "payments" || sp.detail === "status" ? sp.detail : null;
 
   const { start, end, bucket, label, year } = bounds(mode, period);
-  const data = await getInsights(start, end, bucket);
+  const [data, workExpenses, workMileage, mileageRates] = await Promise.all([
+    getInsights(start, end, bucket),
+    plan === "pro" ? getWorkExpenses({ start, end }) : Promise.resolve([]),
+    plan === "pro" ? getWorkMileage({ start, end }) : Promise.resolve([]),
+    plan === "pro" ? getBusinessMileageRates() : Promise.resolve([]),
+  ]);
+  const grossForNet = data?.gross_earned ?? 0;
+  const costOfWork = summarizeWorkFinancials(
+    workExpenses,
+    workMileage,
+    mileageRates,
+    grossForNet,
+  );
 
   const status = gigPaymentStatus(data);
   const career = careerPatterns(data);
@@ -182,6 +201,80 @@ export default async function InsightsPage({
                 <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">{periodCashLabel(mode, label)}</p>
               </Card>
             </Link>
+
+            <Card className="md:col-span-2">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <div>
+                  <div className="text-sm font-medium text-zinc-700 dark:text-zinc-200">After the cost of work</div>
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Net earnings = gross earnings − actual expenses. Business
+                    mileage is separate.
+                  </div>
+                </div>
+                <ProBadge />
+              </div>
+              <PartialReveal
+                context="expense_tracking"
+                plan={plan}
+                free={
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                    Track expenses and business mileage during {label} to see
+                    what your work actually cost — and what you netted after
+                    those costs.
+                  </p>
+                }
+                pro={
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div>
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                        Gross earnings
+                      </div>
+                      <div className="mt-1 text-2xl font-extrabold text-zinc-900 dark:text-zinc-100 tabular-nums">
+                        {money(grossForNet, true)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                        Expenses
+                      </div>
+                      <div className="mt-1 text-2xl font-extrabold text-zinc-900 dark:text-zinc-100 tabular-nums">
+                        {money(costOfWork.actualExpenses, true)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                        Net earnings
+                      </div>
+                      <div className="mt-1 text-2xl font-extrabold text-blue-600 dark:text-blue-400 tabular-nums">
+                        {money(costOfWork.netBeforeTaxes ?? grossForNet, true)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                        Business mileage
+                      </div>
+                      <div className="mt-1 text-2xl font-extrabold text-zinc-900 dark:text-zinc-100 tabular-nums">
+                        {milesLabel(costOfWork.businessMiles)}
+                      </div>
+                      <div className="mt-1 text-[11px] text-zinc-400 dark:text-zinc-500">
+                        {costOfWork.potentialDeduction === null
+                          ? "Rate unavailable"
+                          : `${money(costOfWork.potentialDeduction)} potential deduction`}
+                      </div>
+                    </div>
+                  </div>
+                }
+                lockedCta="See what you netted"
+              />
+              <div className="mt-3">
+                <Link
+                  href="/expenses"
+                  className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Manage expenses &amp; mileage →
+                </Link>
+              </div>
+            </Card>
 
             <Link href={hrefFor(mode, period, "status")} className="block group">
               <Card className="h-full transition-colors group-hover:border-zinc-300 dark:group-hover:border-zinc-700">

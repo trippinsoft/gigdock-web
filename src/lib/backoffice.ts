@@ -31,7 +31,10 @@ import type {
   InsightsOverview,
   NeedsAttention,
   PaymentWithGig,
+  WorkExpense,
+  WorkMileage,
 } from "@/lib/backoffice-types";
+import type { BusinessMileageRate } from "@/lib/workFinancials";
 
 /** Currently signed-in user, or null. */
 export async function getSessionUser() {
@@ -738,3 +741,74 @@ export const getPlan = cache(async (): Promise<"free" | "pro"> => {
     return "free";
   }
 });
+
+/* ── Expenses & Mileage ──────────────────────────────────────────────────── */
+// All three tables live under the caller's Supabase session with RLS enforcing
+// user_id = auth.uid() + active/trialing Pro. Reads apply `deleted_at is null`
+// so soft-deleted rows never appear in totals. Range filters use [start, end)
+// on the record's own date field (expense_date / trip_date) to match the
+// mobile contract in backend/expenses/README.md.
+
+export interface WorkFinancialsFilter {
+  /** Inclusive lower bound (YYYY-MM-DD). Omit to skip. */
+  start?: string | null;
+  /** Exclusive upper bound (YYYY-MM-DD). Omit to skip. */
+  end?: string | null;
+  /** Filter to a specific Gig, or pass `"__general__"` to filter to
+   *  gig_id IS NULL (general-business records). Omit to return both. */
+  gigId?: string | null;
+}
+
+export async function getWorkExpenses(
+  filter?: WorkFinancialsFilter,
+): Promise<WorkExpense[]> {
+  const supabase = await createSupabaseServer();
+  const base = supabase
+    .from("work_expenses")
+    .select(
+      "id,user_id,gig_id,receipt_document_id,amount,category_key,expense_date,merchant,notes,created_at,updated_at",
+    );
+  // supabase-js types make chained builders awkward for a helper — inline the
+  // conditions rather than pushing through the generic helper.
+  let q = base.is("deleted_at", null);
+  if (filter?.start) q = q.gte("expense_date", filter.start);
+  if (filter?.end) q = q.lt("expense_date", filter.end);
+  if (filter?.gigId === "__general__") q = q.is("gig_id", null);
+  else if (filter?.gigId) q = q.eq("gig_id", filter.gigId);
+  const { data, error } = await q.order("expense_date", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as WorkExpense[];
+}
+
+export async function getWorkMileage(
+  filter?: WorkFinancialsFilter,
+): Promise<WorkMileage[]> {
+  const supabase = await createSupabaseServer();
+  let q = supabase
+    .from("work_mileage")
+    .select(
+      "id,user_id,gig_id,miles,trip_date,purpose,start_location,end_location,notes,created_at,updated_at",
+    )
+    .is("deleted_at", null);
+  if (filter?.start) q = q.gte("trip_date", filter.start);
+  if (filter?.end) q = q.lt("trip_date", filter.end);
+  if (filter?.gigId === "__general__") q = q.is("gig_id", null);
+  else if (filter?.gigId) q = q.eq("gig_id", filter.gigId);
+  const { data, error } = await q.order("trip_date", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as WorkMileage[];
+}
+
+/** All published business mileage rate rows. Cached because rate rows change
+ *  at most once or twice a year and every trip in a period reads them. */
+export const getBusinessMileageRates = cache(
+  async (): Promise<BusinessMileageRate[]> => {
+    const supabase = await createSupabaseServer();
+    const { data, error } = await supabase
+      .from("business_mileage_rates")
+      .select("effective_from,effective_to,rate_per_mile,source_url")
+      .order("effective_from", { ascending: true });
+    if (error) throw error;
+    return (data ?? []) as BusinessMileageRate[];
+  },
+);

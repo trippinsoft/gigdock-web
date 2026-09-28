@@ -176,7 +176,7 @@ export default function GigEditor({
           />
         </Field>
 
-        <Field label="Project" className="sm:col-span-2">
+        <Field label="Production" className="sm:col-span-2">
           <EntitySelect
             value={f.project_id}
             onChange={(v) => set("project_id", v)}

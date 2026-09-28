@@ -41,6 +41,7 @@ function buildGroups(hasExtraJobs: boolean): NavGroup[] {
       items: [
         { href: "/payments", label: "Payments", icon: iconDollar() },
         { href: "/insights", label: "Insights", icon: iconChart() },
+        { href: "/expenses", label: "Expenses & Mileage", icon: iconReceipt(), pro: true },
         { href: "/reports", label: "Advanced Reports", icon: iconFileText(), pro: true },
         { href: "/tax-ready", label: "Tax Ready", icon: iconTax(), pro: true },
       ],
@@ -259,4 +260,5 @@ function iconGear() { return svg(<><circle cx="12" cy="12" r="3" /><path d="M19.
 function iconHelp() { return svg(<><circle cx="12" cy="12" r="9" /><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></>); }
 function iconLink() { return svg(<><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07L11.75 5.25" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72" /></>); }
 function iconFileText() { return svg(<><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M9 13h6M9 17h4" /></>); }
+function iconReceipt() { return svg(<><path d="M4 4v17l3-2 3 2 3-2 3 2 3-2 1 2V4z" /><path d="M8 9h8M8 13h6" /></>); }
 function iconTax() { return svg(<><rect x="4" y="7" width="16" height="13" rx="2" /><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M12 11v5M9.5 12.5h3.5a1.25 1.25 0 0 1 0 2.5H11a1.25 1.25 0 0 0 0 2.5h3.5" /></>); }

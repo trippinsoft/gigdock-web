@@ -283,3 +283,36 @@ export interface DocumentRow {
 /** Gig list filter buckets (map to load_filtered_gigs p_filter_type). */
 export type GigFilter = "payments_due" | "missing_payment" | "missing_dates";
 export type GigSort = "recent" | "oldest";
+
+/** A row of `public.work_expenses`. See backend/expenses/README.md in gigvault
+ *  for the canonical contract (RLS: owner + Pro; soft-deleted; category_key
+ *  is a stable string, labels live in `src/lib/workFinancials.ts`). */
+export interface WorkExpense {
+  id: string;
+  user_id: string;
+  gig_id: string | null;
+  receipt_document_id: string | null;
+  amount: number;
+  category_key: string;
+  expense_date: string;
+  merchant: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** A row of `public.work_mileage`. Separate table from expenses; miles never
+ *  cross into `work_expenses` and never reduce cash profit. */
+export interface WorkMileage {
+  id: string;
+  user_id: string;
+  gig_id: string | null;
+  miles: number;
+  trip_date: string;
+  purpose: string;
+  start_location: string | null;
+  end_location: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
