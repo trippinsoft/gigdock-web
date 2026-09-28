@@ -115,42 +115,6 @@ function LockedSplash({
   );
 }
 
-/* ── checklist row ────────────────────────────────────────────────────────── */
-type Status = "Looks Good" | "Needs Attention" | "Recorded" | "No Data";
-function ChecklistRow({ label, status, desc, action }: { label: string; status: Status; desc: string; action?: { label: string; href: string; event?: string; props?: Record<string, unknown> } }) {
-  const tone =
-    status === "Looks Good" ? "text-green-600 dark:text-green-400"
-      : status === "Needs Attention" ? "text-amber-600 dark:text-amber-400"
-        : status === "Recorded" ? "text-blue-600 dark:text-blue-400"
-          : "text-zinc-400 dark:text-zinc-500";
-  const icon =
-    status === "Looks Good" ? <path d="M20 6 9 17l-5-5" />
-      : status === "Needs Attention" ? <><circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" /></>
-        : status === "Recorded" ? <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3" fill="currentColor" /></>
-          : <><circle cx="12" cy="12" r="9" /><path d="M8 12h8" /></>;
-  return (
-    <div className="flex items-start justify-between gap-3 px-4 py-3">
-      <div className="flex items-start gap-3 min-w-0">
-        <span className={`shrink-0 mt-0.5 ${tone}`}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">{icon}</svg>
-        </span>
-        <div className="min-w-0">
-          <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{label}</div>
-          <div className="text-xs text-zinc-500 dark:text-zinc-400">{desc}</div>
-        </div>
-      </div>
-      <div className="shrink-0 text-right">
-        <div className={`text-xs font-semibold ${tone}`}>{status}</div>
-        {action && (
-          action.event
-            ? <TrackedLink href={action.href} event={action.event} props={action.props} className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">{action.label}</TrackedLink>
-            : <Link href={action.href} className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">{action.label}</Link>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 mb-4 overflow-hidden">
@@ -178,10 +142,15 @@ function TaxReadyExperience({
   linkedReceiptCount: number;
 }) {
   const { paymentCount, netComplete, missingNet, recordedNet } = paymentNetStats(data);
-  const gigsWorked = data?.gigs_worked ?? 0;
   const yr = String(year);
   const taxDocs = taxDocumentsForYear(allDocs, year);
   const { count: taxCount, recordedLine } = taxDocCopy(taxDocs);
+  const receiptsLabel =
+    linkedReceiptCount === 0
+      ? "No receipts attached"
+      : linkedReceiptCount === 1
+        ? "1 receipt attached"
+        : `${linkedReceiptCount} receipts attached`;
 
   const thisYear = new Date().getFullYear();
   const prev = `/tax-ready?year=${year - 1}`;
@@ -225,7 +194,27 @@ function TaxReadyExperience({
         )}
       </div>
 
-      {/* Annual Expenses & Mileage summary */}
+      {/* Tax-time records — navigation into the underlying record surfaces. */}
+      <Card title="Tax-time records" subtitle={DISCLAIMER}>
+        <TrackedLink href={taxCount ? reviewDocsHref : "/documents"} event="tax_ready_item_reviewed" props={{ item: "documents" }} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
+          <div>
+            <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Tax documents</div>
+            <div className="text-xs text-zinc-500 dark:text-zinc-400">{recordedLine}</div>
+          </div>
+          <svg className="text-zinc-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+        </TrackedLink>
+        <TrackedLink href={`/insights?mode=year&p=${yr}`} event="tax_ready_item_reviewed" props={{ item: "income_reports" }} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
+          <div><div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Income reports</div><div className="text-xs text-zinc-500 dark:text-zinc-400">Earnings, payments, and company records</div></div>
+          <svg className="text-zinc-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+        </TrackedLink>
+      </Card>
+
+      {/* Annual Expenses & Mileage summary. Placed after Tax-time records so
+          the page reads: record summary → drill-in destinations → the actual
+          annual expense/mileage totals. There is intentionally no readiness
+          checklist beneath this; problems are surfaced where the relevant
+          information lives (e.g. the missing-net warning inside Record
+          Summary). */}
       <Card title="Expenses & mileage" subtitle="Business costs and mileage recorded across the year.">
         <div className="px-4 py-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
@@ -256,10 +245,10 @@ function TaxReadyExperience({
           </div>
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-              Linked receipts
+              Receipts
             </div>
-            <div className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">
-              {linkedReceiptCount}
+            <div className="mt-1 text-base font-semibold text-zinc-900 dark:text-zinc-100">
+              {receiptsLabel}
             </div>
           </div>
         </div>
@@ -295,76 +284,6 @@ function TaxReadyExperience({
             Manage expenses &amp; mileage →
           </Link>
         </div>
-      </Card>
-
-      {/* Tax-time records */}
-      <Card title="Tax-time records" subtitle={DISCLAIMER}>
-        <TrackedLink href={taxCount ? reviewDocsHref : "/documents"} event="tax_ready_item_reviewed" props={{ item: "documents" }} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
-          <div>
-            <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Tax documents</div>
-            <div className="text-xs text-zinc-500 dark:text-zinc-400">{recordedLine}</div>
-          </div>
-          <svg className="text-zinc-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-        </TrackedLink>
-        <TrackedLink href={`/insights?mode=year&p=${yr}`} event="tax_ready_item_reviewed" props={{ item: "income_reports" }} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
-          <div><div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Income reports</div><div className="text-xs text-zinc-500 dark:text-zinc-400">Earnings, payments, and company records</div></div>
-          <svg className="text-zinc-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-        </TrackedLink>
-      </Card>
-
-      {/* Checklist */}
-      <Card title="Tax Ready checklist" subtitle="Review the areas supported by records in GigDock. No readiness score is calculated.">
-        <ChecklistRow
-          label="Earnings"
-          status={gigsWorked > 0 ? "Recorded" : "No Data"}
-          desc={`${gigsWorked} ${gigsWorked === 1 ? "gig" : "gigs"} recorded`}
-        />
-        <ChecklistRow
-          label="Payments"
-          status={missingNet > 0 ? "Needs Attention" : paymentCount > 0 ? "Looks Good" : "No Data"}
-          desc={missingNet > 0 ? `Net amounts missing from ${missingNet} applicable ${missingNet === 1 ? "payment" : "payments"}` : `${paymentCount} payments recorded`}
-          action={missingNet > 0 ? { label: "Review Payments", href: "/payments", event: "tax_ready_item_reviewed", props: { item: "payments" } } : undefined}
-        />
-        <ChecklistRow
-          label="Expenses"
-          status={expenseSummary.actualExpenses > 0 ? "Recorded" : "No Data"}
-          desc={
-            expenseSummary.actualExpenses > 0
-              ? `${money(expenseSummary.actualExpenses)} across ${Object.keys(expenseSummary.categoryTotals).length} ${Object.keys(expenseSummary.categoryTotals).length === 1 ? "category" : "categories"}${linkedReceiptCount ? ` · ${linkedReceiptCount} linked ${linkedReceiptCount === 1 ? "receipt" : "receipts"}` : ""}`
-              : "No expenses recorded yet"
-          }
-          action={{
-            label: "Manage Expenses",
-            href: "/expenses",
-            event: "tax_ready_item_reviewed",
-            props: { item: "expenses" },
-          }}
-        />
-        <ChecklistRow
-          label="Mileage"
-          status={expenseSummary.businessMiles > 0 ? "Recorded" : "No Data"}
-          desc={
-            expenseSummary.businessMiles > 0
-              ? `${milesLabel(expenseSummary.businessMiles)}${expenseSummary.potentialDeduction === null ? " · Potential deduction rate unavailable" : ` · ${money(expenseSummary.potentialDeduction)} potential deduction`}`
-              : "No mileage recorded"
-          }
-          action={{
-            label: "Manage Mileage",
-            href: "/expenses",
-            event: "tax_ready_item_reviewed",
-            props: { item: "mileage" },
-          }}
-        />
-        <ChecklistRow
-          label="Tax Documents"
-          status={taxCount ? "Recorded" : "No Data"}
-          desc={taxCount
-            ? recordedLine
-            : `No tax documents recorded. Add tax-related documents you want to keep with your ${yr} records.`}
-          action={taxCount
-            ? { label: "Review Documents", href: reviewDocsHref, event: "tax_ready_item_reviewed", props: { item: "documents" } }
-            : { label: "Add Document", href: "/documents", event: "tax_ready_item_reviewed", props: { item: "add_document" } }}
-        />
       </Card>
 
       {/* Generate report */}
