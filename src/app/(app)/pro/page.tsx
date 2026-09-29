@@ -100,16 +100,19 @@ function ProLanding() {
         </p>
       </div>
 
-      {/* Pillars */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
+      {/* Benefit cards — equal visual weight for all six. The six cards sell
+          the complete Pro bundle; the contextual headline (above) is what
+          conveys WHY Pro is valuable from where the user came. Do not
+          re-introduce a selected/emphasized card treatment — that would
+          undercut the bundle framing and read as "the other five are less
+          important". Icons stay blue; the emphasize ordering (below) keeps
+          the contextually-relevant benefit visible without altering its
+          weight. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-10">
         {pillars.map((p) => (
           <div
             key={p.key}
-            className={`rounded-2xl border p-4 ${
-              p.key === emphasize
-                ? "border-blue-300 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20"
-                : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900"
-            }`}
+            className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4"
           >
             <div className="flex items-center gap-2">
               <span className="text-blue-600 dark:text-blue-400">
@@ -126,21 +129,23 @@ function ProLanding() {
         ))}
       </div>
 
-      {/* Pricing — Founding-primary + Monthly-secondary during the launch
-          window. LAUNCH_OFFER === null → collapses to the annual/monthly
-          pair using the same components. */}
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-7">
-        {LAUNCH_OFFER === "founding" ? (
-          <FoundingHero onUpgrade={() => upgrade("founding")} />
-        ) : (
-          <AnnualHero onUpgrade={() => upgrade("annual")} />
-        )}
+      {/* Pricing — narrowed and centered on desktop so it reads as one
+          deliberate block rather than stretching across the six-card grid.
+          Founding-primary + Monthly-secondary during the launch window;
+          LAUNCH_OFFER === null → collapses to annual-primary using the same
+          components without any downstream change. */}
+      <div className="mx-auto max-w-[640px]">
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 py-7 sm:px-8">
+          {LAUNCH_OFFER === "founding" ? (
+            <FoundingHero onUpgrade={() => upgrade("founding")} />
+          ) : (
+            <AnnualHero onUpgrade={() => upgrade("annual")} />
+          )}
 
-        <div className="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-800">
-          <MonthlyOption onUpgrade={() => upgrade("monthly")} />
+          <MonthlySecondary onUpgrade={() => upgrade("monthly")} />
         </div>
 
-        <p className="mt-5 text-center text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="mt-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
           Pro works everywhere — buy on web or in the app, you&rsquo;re Pro on
           both.
         </p>
@@ -155,24 +160,37 @@ function FoundingHero({ onUpgrade }: { onUpgrade: () => void }) {
       <div className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-3 py-1 text-[11px] font-bold uppercase tracking-wide">
         Founding Member
       </div>
-      <div className="mt-4 flex items-baseline justify-center gap-3 flex-wrap">
-        <span className="text-lg text-zinc-400 dark:text-zinc-500 line-through tabular-nums">
-          {PRICING.annual.label}
-          {PRICING.annual.period}
-        </span>
-        <span className="text-4xl sm:text-5xl font-extrabold text-zinc-900 dark:text-zinc-100 tabular-nums">
-          {PRICING.founding.label}
-          <span className="text-xl font-semibold text-zinc-500 dark:text-zinc-400">
+
+      {/* Price stack — the regular annual anchor sits on its own line above
+          the founding price so the $99 → $49 relationship reads clearly.
+          The $49 is intentionally the visually dominant number; the $99 is
+          recognizable as the strike-through regular annual rate without
+          competing for attention. */}
+      <div className="mt-5 flex flex-col items-center gap-1">
+        <div className="flex items-baseline gap-1 text-zinc-400 dark:text-zinc-500">
+          <span className="text-xl line-through tabular-nums">
+            {PRICING.annual.label}
+          </span>
+          <span className="text-sm line-through">
+            {PRICING.annual.period}
+          </span>
+        </div>
+        <div className="flex items-baseline gap-1">
+          <span className="text-5xl sm:text-6xl font-extrabold text-zinc-900 dark:text-zinc-100 tabular-nums leading-none">
+            {PRICING.founding.label}
+          </span>
+          <span className="text-lg font-semibold text-zinc-500 dark:text-zinc-400">
             {PRICING.founding.period}
           </span>
-        </span>
+        </div>
       </div>
-      <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-300 max-w-md mx-auto">
+
+      <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-300 max-w-sm mx-auto leading-relaxed">
         {PRICING.founding.note}
       </p>
       <button
         onClick={onUpgrade}
-        className="mt-5 inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 px-6 py-3 text-sm font-semibold text-white"
+        className="mt-5 inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 px-8 py-3 text-sm font-semibold text-white"
       >
         Upgrade to GigDock Pro
       </button>
@@ -186,17 +204,17 @@ function AnnualHero({ onUpgrade }: { onUpgrade: () => void }) {
       <div className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-3 py-1 text-[11px] font-bold uppercase tracking-wide">
         Annual
       </div>
-      <div className="mt-4 flex items-baseline justify-center gap-1">
-        <span className="text-4xl sm:text-5xl font-extrabold text-zinc-900 dark:text-zinc-100 tabular-nums">
+      <div className="mt-5 flex items-baseline justify-center gap-1">
+        <span className="text-5xl sm:text-6xl font-extrabold text-zinc-900 dark:text-zinc-100 tabular-nums leading-none">
           {PRICING.annual.label}
         </span>
-        <span className="text-xl font-semibold text-zinc-500 dark:text-zinc-400">
+        <span className="text-lg font-semibold text-zinc-500 dark:text-zinc-400">
           {PRICING.annual.period}
         </span>
       </div>
       <button
         onClick={onUpgrade}
-        className="mt-5 inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 px-6 py-3 text-sm font-semibold text-white"
+        className="mt-6 inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 px-8 py-3 text-sm font-semibold text-white"
       >
         Upgrade to GigDock Pro
       </button>
@@ -204,30 +222,32 @@ function AnnualHero({ onUpgrade }: { onUpgrade: () => void }) {
   );
 }
 
-function MonthlyOption({ onUpgrade }: { onUpgrade: () => void }) {
+function MonthlySecondary({ onUpgrade }: { onUpgrade: () => void }) {
+  // Compact centered secondary treatment. This is intentionally not a
+  // second full-width pricing card — Monthly is meant to read as an
+  // alternative for people who don't want to commit to a year, not as a
+  // competing headline option.
   return (
-    <div className="flex items-center justify-between gap-4 flex-wrap">
-      <div>
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-          Monthly
-        </div>
-        <div className="mt-1 flex items-baseline gap-1">
-          <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">
-            {PRICING.monthly.label}
-          </span>
-          <span className="text-sm text-zinc-500 dark:text-zinc-400">
-            {PRICING.monthly.period}
-          </span>
-        </div>
-        <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-          {PRICING.monthly.cta}
-        </p>
+    <div className="mt-6 pt-5 border-t border-zinc-200 dark:border-zinc-800 text-center">
+      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+        Prefer monthly?
+      </p>
+      <div className="mt-1.5 flex items-baseline justify-center gap-1">
+        <span className="text-xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">
+          {PRICING.monthly.label}
+        </span>
+        <span className="text-sm text-zinc-500 dark:text-zinc-400">
+          {PRICING.monthly.period}
+        </span>
+        <span className="ml-2 text-xs text-zinc-500 dark:text-zinc-400">
+          · {PRICING.monthly.cta}
+        </span>
       </div>
       <button
         onClick={onUpgrade}
-        className="inline-flex items-center justify-center rounded-xl border border-blue-500 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 px-4 py-2 text-sm font-semibold"
+        className="mt-2 text-sm font-semibold text-blue-700 dark:text-blue-300 hover:underline"
       >
-        Choose Monthly
+        Choose monthly
       </button>
     </div>
   );
