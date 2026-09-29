@@ -63,7 +63,7 @@ export type Subscription =
       renewsAt: string | null;
       /** Paid-through date for active_canceling; also the comp-grant expiry. */
       endsAt: string | null;
-      /** e.g. "$7.99/mo", "$49.99/yr · Founding member". null when unknown. */
+      /** e.g. "$9.99/month", "$49/year · Founding member". null when unknown. */
       priceLabel: string | null;
       /** Free-form note for complimentary grants ("Complimentary during beta"). */
       note: string | null;

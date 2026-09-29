@@ -64,7 +64,7 @@ export default function PlanPanel({ subscription }: { subscription: Subscription
         <div className="flex items-start justify-between gap-3 px-4 py-4">
           <div className="min-w-0">
             <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">GigDock</div>
-            <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">Upgrade to GigDock Pro for advanced insights, watches, and reports.</p>
+            <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">Upgrade to GigDock Pro for advanced insights, alerts, and reports.</p>
           </div>
           <Link
             href="/pro?from=account"
