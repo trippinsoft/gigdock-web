@@ -37,7 +37,7 @@ import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import { stateLabel } from "@/components/FilterChips";
 import type { WorkRoleCatalogRow } from "@/lib/workRoles";
 import { ETHNICITY_OPTIONS } from "@/lib/gigfit";
-import type { PreviewOpportunity } from "@/components/signup/OpportunityPreview";
+import OpportunityPreview, { type PreviewOpportunity } from "@/components/signup/OpportunityPreview";
 import { trackOnboarding } from "@/lib/onboardingEvents";
 
 type Intent = "save" | "applied" | "gigfit" | "manage" | "default";
@@ -356,7 +356,7 @@ export default function OnboardingWizard({
           ))}
         </div>
         <div className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-          Step {stepIndex} of {totalSteps} · {stepLabel(step, anyPerformer)}
+          Step {stepIndex} of {totalSteps} · {stepLabel(step, extrajobsBackground === true)}
         </div>
       </div>
 
