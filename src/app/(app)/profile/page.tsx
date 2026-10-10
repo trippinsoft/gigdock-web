@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import { stateLabel } from "@/components/FilterChips";
 import {
@@ -10,25 +10,16 @@ import {
   type PerformerProfile,
   type ProfileFieldKey,
 } from "@/lib/gigfit";
-import WorkRolesPicker from "@/components/app/WorkRolesPicker";
-import { hasPerformerRole, type WorkRoleCatalogRow } from "@/lib/workRoles";
-import { updateWorkRoles, updateWorkMarkets } from "@/lib/backoffice-actions";
+import { updateWorkMarkets } from "@/lib/backoffice-actions";
 import { trackOnboarding } from "@/lib/onboardingEvents";
 
-// Profile is normal account management — three focused sections stacked:
-//   1. Work Roles       — universal (profiles.work_roles)
-//   2. Work Markets     — universal (profiles.work_markets)
-//   3. GigFit Profile   — role-relevant fields. Currently the performer
-//                         demographic fields, rendered only when the
-//                         current Work Roles selection contains a
-//                         performer role. Nothing rendered for crew-only
-//                         users in this release (no crew-specific fields
-//                         yet — will appear here when they add value).
+// Profile is normal account management with two focused areas:
+//   1. Work Markets   — shared account-level regions (profiles.work_markets)
+//   2. GigFit Profile — performer matching fields used by casting opportunities.
 //
-// No onboarding controls: there is no ?from=onboarding banner, no sticky
-// "Save & continue" footer, no Skip actions. New-user onboarding lives in
-// the pre-account wizard at /signup and terminates at /signup/complete;
-// this screen is only for editing later.
+// Work Roles are intentionally not part of the current customer-facing
+// ExtraJobs/GigFit model. Markets describe where the user wants to work;
+// GigFit describes casting-match attributes.
 
 const GENDERS = [
   { value: "male", label: "Male" },
@@ -99,16 +90,6 @@ function ProfilePageInner() {
   const [marketsSavedAt, setMarketsSavedAt] = useState<string | null>(null);
   const [marketsError, setMarketsError] = useState<string | null>(null);
 
-  // Universal Work Roles state.
-  const [catalog, setCatalog] = useState<WorkRoleCatalogRow[]>([]);
-  const [roleSelection, setRoleSelection] = useState<Set<string>>(() => new Set());
-  const [roleOther, setRoleOther] = useState("");
-  const [rolesDirty, setRolesDirty] = useState(false);
-  const [rolesSaving, setRolesSaving] = useState(false);
-  const [rolesSavedAt, setRolesSavedAt] = useState<string | null>(null);
-  const [rolesError, setRolesError] = useState<string | null>(null);
-  const rolesLoadedRef = useRef(false);
-
   // Load anonymous-readable markets catalog once.
   useEffect(() => {
     (async () => {
@@ -122,82 +103,20 @@ function ProfilePageInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load the work-roles catalog + current universal selection (roles + markets) once.
+  // Load the shared account-level Work Markets selection.
   useEffect(() => {
-    if (rolesLoadedRef.current) return;
-    rolesLoadedRef.current = true;
     (async () => {
-      const [catalogRes, profileRes] = await Promise.all([
-        supabase
-          .from("work_roles_catalog")
-          .select("role_key, label, category, is_performer, sort_order, is_active")
-          .eq("is_active", true)
-          .order("sort_order", { ascending: true }),
-        supabase.auth.getUser().then(async ({ data }) => {
-          if (!data.user) return null;
-          const { data: p } = await supabase
-            .from("profiles")
-            .select("work_roles, work_roles_other, work_markets")
-            .eq("user_id", data.user.id)
-            .maybeSingle();
-          return p;
-        }),
-      ]);
-      if (catalogRes.data) setCatalog(catalogRes.data as WorkRoleCatalogRow[]);
-      if (profileRes) {
-        setRoleSelection(new Set((profileRes.work_roles as string[] | null) ?? []));
-        setRoleOther((profileRes.work_roles_other as string | null) ?? "");
-        setMarkets((profileRes.work_markets as string[] | null) ?? []);
-      }
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return;
+      const { data: p } = await supabase
+        .from("profiles")
+        .select("work_markets")
+        .eq("user_id", auth.user.id)
+        .maybeSingle();
+      if (p) setMarkets((p.work_markets as string[] | null) ?? []);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const roleSelectionKeys = useMemo(
-    () => Array.from(roleSelection).sort(),
-    [roleSelection]
-  );
-  const isPerformer = useMemo(
-    () => hasPerformerRole(roleSelectionKeys, catalog),
-    [roleSelectionKeys, catalog]
-  );
-
-  function toggleRole(roleKey: string) {
-    setRolesDirty(true);
-    setRolesSavedAt(null);
-    setRolesError(null);
-    setRoleSelection((prev) => {
-      const next = new Set(prev);
-      if (next.has(roleKey)) next.delete(roleKey);
-      else next.add(roleKey);
-      return next;
-    });
-  }
-
-  async function saveRoles() {
-    setRolesError(null);
-    if (roleSelection.size === 0) {
-      setRolesError("Select at least one to save.");
-      return;
-    }
-    setRolesSaving(true);
-    const res = await updateWorkRoles(
-      roleSelectionKeys,
-      roleSelection.has("other") ? roleOther : null
-    );
-    setRolesSaving(false);
-    if (!res.ok) {
-      setRolesError(res.error);
-      return;
-    }
-    trackOnboarding("work_roles_updated", {
-      role_count: roleSelectionKeys.length,
-      roles: roleSelectionKeys,
-      has_performer_role: isPerformer,
-    });
-    setRolesDirty(false);
-    setRolesSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
-  }
 
   function toggleMarket(code: string) {
     setMarketsDirty(true);
@@ -398,58 +317,9 @@ function ProfilePageInner() {
           Profile
         </h2>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-          Your work roles and markets tailor GigDock to the kind of work you do
-          and where you do it. If your roles include performing work, your
-          GigFit Profile helps match you against each opportunity&rsquo;s
-          casting requirements.
+          Your work markets control where you want to work. Your GigFit Profile
+          helps match you against each opportunity&rsquo;s casting requirements.
         </p>
-      </div>
-
-      {/* Work roles — universal, always visible */}
-      <div id="work-roles" className="scroll-mt-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
-        <div className="mb-3">
-          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            Work roles
-          </h3>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            What kind of work do you do? Select all that apply.
-          </p>
-        </div>
-        {catalog.length === 0 ? (
-          <div className="text-xs text-zinc-500 dark:text-zinc-400">Loading…</div>
-        ) : (
-          <>
-            <WorkRolesPicker
-              catalog={catalog}
-              selected={roleSelection}
-              onToggle={toggleRole}
-              otherDetail={roleOther}
-              onOtherDetailChange={(v) => {
-                setRolesDirty(true);
-                setRolesSavedAt(null);
-                setRoleOther(v);
-              }}
-            />
-            {rolesError && (
-              <p className="mt-3 text-xs text-red-600 dark:text-red-400">{rolesError}</p>
-            )}
-            <div className="mt-4 flex items-center gap-3">
-              <button
-                type="button"
-                onClick={saveRoles}
-                disabled={rolesSaving || !rolesDirty || roleSelection.size === 0}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-lg text-sm font-medium"
-              >
-                {rolesSaving ? "Saving…" : "Save work roles"}
-              </button>
-              {rolesSavedAt && (
-                <span className="text-xs text-green-600 dark:text-green-400">
-                  Saved at {rolesSavedAt}
-                </span>
-              )}
-            </div>
-          </>
-        )}
       </div>
 
       {/* Work markets — universal, always visible */}
@@ -526,8 +396,7 @@ function ProfilePageInner() {
         )}
       </div>
 
-      {isPerformer ? (
-        <>
+      <>
           <div className="pt-2">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
               GigFit Profile
@@ -721,12 +590,7 @@ function ProfilePageInner() {
               </span>
             )}
           </div>
-        </>
-      ) : null /* No GigFit Profile section for crew-only users in this
-                    release. GigDock's core value for crew is gig
-                    management; role-specific GigFit fields will be
-                    introduced progressively when they provide clear
-                    matching value. */}
+      </>
     </div>
   );
 }
