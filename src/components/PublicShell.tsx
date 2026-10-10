@@ -12,6 +12,7 @@ const NAV = [
   { href: "/guides", label: "Guides" },
   { href: "/app", label: "Get the app" },
   { href: "/profile", label: "Profile" },
+  { href: "/account/alerts", label: "Alerts" },
 ];
 
 
@@ -24,7 +25,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
 
   // Profile only makes sense once signed in — hide it for logged-out visitors
   // (and while auth state is still resolving, to avoid a flash then removal).
-  const nav = NAV.filter((n) => n.href !== "/profile" || signedIn === true);
+  const nav = NAV.filter((n) => !["/profile", "/account/alerts"].includes(n.href) || signedIn === true);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setSignedIn(!!data.user));
