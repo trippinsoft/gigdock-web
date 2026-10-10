@@ -116,10 +116,10 @@ function Hero() {
             Your gig life. <span className="text-blue-600 dark:text-blue-400">Simplified.</span>
           </h1>
           <p className="mt-4 text-lg sm:text-xl font-medium text-zinc-700 dark:text-zinc-200 max-w-xl mx-auto lg:mx-0">
-            Manage your gigs. Track your money. Keep your work organized.
+            Find more opportunities. Manage your gigs. Take control of your earnings.
           </p>
           <p className="mt-3 text-sm sm:text-base text-zinc-600 dark:text-zinc-400 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-            Keep your gigs, work dates, earnings, payments and records together. Optionally discover background opportunities with GigFit matching.
+            From finding your next gig to getting paid, GigDock helps you manage the work and the money behind it. Track work dates, earnings, payments, expenses and mileage. Know what you’re owed, uncover income insights and keep records ready for tax time.
           </p>
           <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3">
             <Link
@@ -453,7 +453,7 @@ function FourPillars() {
     {
       key: "discover",
       title: "Discover",
-      body: "Optionally browse background opportunities and use GigFit matching.",
+      body: "Find background opportunities and use GigFit to assess potential matches.",
       icon: <IconSearch />,
     },
     {
@@ -732,7 +732,7 @@ function AudienceExpansion() {
       <div className="max-w-3xl mx-auto text-center">
         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">Built for background performers.</h2>
         <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400">
-          Keep track of every gig, work date and payment in one place. Optional opportunity discovery and GigFit matching help you find your next background job.
+          Keep track of every gig, work date and payment in one place. Opportunity discovery and GigFit matching help you find your next background job.
         </p>
         <Link href="/features" className="mt-6 inline-block font-semibold text-blue-600 dark:text-blue-400 hover:underline">Explore Features →</Link>
       </div>
