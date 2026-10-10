@@ -10,10 +10,10 @@ import { APP_LIVE, IOS_STORE_URL, ANDROID_STORE_URL, BETA_HREF } from "@/lib/app
 export const metadata: Metadata = {
   title: "GigDock — Manage Gigs, Earnings & Payments",
   description:
-    "GigDock helps background performers organize gigs and work dates, track earnings and payments, and keep work records together. ExtraJobs powers optional opportunity discovery.",
+    "GigDock helps background performers organize gigs and work dates, track earnings and payments, and keep work records together.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "GigDock — Find Opportunities, Manage Gigs & Track Pay",
+    title: "GigDock — Manage Gigs, Earnings & Payments",
     description:
       "One place to manage gigs, hours, earnings, payments, and documents.",
     type: "website",
@@ -453,7 +453,7 @@ function FourPillars() {
     {
       key: "discover",
       title: "Discover",
-      body: "Connect ExtraJobs to browse background opportunities and use GigFit matching.",
+      body: "Optionally browse background opportunities and use GigFit matching.",
       icon: <IconSearch />,
     },
     {
@@ -483,7 +483,7 @@ function FourPillars() {
           One place for the work behind your work.
         </h2>
         <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400">
-          From finding the next opportunity to understanding where your money stands, GigDock keeps the pieces connected.
+          From managing your work to understanding where your money stands, GigDock keeps the pieces connected.
         </p>
       </div>
 
@@ -503,10 +503,10 @@ function FourPillars() {
             />
             {p.key === "discover" && (
               <Link
-                href="https://extrajobs.co"
+                href="/features"
                 className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
               >
-                Browse ExtraJobs →
+                Explore Features →
               </Link>
             )}
           </div>
@@ -549,13 +549,13 @@ function OpportunitiesRail({ preview }: { preview: Opportunity[] }) {
           </p>
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <Link
-              href="https://extrajobs.co"
+              href="/features"
               className="px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors"
             >
-              Browse ExtraJobs
+              Explore Features
             </Link>
             <Link
-              href="https://extrajobs.co"
+              href="/features"
               className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
             >
               Browse by location →
@@ -799,10 +799,10 @@ function FinalCta() {
 
       <div className="mt-4">
         <Link
-          href="https://extrajobs.co"
+          href="/features"
           className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
         >
-          Browse ExtraJobs →
+          Explore Features →
         </Link>
       </div>
 
