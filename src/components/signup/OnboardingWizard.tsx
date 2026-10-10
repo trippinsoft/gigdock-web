@@ -36,12 +36,8 @@ import { useRouter } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import { stateLabel } from "@/components/FilterChips";
 import type { WorkRoleCatalogRow } from "@/lib/workRoles";
-import { hasPerformerRole } from "@/lib/workRoles";
 import { ETHNICITY_OPTIONS } from "@/lib/gigfit";
-import WorkRolesPicker from "@/components/app/WorkRolesPicker";
-import OpportunityPreview, {
-  type PreviewOpportunity,
-} from "@/components/signup/OpportunityPreview";
+import type { PreviewOpportunity } from "@/components/signup/OpportunityPreview";
 import { trackOnboarding } from "@/lib/onboardingEvents";
 
 type Intent = "save" | "applied" | "gigfit" | "manage" | "default";
@@ -95,9 +91,7 @@ export interface OnboardingWizardProps {
 }
 
 export default function OnboardingWizard({
-  catalog,
   markets,
-  previewOpportunities,
   nextPath,
   intent,
 }: OnboardingWizardProps) {
@@ -110,8 +104,8 @@ export default function OnboardingWizard({
   // Step 1: Work Roles.
   // Legacy draft RPC still requires a role key. Background acting is the current launch audience;
   // this is a compatibility value, not a user-selected occupational profile.
-  const [selectedRoles, setSelectedRoles] = useState<Set<string>>(() => new Set(["background_actor"]));
-  const [roleOther, setRoleOther] = useState("");
+  const selectedRoles = useMemo(() => new Set(["background_actor"]), []);
+  const roleOther = "";
 
   // Optional inline ExtraJobs background-opportunities selection. Visible
   // ONLY when the Background Actor role is chosen on the roles step:
@@ -149,10 +143,7 @@ export default function OnboardingWizard({
 
   const roleKeys = useMemo(() => Array.from(selectedRoles).sort(), [selectedRoles]);
   const marketCodes = useMemo(() => Array.from(selectedMarkets).sort(), [selectedMarkets]);
-  const anyPerformer = useMemo(
-    () => hasPerformerRole(roleKeys, catalog),
-    [roleKeys, catalog]
-  );
+
 
   const startedRef = useRef(false);
   useEffect(() => {
@@ -161,26 +152,6 @@ export default function OnboardingWizard({
     trackOnboarding("onboarding_started", { entry_point: "web_signup" });
   }, []);
 
-  function toggleRole(roleKey: string) {
-    setSelectedRoles((prev) => {
-      const next = new Set(prev);
-      if (next.has(roleKey)) next.delete(roleKey);
-      else next.add(roleKey);
-      return next;
-    });
-    if (roleKey === "background_actor") {
-      // Sync the inline ExtraJobs toggle with the Background role:
-      //  - selecting Background defaults ExtraJobs ON,
-      //  - deselecting Background clears the pending selection so
-      //    re-selecting returns to the ON default.
-      setExtrajobsBackground((prev) => {
-        const wasSelected = selectedRoles.has("background_actor");
-        // wasSelected reflects the value BEFORE this toggle; we're
-        // flipping it, so the new state is !wasSelected.
-        return wasSelected ? null : (prev ?? true);
-      });
-    }
-  }
   function toggleMarket(code: string) {
     setSelectedMarkets((prev) => {
       const next = new Set(prev);
