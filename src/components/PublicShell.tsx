@@ -9,7 +9,7 @@ import { createSupabaseBrowser } from "@/lib/supabase-browser";
 // part of that story, so the nav no longer leads with it. Order and labels
 // match the positioning brief.
 const NAV = [
-  { href: "/opportunities", label: "Opportunities" },
+  { href: "/solutions/extra", label: "Solutions" },
   { href: "/features", label: "Features" },
   { href: "/resources", label: "Resources" },
   { href: "/about", label: "About" },
