@@ -8,14 +8,14 @@ import PublicShell from "@/components/PublicShell";
 import { APP_LIVE, IOS_STORE_URL, ANDROID_STORE_URL, BETA_HREF } from "@/lib/appPromo";
 
 export const metadata: Metadata = {
-  title: "GigDock — Find Opportunities, Manage Gigs & Track Pay",
+  title: "GigDock — Manage Gigs, Earnings & Payments",
   description:
-    "GigDock helps production gig professionals find opportunities, organize gigs and work dates, track earnings and payments, keep records together, and understand their work history.",
+    "GigDock helps background performers organize gigs and work dates, track earnings and payments, and keep work records together. ExtraJobs powers optional opportunity discovery.",
   alternates: { canonical: "/" },
   openGraph: {
     title: "GigDock — Find Opportunities, Manage Gigs & Track Pay",
     description:
-      "One place for the work behind your work — opportunities, gigs, hours, earnings, payments, documents.",
+      "One place to manage gigs, hours, earnings, payments, and documents.",
     type: "website",
     siteName: "GigDock",
   },
@@ -79,14 +79,12 @@ export default async function Home() {
   const { data: { user } } = await supabase.auth.getUser();
   if (user) redirect("/today");
 
-  const preview = await getPreviewOpps();
 
   return (
     <PublicShell>
       <Hero />
       <ScatteredProblem />
       <FourPillars />
-      <OpportunitiesRail preview={preview} />
       <ProductShowcase />
       <AudienceExpansion />
       <FinalCta />
@@ -112,16 +110,16 @@ function Hero() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.22fr] gap-8 lg:gap-12 items-center">
         <div className="text-center lg:text-left">
           <span className="inline-block text-xs sm:text-sm font-semibold tracking-[0.12em] uppercase text-blue-600 dark:text-blue-400">
-            For People Who Work in Film &amp; TV
+            Built for Background Performers
           </span>
           <h1 className="mt-3 text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance leading-[1.05]">
             Your gig life. <span className="text-blue-600 dark:text-blue-400">Simplified.</span>
           </h1>
           <p className="mt-4 text-lg sm:text-xl font-medium text-zinc-700 dark:text-zinc-200 max-w-xl mx-auto lg:mx-0">
-            Find opportunities. Manage your gigs. Track your money. All in one place.
+            Manage your gigs. Track your money. Keep your work organized.
           </p>
           <p className="mt-3 text-sm sm:text-base text-zinc-600 dark:text-zinc-400 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-            GigDock brings the work around your production gig life together — from finding the next opportunity to keeping gigs organized and knowing what you&rsquo;ve earned and what&rsquo;s still owed.
+            Keep your gigs, work dates, earnings, payments and records together. GigDock Extra adds background opportunity discovery through ExtraJobs when you want it.
           </p>
           <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3">
             <Link
@@ -131,14 +129,14 @@ function Hero() {
               Get Started Free
             </Link>
             <Link
-              href="/opportunities"
+              href="/solutions/extra"
               className="px-6 py-3 rounded-full border border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-semibold text-sm text-center hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
             >
-              Explore Opportunities
+              Explore GigDock Extra
             </Link>
           </div>
           <p className="mt-4 text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-xl mx-auto lg:mx-0">
-            Built for background performers, stand-ins, production assistants, crew and other production gig workers.
+            Built for background performers, including stand-ins and photo doubles.
           </p>
         </div>
 
