@@ -453,7 +453,7 @@ function FourPillars() {
     {
       key: "discover",
       title: "Discover",
-      body: "Find relevant production opportunities and use GigFit to compare requirements with your profile.",
+      body: "Connect ExtraJobs to browse background opportunities and use GigFit matching.",
       icon: <IconSearch />,
     },
     {
@@ -503,10 +503,10 @@ function FourPillars() {
             />
             {p.key === "discover" && (
               <Link
-                href="/opportunities"
+                href="https://extrajobs.co"
                 className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
               >
-                Explore Opportunities →
+                Browse ExtraJobs →
               </Link>
             )}
           </div>
@@ -549,13 +549,13 @@ function OpportunitiesRail({ preview }: { preview: Opportunity[] }) {
           </p>
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <Link
-              href="/opportunities"
+              href="https://extrajobs.co"
               className="px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors"
             >
-              Explore Opportunities
+              Browse ExtraJobs
             </Link>
             <Link
-              href="/opportunities/locations"
+              href="https://extrajobs.co"
               className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
             >
               Browse by location →
@@ -727,37 +727,18 @@ function ShowcaseRowBlock({ row, reverse }: { row: ShowcaseRow; reverse: boolean
    ============================================================ */
 
 function AudienceExpansion() {
-  const roles = [
-    { label: "Background & performing talent", icon: <IconPerformer /> },
-    { label: "Stand-ins & photo doubles", icon: <IconStandIn /> },
-    { label: "Production assistants", icon: <IconClipboard /> },
-    { label: "Camera & production crew", icon: <IconCamera /> },
-    { label: "Hair, makeup & wardrobe", icon: <IconWardrobe /> },
-    { label: "Other production roles", icon: <IconPeople /> },
-  ];
   return (
     <section className="py-12 sm:py-14 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-white dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800">
       <div className="max-w-3xl mx-auto text-center">
-        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
-          Built for the people who make production happen.
-        </h2>
+        <p className="text-sm font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400">Our first solution</p>
+        <h2 className="mt-3 text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">GigDock Extra — built for background performers.</h2>
         <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400">
-          From performers and background talent to production and crew, GigDock is being built around people whose work moves from gig to gig.
+          Organize background gigs, work dates and payments with GigDock. Connect ExtraJobs for background opportunities, GigFit and alerts — or manage your work without the connection.
         </p>
-      </div>
-
-      <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-4xl mx-auto">
-        {roles.map((r) => (
-          <div
-            key={r.label}
-            className="flex items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 px-4 py-4"
-          >
-            <span className="h-10 w-10 shrink-0 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-blue-600 dark:text-blue-400">
-              {r.icon}
-            </span>
-            <span className="text-sm font-medium text-zinc-800 dark:text-zinc-100 leading-snug">{r.label}</span>
-          </div>
-        ))}
+        <div className="mt-6 flex flex-wrap justify-center gap-4">
+          <Link href="/solutions/extra" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Explore GigDock Extra →</Link>
+          <a href="https://extrajobs.co" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Browse ExtraJobs.co ↗</a>
+        </div>
       </div>
     </section>
   );
@@ -822,10 +803,10 @@ function FinalCta() {
 
       <div className="mt-4">
         <Link
-          href="/opportunities"
+          href="https://extrajobs.co"
           className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
         >
-          Explore Opportunities →
+          Browse ExtraJobs →
         </Link>
       </div>
 
