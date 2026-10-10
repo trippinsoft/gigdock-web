@@ -108,7 +108,9 @@ export default function OnboardingWizard({
   const [step, setStep] = useState<Step>("roles");
 
   // Step 1: Work Roles.
-  const [selectedRoles, setSelectedRoles] = useState<Set<string>>(() => new Set());
+  // Legacy draft RPC still requires a role key. Background acting is the current launch audience;
+  // this is a compatibility value, not a user-selected occupational profile.
+  const [selectedRoles, setSelectedRoles] = useState<Set<string>>(() => new Set(["background_actor"]));
   const [roleOther, setRoleOther] = useState("");
 
   // Optional inline ExtraJobs background-opportunities selection. Visible
@@ -125,7 +127,7 @@ export default function OnboardingWizard({
   // set_user_connection() after the account is created. State is not
   // authoritative here — Supabase is — but this is the pre-account
   // draft, before an auth.uid() exists.
-  const [extrajobsBackground, setExtrajobsBackground] = useState<boolean | null>(null);
+  const [extrajobsBackground, setExtrajobsBackground] = useState<boolean | null>(true);
 
   // Step 2: Work Markets.
   const [selectedMarkets, setSelectedMarkets] = useState<Set<string>>(() => new Set());
@@ -205,26 +207,17 @@ export default function OnboardingWizard({
   // Crew-only users skip both GigFit Details AND the Opportunities Preview —
   // GigDock is valuable to crew as a gig-management system even before we
   // surface crew opportunities. Performer/mixed users go through both steps.
-  const totalSteps = anyPerformer ? 5 : 3;
-  const stepNumber: Record<Step, number> = anyPerformer
-    ? { roles: 1, where: 2, gigfit_details: 3, preview: 4, account: 5 }
+  const totalSteps = extrajobsBackground ? 4 : 3;
+  const stepNumber: Record<Step, number> = extrajobsBackground
+    ? { roles: 1, where: 2, gigfit_details: 3, preview: 0, account: 4 }
     : { roles: 1, where: 2, gigfit_details: 0, preview: 0, account: 3 };
   const stepIndex = stepNumber[step];
 
   function advance() {
     setError(null);
     if (step === "roles") {
-      if (selectedRoles.size === 0) {
-        setError("Select at least one to continue.");
-        return;
-      }
-      trackOnboarding("work_roles_selected", {
-        role_count: roleKeys.length,
-        roles: roleKeys,
-        has_performer_role: anyPerformer,
-        has_crew_role: catalog.some(
-          (r) => selectedRoles.has(r.role_key) && r.category === "crew"
-        ),
+      trackOnboarding("opportunities_connection_selected", {
+        enabled: extrajobsBackground === true,
         entry_point: "web_signup",
       });
       setStep("where");
@@ -238,12 +231,12 @@ export default function OnboardingWizard({
       // Crew-only → straight to account creation. GigFit Details and
       // Opportunities Preview are only meaningful when the user has a
       // performer role to match against today's inventory.
-      setStep(anyPerformer ? "gigfit_details" : "account");
+      setStep(extrajobsBackground ? "gigfit_details" : "account");
       return;
     }
     if (step === "gigfit_details") {
       // All fields optional.
-      setStep("preview");
+      setStep("account");
       return;
     }
     if (step === "preview") {
@@ -257,7 +250,7 @@ export default function OnboardingWizard({
     if (step === "where") setStep("roles");
     else if (step === "gigfit_details") setStep("where");
     else if (step === "preview") setStep("gigfit_details");
-    else if (step === "account") setStep(anyPerformer ? "preview" : "where");
+    else if (step === "account") setStep(extrajobsBackground ? "gigfit_details" : "where");
   }
 
   async function submitAccount(e: React.FormEvent) {
@@ -268,14 +261,14 @@ export default function OnboardingWizard({
     // Crew-only users land in Today/GigDock, not Opportunities. Preserve an
     // explicit per-opportunity return path (e.g. Save/Apply started before
     // signup) — that's an intentional user action we shouldn't drop.
-    const effectiveNext = anyPerformer
+    const effectiveNext = extrajobsBackground
       ? nextPath
       : nextPath.startsWith("/opportunities/")
         ? nextPath
         : "/today";
 
     // 1) Create the server-side draft (opaque draft_id).
-    const performerPayload = anyPerformer
+    const performerPayload = extrajobsBackground
       ? {
           gender: gender ?? null,
           ethnicity: ethnicity,
@@ -295,10 +288,7 @@ export default function OnboardingWizard({
     // and the user's server-side state (a fresh row with the catalog
     // default) is left untouched. This preserves the contract that we
     // never write on a user's behalf without an explicit choice.
-    const connectionsPayload =
-      selectedRoles.has("background_actor")
-        ? { extrajobs_background: extrajobsBackground ?? true }
-        : undefined;
+    const connectionsPayload = { extrajobs_background: extrajobsBackground === true };
 
     const { data: draftIdData, error: draftErr } = await supabase.rpc(
       "create_onboarding_draft",
@@ -400,17 +390,10 @@ export default function OnboardingWizard({
       </div>
 
       {step === "roles" && (
-        <StepRoles
-          catalog={catalog}
-          selected={selectedRoles}
-          onToggle={toggleRole}
-          otherDetail={roleOther}
-          onOtherDetailChange={setRoleOther}
-          error={error}
+        <StepConnection
+          enabled={extrajobsBackground === true}
+          onToggle={() => setExtrajobsBackground((v) => !(v ?? true))}
           onContinue={advance}
-          selectedCount={selectedRoles.size}
-          extrajobsEnabled={extrajobsBackground}
-          onToggleExtrajobs={() => setExtrajobsBackground((v) => !(v ?? true))}
         />
       )}
 
@@ -445,16 +428,6 @@ export default function OnboardingWizard({
         />
       )}
 
-      {step === "preview" && (
-        <StepPreview
-          workRoles={roleKeys}
-          workMarkets={marketCodes}
-          performer={anyPerformer ? { gender, ethnicity, date_of_birth: dob, union_status: unionStatus, height_inches: heightInches } : null}
-          opportunities={previewOpportunities}
-          onBack={back}
-          onContinue={advance}
-        />
-      )}
 
       {step === "account" && (
         <StepAccount
@@ -476,7 +449,7 @@ export default function OnboardingWizard({
 
 function stepLabel(step: Step, _anyPerformer: boolean): string {
   switch (step) {
-    case "roles":          return "Work Roles";
+    case "roles":          return "Opportunities";
     case "where":          return "Where";
     case "gigfit_details": return "GigFit Profile";
     case "preview":        return "Opportunities for you";
@@ -486,100 +459,40 @@ function stepLabel(step: Step, _anyPerformer: boolean): string {
 
 /* ---------- steps ---------- */
 
-function StepRoles({
-  catalog, selected, onToggle, otherDetail, onOtherDetailChange, error, onContinue, selectedCount,
-  extrajobsEnabled, onToggleExtrajobs,
-}: {
-  catalog: WorkRoleCatalogRow[];
-  selected: Set<string>;
-  onToggle: (k: string) => void;
-  otherDetail: string;
-  onOtherDetailChange: (v: string) => void;
-  error: string | null;
+function StepConnection({ enabled, onToggle, onContinue }: {
+  enabled: boolean;
+  onToggle: () => void;
   onContinue: () => void;
-  selectedCount: number;
-  /** null = no explicit selection yet (default ON when Background is
-   *  selected); true/false = user's explicit toggle. */
-  extrajobsEnabled: boolean | null;
-  onToggleExtrajobs: () => void;
 }) {
-  const showExtraJobs = selected.has("background_actor");
-  const effectiveEnabled = extrajobsEnabled ?? true;
   return (
-    <>
-      <div className="mb-8">
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 leading-tight">
-          What kind of work do you do?
-        </h1>
-        <p className="mt-3 text-base text-zinc-600 dark:text-zinc-300 leading-relaxed">
-          Select all that apply. We&rsquo;ll use this to tailor GigDock to the work you actually do.
-        </p>
+    <section>
+      <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
+        Welcome to GigDock
+      </h1>
+      <p className="mt-3 text-base text-zinc-600 dark:text-zinc-300">
+        Find background opportunities, manage gigs, track earnings and payments, and stay on top of expenses and mileage.
+      </p>
+      <div className="mt-8 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">Show background opportunities</h2>
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
+            Find casting opportunities, set up alerts and see GigFit matches. You can change this anytime in Connections.
+          </p>
+          <p className="mt-3 text-xs text-zinc-500">Opportunities provided by ExtraJobs.</p>
+        </div>
+        <button type="button" role="switch" aria-label="Show background opportunities"
+          aria-checked={enabled} onClick={onToggle}
+          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${enabled ? "bg-blue-600" : "bg-zinc-300 dark:bg-zinc-700"}`}>
+          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${enabled ? "left-5" : "left-0.5"}`} />
+        </button>
       </div>
-
-      <WorkRolesPicker
-        catalog={catalog}
-        selected={selected}
-        onToggle={onToggle}
-        otherDetail={otherDetail}
-        onOtherDetailChange={onOtherDetailChange}
-      />
-
-      {showExtraJobs && (
-        <div className="mt-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                Want to find background jobs?
-              </h2>
-              <p className="mt-1.5 text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">
-                Get relevant background opportunities and alerts powered by ExtraJobs.
-              </p>
-              <div className="mt-3 flex items-center gap-2">
-                <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                  Background opportunities
-                </span>
-              </div>
-              <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-500">
-                Powered by ExtraJobs
-              </p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={effectiveEnabled}
-              aria-label="Background opportunities powered by ExtraJobs"
-              onClick={onToggleExtrajobs}
-              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-zinc-900 ${
-                effectiveEnabled ? "bg-blue-600" : "bg-zinc-300 dark:bg-zinc-700"
-              }`}
-            >
-              <span
-                aria-hidden="true"
-                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                  effectiveEnabled ? "translate-x-5" : "translate-x-0.5"
-                }`}
-              />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {error && <p className="mt-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
-
-      <div className="mt-10 flex items-center justify-between gap-3">
-        <div className="text-xs text-zinc-500 dark:text-zinc-400">
-          {selectedCount === 0 ? "Choose at least one to continue." : `${selectedCount} selected`}
-        </div>
-        <button
-          type="button"
-          onClick={onContinue}
-          disabled={selectedCount === 0}
-          className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2.5 text-sm font-semibold text-white transition-colors"
-        >
+      <div className="mt-10 flex justify-end">
+        <button type="button" onClick={onContinue}
+          className="rounded-full bg-blue-600 hover:bg-blue-700 px-6 py-2.5 text-sm font-semibold text-white">
           Continue
         </button>
       </div>
-    </>
+    </section>
   );
 }
 
