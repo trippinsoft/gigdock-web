@@ -119,7 +119,7 @@ function Hero() {
             Manage your gigs. Track your money. Keep your work organized.
           </p>
           <p className="mt-3 text-sm sm:text-base text-zinc-600 dark:text-zinc-400 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-            Keep your gigs, work dates, earnings, payments and records together. GigDock Extra adds background opportunity discovery through ExtraJobs when you want it.
+            Keep your gigs, work dates, earnings, payments and records together. Optionally discover background opportunities with GigFit matching.
           </p>
           <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3">
             <Link
@@ -129,10 +129,10 @@ function Hero() {
               Get Started Free
             </Link>
             <Link
-              href="/solutions/extra"
+              href="/features"
               className="px-6 py-3 rounded-full border border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-semibold text-sm text-center hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
             >
-              Explore GigDock Extra
+              Explore Features
             </Link>
           </div>
           <p className="mt-4 text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-xl mx-auto lg:mx-0">
@@ -730,15 +730,11 @@ function AudienceExpansion() {
   return (
     <section className="py-12 sm:py-14 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-white dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800">
       <div className="max-w-3xl mx-auto text-center">
-        <p className="text-sm font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400">Our first solution</p>
-        <h2 className="mt-3 text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">GigDock Extra — built for background performers.</h2>
+        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">Built for background performers.</h2>
         <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400">
-          Organize background gigs, work dates and payments with GigDock. Connect ExtraJobs for background opportunities, GigFit and alerts — or manage your work without the connection.
+          Keep track of every gig, work date and payment in one place. Optional opportunity discovery and GigFit matching help you find your next background job.
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-4">
-          <Link href="/solutions/extra" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Explore GigDock Extra →</Link>
-          <a href="https://extrajobs.co" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Browse ExtraJobs.co ↗</a>
-        </div>
+        <Link href="/features" className="mt-6 inline-block font-semibold text-blue-600 dark:text-blue-400 hover:underline">Explore Features →</Link>
       </div>
     </section>
   );
