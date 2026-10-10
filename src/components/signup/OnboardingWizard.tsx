@@ -35,7 +35,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import { stateLabel } from "@/components/FilterChips";
-import type { WorkRoleCatalogRow } from "@/lib/workRoles";
 import { ETHNICITY_OPTIONS } from "@/lib/gigfit";
 import OpportunityPreview, { type PreviewOpportunity } from "@/components/signup/OpportunityPreview";
 import { trackOnboarding } from "@/lib/onboardingEvents";
@@ -66,7 +65,7 @@ const COPY: Record<Intent, { heading: string; sub: string; cta: string }> = {
   },
   default: {
     heading: "Create your free GigDock account",
-    sub: "Save opportunities, track what you've applied to, and unlock GigFit matching — all free.",
+    sub: "Manage gigs, earnings, payments, expenses and mileage. Discover background opportunities and get organized.",
     cta: "Create free account",
   },
 };
@@ -83,9 +82,7 @@ const UNIONS = [
 ];
 
 export interface OnboardingWizardProps {
-  catalog: WorkRoleCatalogRow[];
   markets: { code: string; name: string }[];
-  previewOpportunities: PreviewOpportunity[];
   nextPath: string;
   intent: Intent;
 }
