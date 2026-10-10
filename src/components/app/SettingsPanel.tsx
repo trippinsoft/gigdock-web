@@ -82,6 +82,10 @@ export default function SettingsPanel({
         </Row>
       </Card>
 
+      <Card title="Notifications">
+        <NavRow href="/settings/alerts" label="Opportunity alerts" hint="Notification style, email, push, and personalized alerts" />
+      </Card>
+
       <Card title="Setup">
         <NavRow href="/projects" label="Projects" hint="Productions you work on" />
         <NavRow href="/companies" label="Gig companies" hint="Companies you’ve worked with" />
