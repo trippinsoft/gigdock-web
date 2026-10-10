@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import { stateLabel } from "@/components/FilterChips";
 import {
@@ -11,7 +11,6 @@ import {
   type ProfileFieldKey,
 } from "@/lib/gigfit";
 import { updateWorkMarkets } from "@/lib/backoffice-actions";
-import { trackOnboarding } from "@/lib/onboardingEvents";
 
 // Profile is normal account management with two focused areas:
 //   1. Work Markets   — shared account-level regions (profiles.work_markets)
