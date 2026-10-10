@@ -79,10 +79,10 @@ function Hero() {
               Get Started Free
             </Link>
             <Link
-              href="/signup"
+              href="#gig-management"
               className="inline-flex items-center justify-center gap-1.5 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-6 py-3 text-base font-semibold text-zinc-800 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
             >
-              Get Started Free
+              Explore Gig Management
             </Link>
           </div>
 
@@ -811,10 +811,10 @@ function FinalCta() {
           Get Started Free
         </Link>
         <Link
-          href="/signup"
+          href="#gig-management"
           className="inline-flex items-center justify-center gap-1.5 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-6 py-3 text-base font-semibold text-zinc-800 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
         >
-          Get Started Free
+          Explore Features
         </Link>
       </div>
     </section>
