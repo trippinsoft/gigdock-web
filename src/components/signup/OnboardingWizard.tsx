@@ -39,7 +39,7 @@ import { ETHNICITY_OPTIONS } from "@/lib/gigfit";
 import { trackOnboarding } from "@/lib/onboardingEvents";
 
 type Intent = "save" | "applied" | "gigfit" | "manage" | "default";
-type Step = "roles" | "where" | "gigfit_details" | "account";
+type Step = "where" | "gigfit_details" | "account";
 
 const COPY: Record<Intent, { heading: string; sub: string; cta: string }> = {
   save: {
@@ -95,9 +95,9 @@ export default function OnboardingWizard({
   const supabase = useMemo(() => createSupabaseBrowser(), []);
 
   // Step state.
-  const [step, setStep] = useState<Step>("roles");
+  const [step, setStep] = useState<Step>("where");
 
-  // Step 1: Work Roles.
+  // Compatibility data for the existing onboarding draft contract.
   // Legacy draft RPC still requires a role key. Background acting is the current launch audience;
   // this is a compatibility value, not a user-selected occupational profile.
   const selectedRoles = useMemo(() => new Set(["background_actor"]), []);
@@ -117,20 +117,20 @@ export default function OnboardingWizard({
   // set_user_connection() after the account is created. State is not
   // authoritative here — Supabase is — but this is the pre-account
   // draft, before an auth.uid() exists.
-  const [extrajobsBackground, setExtrajobsBackground] = useState<boolean | null>(true);
+  const extrajobsBackground = true;
 
-  // Step 2: Work Markets.
+  // Step 1: Work Markets.
   const [selectedMarkets, setSelectedMarkets] = useState<Set<string>>(() => new Set());
   const [showAllMarkets, setShowAllMarkets] = useState(true);
 
-  // Step 3: GigFit details (performer only).
+  // Step 2: GigFit details (all fields optional).
   const [gender, setGender] = useState<string | null>(null);
   const [ethnicity, setEthnicity] = useState<string[]>([]);
   const [dob, setDob] = useState<string | null>(null);
   const [unionStatus, setUnionStatus] = useState<string | null>(null);
   const [heightInches, setHeightInches] = useState<number | null>(null);
 
-  // Step 5: Create account.
+  // Step 3: Create account.
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -171,25 +171,12 @@ export default function OnboardingWizard({
     setHeightInches(f * 12 + i);
   }
 
-  // Crew-only users skip both GigFit Details AND the Opportunities Preview —
-  // GigDock is valuable to crew as a gig-management system even before we
-  // surface crew opportunities. Performer/mixed users go through both steps.
-  const totalSteps = extrajobsBackground ? 4 : 3;
-  const stepNumber: Record<Step, number> = extrajobsBackground
-    ? { roles: 1, where: 2, gigfit_details: 3, account: 4 }
-    : { roles: 1, where: 2, gigfit_details: 0, account: 3 };
+  const totalSteps = 3;
+  const stepNumber: Record<Step, number> = { where: 1, gigfit_details: 2, account: 3 };
   const stepIndex = stepNumber[step];
 
   function advance() {
     setError(null);
-    if (step === "roles") {
-      trackOnboarding("opportunities_connection_selected", {
-        enabled: extrajobsBackground === true,
-        entry_point: "web_signup",
-      });
-      setStep("where");
-      return;
-    }
     if (step === "where") {
       if (selectedMarkets.size === 0) {
         setError("Choose at least one market to continue.");
@@ -198,7 +185,7 @@ export default function OnboardingWizard({
       // Crew-only → straight to account creation. GigFit Details and
       // Opportunities Preview are only meaningful when the user has a
       // performer role to match against today's inventory.
-      setStep(extrajobsBackground ? "gigfit_details" : "account");
+      setStep("gigfit_details");
       return;
     }
     if (step === "gigfit_details") {
@@ -210,9 +197,8 @@ export default function OnboardingWizard({
 
   function back() {
     setError(null);
-    if (step === "where") setStep("roles");
-    else if (step === "gigfit_details") setStep("where");
-    else if (step === "account") setStep(extrajobsBackground ? "gigfit_details" : "where");
+    if (step === "gigfit_details") setStep("where");
+    else if (step === "account") setStep("gigfit_details");
   }
 
   async function submitAccount(e: React.FormEvent) {
@@ -347,17 +333,9 @@ export default function OnboardingWizard({
           ))}
         </div>
         <div className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-          Step {stepIndex} of {totalSteps} · {stepLabel(step, extrajobsBackground === true)}
+          Step {stepIndex} of {totalSteps} · {stepLabel(step)}
         </div>
       </div>
-
-      {step === "roles" && (
-        <StepConnection
-          enabled={extrajobsBackground === true}
-          onToggle={() => setExtrajobsBackground((v) => !(v ?? true))}
-          onContinue={advance}
-        />
-      )}
 
       {step === "where" && (
         <StepWhere
@@ -409,9 +387,8 @@ export default function OnboardingWizard({
   );
 }
 
-function stepLabel(step: Step, _anyPerformer: boolean): string {
+function stepLabel(step: Step): string {
   switch (step) {
-    case "roles":          return "Opportunities";
     case "where":          return "Where";
     case "gigfit_details": return "GigFit Profile";
     case "account":        return "Create Account";
@@ -419,43 +396,6 @@ function stepLabel(step: Step, _anyPerformer: boolean): string {
 }
 
 /* ---------- steps ---------- */
-
-function StepConnection({ enabled, onToggle, onContinue }: {
-  enabled: boolean;
-  onToggle: () => void;
-  onContinue: () => void;
-}) {
-  return (
-    <section>
-      <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
-        Welcome to GigDock
-      </h1>
-      <p className="mt-3 text-base text-zinc-600 dark:text-zinc-300">
-        Find background opportunities, manage gigs, track earnings and payments, and stay on top of expenses and mileage.
-      </p>
-      <div className="mt-8 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 flex items-start justify-between gap-4">
-        <div>
-          <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">Show background opportunities</h2>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-            Find casting opportunities, set up alerts and see GigFit matches. You can change this anytime in Connections.
-          </p>
-          <p className="mt-3 text-xs text-zinc-500">Opportunities provided by ExtraJobs.</p>
-        </div>
-        <button type="button" role="switch" aria-label="Show background opportunities"
-          aria-checked={enabled} onClick={onToggle}
-          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${enabled ? "bg-blue-600" : "bg-zinc-300 dark:bg-zinc-700"}`}>
-          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${enabled ? "left-5" : "left-0.5"}`} />
-        </button>
-      </div>
-      <div className="mt-10 flex justify-end">
-        <button type="button" onClick={onContinue}
-          className="rounded-full bg-blue-600 hover:bg-blue-700 px-6 py-2.5 text-sm font-semibold text-white">
-          Continue
-        </button>
-      </div>
-    </section>
-  );
-}
 
 function StepWhere({
   markets, selected, onToggle, showAll, onToggleShowAll, error, onBack, onContinue,
@@ -478,7 +418,7 @@ function StepWhere({
           Where do you want to work?
         </h1>
         <p className="mt-3 text-base text-zinc-600 dark:text-zinc-300 leading-relaxed">
-          Select all the markets you can work in. Opportunities outside these are still shown, but ranked lower.
+          Select the markets where you’d consider accepting gigs. GigDock uses these to help GigFit assess how well opportunities match your preferences.
         </p>
       </div>
 
