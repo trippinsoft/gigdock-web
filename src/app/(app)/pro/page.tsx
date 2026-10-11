@@ -20,7 +20,7 @@ function ProLanding() {
   const isPro = useIsPro();
   const story = PAYWALL_CONTEXT[from];
   const emphasize = story?.emphasize;
-  const [selected, setSelected] = useState<"annual" | "monthly" | "founding">("annual");
+  const [selected, setSelected] = useState<"annual" | "monthly" | "founding">("founding");
   const [notified, setNotified] = useState(false);
 
   useEffect(() => {
@@ -74,9 +74,9 @@ function ProLanding() {
       <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-4">Choose your plan</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <PlanCard tier="annual" selected={selected === "annual"} onSelect={() => setSelected("annual")} title="Annual" price={PRICING.annual.label} period={PRICING.annual.period} sub={PRICING.annual.perMonth} badge="Best value" />
+          <PlanCard tier="annual" selected={selected === "annual"} onSelect={() => setSelected("annual")} title="Regular annual" price={PRICING.annual.label} period={PRICING.annual.period} sub={PRICING.annual.perMonth} />
           <PlanCard tier="monthly" selected={selected === "monthly"} onSelect={() => setSelected("monthly")} title="Monthly" price={PRICING.monthly.label} period={PRICING.monthly.period} />
-          <PlanCard tier="founding" selected={selected === "founding"} onSelect={() => setSelected("founding")} title="Founding member" price={PRICING.founding.label} period={PRICING.founding.period} sub="Locked in while active" badge="Launch offer" />
+          <PlanCard tier="founding" selected={selected === "founding"} onSelect={() => setSelected("founding")} title="Founding member" price={PRICING.founding.label} period={PRICING.founding.period} sub="Locked in while active" badge="Limited launch offer" />
         </div>
 
         {notified ? (
