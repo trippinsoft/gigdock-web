@@ -30,6 +30,102 @@ export default function ManageAlertsPage(){
  async function saveRule(){if(!editing||!userId)return;if(!editing.name.trim()){setMessage("Give this alert a name.");return}if(!editing.regions.length){setMessage("Choose at least one region.");return}if(editing.minimum_pay!=null&&editing.minimum_pay<0){setMessage("Minimum pay cannot be negative.");return}setBusy(true);const payload={name:editing.name.trim(),enabled:editing.enabled,regions:editing.regions,work_types:editing.work_types,gigfit_tier:editing.gigfit_tier,minimum_pay:editing.minimum_pay,companies:editing.companies,union_status:editing.union_status,sources:editing.sources,activated_at:new Date().toISOString()};const r=editing.id?await supabase.from("advanced_opportunity_alerts").update(payload).eq("id",editing.id).eq("user_id",userId):await supabase.from("advanced_opportunity_alerts").insert({...payload,user_id:userId});if(r.error)setMessage(r.error.message);else{setEditing(null);setShowMore(false);await load()}setBusy(false)}
  async function deleteRule(){if(!editing?.id||!userId)return;setBusy(true);const{error}=await supabase.from("advanced_opportunity_alerts").update({deleted_at:new Date().toISOString(),enabled:false}).eq("id",editing.id).eq("user_id",userId);if(error)setMessage(error.message);else{setEditing(null);setShowMore(false);await load()}setBusy(false)}
  function edit(r?:AlertRule){const x=r?{...r}:blankRule(profile.markets||[]);setEditing(x);setShowMore(!!x.union_status||!!x.sources.length);setMessage("")}
- if(loading)return <div className="mx-auto max-w-3xl py-16 text-center text-zinc-500">Loading your alerts…</div>;if(!hasAccess)return <div className="mx-auto max-w-3xl"><h1 className="text-3xl font-extrabold">Manage Alerts</h1><div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">Opportunity Alerts require an active GigDock Pro or ExtraJobs Alerts entitlement.</div></div>;
+ if(loading)return <div className="mx-auto max-w-3xl py-16 text-center text-zinc-500">Loading your alerts…</div>;if(!hasAccess)return <LockedAlertsPreview />;
  return <><div className="mx-auto w-full max-w-3xl space-y-6"><div><Link href="/settings" className="text-sm font-semibold text-blue-600">← Settings</Link><h1 className="mt-3 text-3xl font-extrabold">Opportunity Alerts</h1><p className="mt-2 text-zinc-600 dark:text-zinc-400">Choose one notification style. Your personalized rules stay saved when you switch modes.</p></div><section className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900"><h2 className="text-lg font-bold">Notification style</h2><div className="mt-3 space-y-2">{MODES.map(o=><button key={o.key} disabled={busy} onClick={()=>chooseMode(o.key)} className={`flex w-full items-center gap-4 rounded-xl border p-4 text-left ${mode===o.key?"border-blue-500 bg-blue-50 dark:bg-blue-950/30":"border-zinc-200 dark:border-zinc-700"}`}><span className={`h-5 w-5 rounded-full border-2 p-1 ${mode===o.key?"border-blue-600":"border-zinc-400"}`}>{mode===o.key?<span className="block h-full w-full rounded-full bg-blue-600"/>:null}</span><span className="flex-1"><b>{o.label}</b>{o.recommended?<span className="ml-2 text-[10px] font-bold uppercase text-blue-600">Recommended</span>:null}<span className="mt-1 block text-sm text-zinc-500">{o.description}</span></span></button>)}</div>{mode==="all"&&<div className="mt-4 rounded-xl bg-zinc-50 p-4 text-sm dark:bg-zinc-800"><b>Profile regions:</b> {regions.join(", ")||"None selected"} · <Link href="/profile" className="font-semibold text-blue-600">Manage regions →</Link></div>}</section><section className="space-y-3"><div className="flex items-center justify-between gap-4"><div><h2 className="text-xl font-bold">Personalized alerts {mode!=="personalized"&&<span className="ml-2 rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-500">Paused</span>}</h2><p className="mt-1 text-sm text-zinc-500">{mode==="personalized"?"These rules control which opportunities notify you.":"Personalized alerts are not sending. Select Personalized alerts above to turn them on."}</p></div><button onClick={()=>edit()} className="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">+ New alert</button></div>{!rules.length?<div className="rounded-2xl border p-6 text-center"><b>Create your first personalized alert</b><p className="mt-2 text-sm text-zinc-500">Choose eligibility, match level, region, pay, opportunity type, and casting company.</p></div>:rules.map(r=><div key={r.id} className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900"><div className="flex items-center gap-4"><button className="flex-1 text-left" onClick={()=>edit(r)}><b>{r.name}</b><div className="mt-1 text-sm text-zinc-500">{r.regions.join(", ")} · {r.work_types.length?r.work_types.join(", "):"Any type"} · {r.minimum_pay?`$${Number(r.minimum_pay).toLocaleString()}+ · `:""}{TIERS.find(t=>t[0]===r.gigfit_tier)?.[1]}</div>{mode!=="personalized"&&<div className="mt-2 text-xs text-zinc-400">Saved · not sending</div>}</button><button aria-label={`${r.name} alert`} disabled={mode!=="personalized"||busy} onClick={()=>toggleRule(r)} className={`relative h-7 w-12 rounded-full ${mode==="personalized"&&r.enabled?"bg-blue-600":"bg-zinc-300"}`}><span className={`absolute top-1 h-5 w-5 rounded-full bg-white ${mode==="personalized"&&r.enabled?"left-6":"left-1"}`}/></button></div></div>)}</section><section className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900"><h2 className="text-lg font-bold">Delivery</h2><p className="mt-1 text-sm text-zinc-500">Choose how you want to receive the alerts configured above. These preferences are shared with GigDock.</p><div className="mt-4 space-y-3"><div className="flex items-center justify-between gap-4 rounded-xl border p-4"><div><b>Email</b><div className="text-sm text-zinc-500">{accountEmail?`Send alerts to ${accountEmail}.`:"Send alerts to your account email."}</div></div><button aria-label="Email alerts" disabled={busy} onClick={toggleEmail} className={`relative h-7 w-12 shrink-0 rounded-full ${emailEnabled?"bg-blue-600":"bg-zinc-300 dark:bg-zinc-700"}`}><span className={`absolute top-1 h-5 w-5 rounded-full bg-white ${emailEnabled?"left-6":"left-1"}`}/></button></div><div className="flex items-center justify-between gap-4 rounded-xl border p-4"><div><b>Push notifications</b><div className="text-sm text-zinc-500">Push alerts are delivered through the GigDock mobile app.</div>{pushEnabled?<div className="mt-1 text-xs text-zinc-500">Push is enabled for your account. Notification permission is managed on each device in the GigDock app.</div>:null}</div><button aria-label="Push alerts" disabled={busy} onClick={togglePush} className={`relative h-7 w-12 shrink-0 rounded-full ${pushEnabled?"bg-blue-600":"bg-zinc-300 dark:bg-zinc-700"}`}><span className={`absolute top-1 h-5 w-5 rounded-full bg-white ${pushEnabled?"left-6":"left-1"}`}/></button></div></div>{mode==="off"?<p className="mt-3 text-xs text-zinc-500">Delivery preferences are saved, but alerts are paused until you choose Personalized alerts or All new opportunities above.</p>:null}</section>{message&&<p className="rounded-lg bg-zinc-100 p-3 text-sm dark:bg-zinc-800">{message}</p>}{editing&&<div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4"><div className="mx-auto my-8 max-w-2xl rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900"><div className="flex justify-between"><h2 className="text-2xl font-bold">{editing.id?"Edit Alert":"Create Alert"}</h2><button onClick={()=>setEditing(null)} className="text-2xl">×</button></div><div className="mt-5 space-y-5"><Field label="Alert name"><input maxLength={80} className="input" value={editing.name} onChange={e=>setEditing({...editing,name:e.target.value})} placeholder="Atlanta Stand-Ins"/></Field><Field label="Regions"><div className="flex flex-wrap gap-2">{markets.map(m=><Chip key={m.code} active={editing.regions.includes(m.code)} label={m.name} onClick={()=>setEditing({...editing,regions:toggle(editing.regions,m.code)})}/>)}</div></Field><Field label="Opportunity type"><div className="flex flex-wrap gap-2">{WORK_TYPES.map(([k,l])=><Chip key={k} active={editing.work_types.includes(k)} label={l} onClick={()=>setEditing({...editing,work_types:toggle(editing.work_types,k)})}/>)}</div><small>Leave all unselected to match any type.</small></Field><Field label="Fit requirements"><div className="flex flex-wrap gap-2">{TIERS.map(([k,l])=><Chip key={k} active={editing.gigfit_tier===k} label={l} onClick={()=>setEditing({...editing,gigfit_tier:k})}/>)}</div><p className="mt-2 text-xs text-zinc-500">{TIER_HELP[editing.gigfit_tier]}</p><Link href="/profile" className="text-xs font-semibold text-blue-600">Eligibility uses your saved GigFit profile · Review profile →</Link></Field><div className="grid gap-4 sm:grid-cols-2"><Field label="Minimum pay"><input className="input" inputMode="decimal" value={editing.minimum_pay??""} onChange={e=>setEditing({...editing,minimum_pay:e.target.value?Number(e.target.value.replace(/[^0-9.]/g,"")):null})} placeholder="Any"/></Field><Field label="Casting company"><input className="input" value={editing.companies.join(", ")} onChange={e=>setEditing({...editing,companies:e.target.value.split(",").map(x=>x.trim()).filter(Boolean)})} placeholder="Any company"/></Field></div><button onClick={()=>setShowMore(!showMore)} className="w-full text-sm font-semibold text-blue-600">{showMore?"Fewer filters ↑":"More filters ↓"}</button>{showMore&&<div className="space-y-5 rounded-xl border p-4"><Field label="Union status"><div className="flex gap-2"><Chip active={editing.union_status==="sag-aftra"} label="SAG-AFTRA" onClick={()=>setEditing({...editing,union_status:editing.union_status==="sag-aftra"?null:"sag-aftra"})}/><Chip active={editing.union_status==="non-union"} label="Non-union" onClick={()=>setEditing({...editing,union_status:editing.union_status==="non-union"?null:"non-union"})}/></div></Field><Field label="Sources">{sources.length?<div className="flex flex-wrap gap-2">{sources.map(s=><Chip key={s} active={editing.sources.includes(s)} label={s} onClick={()=>setEditing({...editing,sources:toggle(editing.sources,s)})}/>)}</div>:<p className="text-sm text-zinc-500">Sources will appear here when active opportunities are available.</p>}<small>Leave all unselected to match any source.</small></Field></div>}<div className="flex gap-3"><button disabled={busy} onClick={saveRule} className="rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white">{busy?"Saving…":editing.id?"Save changes":"Save Alert"}</button>{editing.id&&<button disabled={busy} onClick={deleteRule} className="px-3 text-sm font-semibold text-red-600">Delete Alert</button>}</div></div></div></div>}</div><style jsx global>{`.input{width:100%;border:1px solid rgb(212 212 216);border-radius:.6rem;padding:.65rem .75rem;background:transparent}.dark .input{border-color:rgb(63 63 70)}`}</style></>}
+
+/** Read-only feature preview for Free users. No settings are submitted or
+ * mutated here: the entitlement gate above is authoritative. */
+function LockedAlertsPreview() {
+  return (
+    <div className="mx-auto w-full max-w-3xl space-y-6">
+      <div>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-extrabold text-zinc-900 dark:text-zinc-100">Opportunity Alerts</h1>
+          <span className="rounded bg-blue-100 px-1.5 py-1 text-[10px] font-bold uppercase tracking-wide text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Pro</span>
+        </div>
+        <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+          Discover how GigDock can help you stay on top of opportunities, with personalized GigFit matching and notifications.
+        </p>
+      </div>
+
+      <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-5 dark:border-blue-900 dark:bg-blue-950/30">
+        <p className="font-semibold text-zinc-900 dark:text-zinc-100">Unlock Opportunity Alerts</p>
+        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
+          Preview the options below. Creating alerts and receiving notifications requires GigDock Pro or an active ExtraJobs Alerts subscription.
+        </p>
+        <Link href="/pro?from=watch_activation" className="mt-4 inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
+          Explore GigDock Pro →
+        </Link>
+      </div>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-lg font-bold">Notification style</h2>
+          <span className="text-xs font-medium text-zinc-500">Preview · Locked</span>
+        </div>
+        <p className="mt-1 text-sm text-zinc-500">Choose which opportunities you'd like to hear about.</p>
+        <div className="mt-4 space-y-2">
+          {MODES.map((option) => (
+            <div key={option.key} aria-disabled="true" className="flex items-center gap-4 rounded-xl border border-zinc-200 p-4 opacity-75 dark:border-zinc-700">
+              <span aria-hidden="true" className="h-5 w-5 shrink-0 rounded-full border-2 border-zinc-300 dark:border-zinc-600" />
+              <div>
+                <span className="font-semibold">{option.label}</span>
+                {option.recommended && <span className="ml-2 text-[10px] font-bold uppercase text-blue-600">Recommended</span>}
+                <p className="mt-1 text-sm text-zinc-500">{option.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-lg font-bold">Personalized alerts</h2>
+          <span className="text-xs font-medium text-zinc-500">Preview · Locked</span>
+        </div>
+        <p className="mt-1 text-sm text-zinc-500">
+          Create multiple alerts tailored to your interests. Fine-tune the filters below to focus on the work that fits you.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {[
+            ["Regions", "Choose the markets where you want to work"],
+            ["Opportunity type", "Background, featured, stand-in or photo double"],
+            ["GigFit requirements", "Eligible, Good Match or Strong Match"],
+            ["Minimum pay", "Only opportunities meeting your rate"],
+            ["Casting company", "Follow specific companies"],
+            ["More filters", "Union status and opportunity sources"],
+          ].map(([label, description]) => (
+            <div key={label} className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/50">
+              <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{label}</div>
+              <p className="mt-1 text-sm text-zinc-500">{description}</p>
+            </div>
+          ))}
+        </div>
+        <button type="button" disabled className="mt-4 rounded-lg bg-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-500 cursor-not-allowed dark:bg-zinc-800">
+          + New alert · Pro
+        </button>
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-lg font-bold">Delivery</h2>
+          <span className="text-xs font-medium text-zinc-500">Preview · Locked</span>
+        </div>
+        <p className="mt-1 text-sm text-zinc-500">Choose how you receive matching opportunities.</p>
+        <div className="mt-4 space-y-3">
+          {[
+            ["Email", "Get opportunity alerts sent to your email address"],
+            ["Push notifications", "Receive notifications in the GigDock mobile app"],
+          ].map(([label, description]) => (
+            <div key={label} className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+              <div><div className="font-semibold">{label}</div><p className="mt-1 text-sm text-zinc-500">{description}</p></div>
+              <span aria-label={label + " locked"} role="img" className="relative h-7 w-12 shrink-0 rounded-full bg-zinc-200 dark:bg-zinc-700"><span className="absolute left-1 top-1 h-5 w-5 rounded-full bg-white" /></span>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function Field({label,children}:{label:string;children:React.ReactNode}){return <div><div className="mb-2 text-sm font-semibold">{label}</div>{children}</div>};function Chip({active,label,onClick}:{active:boolean;label:string;onClick:()=>void}){return <button type="button" onClick={onClick} className={`rounded-full border px-3 py-2 text-sm font-semibold ${active?"border-blue-600 bg-blue-600 text-white":"border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"}`}>{label}</button>};function toggle(list:string[],value:string){return list.includes(value)?list.filter(x=>x!==value):[...list,value]}
