@@ -921,24 +921,48 @@ export async function persistOnboardingDraft(input: {
             : null,
       };
 
-      const { data: existing } = await supabase
-        .from("performer_profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("is_default", true)
-        .maybeSingle();
+      const defaultProfileQuery = () =>
+        supabase
+          .from("performer_profiles")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("is_default", true)
+          .maybeSingle();
+
+      const { data: existing, error: lookupErr } = await defaultProfileQuery();
+      if (lookupErr) throw lookupErr;
 
       if (existing?.id) {
         const { error: upErr } = await supabase
           .from("performer_profiles")
           .update(payload)
-          .eq("id", existing.id as string);
+          .eq("id", existing.id);
         if (upErr) throw upErr;
       } else {
         const { error: insErr } = await supabase
           .from("performer_profiles")
           .insert(payload);
-        if (insErr) throw insErr;
+
+        if (insErr) {
+          // Signup can race a DB trigger or another completion request
+          // creating the default profile after our lookup. The partial
+          // unique index protects the invariant; recover by updating the
+          // winning row instead of failing an otherwise valid signup.
+          const isDefaultConflict =
+            insErr.code === "23505" &&
+            (insErr.message?.includes("one_default_performer_profile") ?? false);
+          if (!isDefaultConflict) throw insErr;
+
+          const { data: winner, error: winnerErr } = await defaultProfileQuery();
+          if (winnerErr) throw winnerErr;
+          if (!winner?.id) throw insErr;
+
+          const { error: retryErr } = await supabase
+            .from("performer_profiles")
+            .update(payload)
+            .eq("id", winner.id);
+          if (retryErr) throw retryErr;
+        }
       }
     }
 

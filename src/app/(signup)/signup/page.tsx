@@ -2,13 +2,10 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import {
   getSessionUser,
-  getWorkRolesCatalog,
   getMarketsCatalog,
 } from "@/lib/backoffice";
 import { safeNext } from "@/lib/workRolesLaunch";
-import { loadActiveOpportunities } from "@/lib/load-opportunities";
 import OnboardingWizard from "@/components/signup/OnboardingWizard";
-import type { PreviewOpportunity } from "@/components/signup/OpportunityPreview";
 
 // URL: /signup (route group `(signup)` supplies the standalone shell).
 //
@@ -49,7 +46,7 @@ function pickCompletionPath(
   if ((intent === "save" || intent === "applied") && oppId) {
     return `/opportunities/${oppId}?do=${intent}`;
   }
-  return "/opportunities";
+  return "/today";
 }
 
 function safeOppId(v: string | undefined): string | null {
@@ -78,31 +75,11 @@ export default async function SignupPage({
     );
   }
 
-  const [catalog, markets, opportunitiesRaw] = await Promise.all([
-    getWorkRolesCatalog(),
-    getMarketsCatalog(),
-    loadActiveOpportunities(),
-  ]);
-
-  // Trim opportunities down to what the Preview needs. Cap the list to a
-  // manageable size for anonymous RPC round-trips.
-  const previewOpportunities: PreviewOpportunity[] = opportunitiesRaw
-    .slice(0, 200)
-    .map((o) => ({
-      id: o.id,
-      title: o.title,
-      location: o.location,
-      work_date: o.work_date,
-      pay_rate: o.pay_rate,
-      image_url: o.image_url,
-      match_state: o.match_state,
-    }));
+  const markets = await getMarketsCatalog();
 
   return (
     <OnboardingWizard
-      catalog={catalog}
       markets={markets}
-      previewOpportunities={previewOpportunities}
       nextPath={nextPath}
       intent={intent}
     />

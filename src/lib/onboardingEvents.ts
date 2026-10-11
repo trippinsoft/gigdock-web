@@ -8,6 +8,7 @@ import { track } from "@/lib/analytics";
 
 type OnboardingEvent =
   | "onboarding_started"
+  | "opportunities_connection_selected"
   | "work_roles_selected"
   | "performer_profile_started"
   | "performer_profile_skipped"
