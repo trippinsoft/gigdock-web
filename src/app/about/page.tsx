@@ -44,7 +44,7 @@ export default function AboutPage() {
           somewhere in that scatter.
         </p>
         <p>
-          GigDock brings it together. Find the next opportunity. Turn a
+          GigDock brings the work together. Turn a
           booking into a gig. Track the work dates, the hours and the
           additional pay. Record what you were paid, what you&rsquo;re still
           owed, and where each production stands. Keep the records that
@@ -52,7 +52,7 @@ export default function AboutPage() {
         </p>
         <p>
           We&rsquo;re starting with the workers we understand best —
-          background performers, stand-ins, and the crew members whose jobs
+          background performers, stand-ins, and photo doubles whose jobs
           run production by production — and we&rsquo;re building outward
           from there. The product is in open beta, on web, iPhone and
           Android. It&rsquo;s free to get started. We read every message
@@ -67,7 +67,7 @@ export default function AboutPage() {
         />
         <ValueCard
           title="Complement, don't replace."
-          body="Opportunities keep flowing back to their original sources. GigDock helps workers find and manage the work — it doesn't get between them and the people they work with."
+          body="When you enable Opportunities, background acting listings are provided by ExtraJobs. Applications still go through the original casting source."
         />
         <ValueCard
           title="Built with the community."
