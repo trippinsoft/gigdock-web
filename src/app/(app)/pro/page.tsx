@@ -22,11 +22,25 @@ function ProLanding() {
   const emphasize = story?.emphasize;
   const [selected, setSelected] = useState<"annual" | "monthly" | "founding">("founding");
   const [notified, setNotified] = useState(false);
+  const [offer, setOffer] = useState<{ foundingActive: boolean; foundingEndsAt: string | null } | null>(null);
 
   useEffect(() => {
     trackPro("paywall_open", from);
     trackPro("pricing_view", from);
   }, [from]);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/pricing/pro", { cache: "no-store" })
+      .then((response) => { if (!response.ok) throw new Error("Pricing unavailable"); return response.json(); })
+      .then((data) => { if (mounted) setOffer(data); })
+      .catch(() => { if (mounted) setOffer({ foundingActive: false, foundingEndsAt: null }); });
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    if (offer && !offer.foundingActive && selected === "founding") setSelected("annual");
+  }, [offer, selected]);
 
   if (isPro) {
     return (
@@ -39,6 +53,7 @@ function ProLanding() {
   }
 
   function upgrade() {
+    if (!offer) return;
     trackPro("checkout_start", from, { tier: selected });
     if (selected === "founding") trackPro("founding_offer_selected", from);
     setNotified(true);
@@ -76,7 +91,7 @@ function ProLanding() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <PlanCard tier="annual" selected={selected === "annual"} onSelect={() => setSelected("annual")} title="Regular annual" price={PRICING.annual.label} period={PRICING.annual.period} sub={PRICING.annual.perMonth} />
           <PlanCard tier="monthly" selected={selected === "monthly"} onSelect={() => setSelected("monthly")} title="Monthly" price={PRICING.monthly.label} period={PRICING.monthly.period} />
-          <PlanCard tier="founding" selected={selected === "founding"} onSelect={() => setSelected("founding")} title="Founding member" price={PRICING.founding.label} period={PRICING.founding.period} sub="Locked in while active" badge="Limited launch offer" />
+          {offer?.foundingActive && <PlanCard tier="founding" selected={selected === "founding"} onSelect={() => setSelected("founding")} title="Founding member" price={PRICING.founding.label} period={PRICING.founding.period} sub="Locked in while active" badge="Limited launch offer" />}
         </div>
 
         {notified ? (
@@ -88,7 +103,7 @@ function ProLanding() {
             <p className="mt-5 text-center text-sm text-zinc-500 dark:text-zinc-400">
               Checkout is not open yet. Prices above are the planned launch rates — no charge today.
             </p>
-            <button onClick={upgrade} className="mt-3 w-full rounded-xl bg-blue-600 hover:bg-blue-700 px-5 py-3 text-sm font-semibold text-white">
+            <button onClick={upgrade} disabled={!offer} className="mt-3 w-full rounded-xl bg-blue-600 hover:bg-blue-700 px-5 py-3 text-sm font-semibold text-white">
               Notify me when I can upgrade
             </button>
           </>
