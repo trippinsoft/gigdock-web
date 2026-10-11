@@ -36,6 +36,8 @@ function ProLanding() {
   const emphasize = story?.emphasize;
   const [foundingActive, setFoundingActive] = useState(false);
   const [pricingLoaded, setPricingLoaded] = useState(false);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -72,11 +74,24 @@ function ProLanding() {
     a.key === emphasize ? -1 : b.key === emphasize ? 1 : 0,
   );
 
-  function upgrade(tier: PlanTier) {
-    // Preview only: no public payment link may bypass server-side deadline and entitlement checks.
-    // Replace with authenticated, server-quoted sandbox checkout in the next phase.
-    void tier;
-    return;
+  async function upgrade(tier: PlanTier) {
+    if (checkoutBusy) return;
+    setCheckoutBusy(true);
+    setCheckoutError(null);
+    try {
+      const response = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier: tier === "founding" ? "annual" : tier }),
+      });
+      const data = await response.json();
+      if (!response.ok || typeof data.url !== "string") throw new Error(data.error || "Checkout unavailable");
+      trackPro("checkout_start", from, { tier });
+      window.location.assign(data.url);
+    } catch (error) {
+      setCheckoutError(error instanceof Error ? error.message : "Checkout unavailable");
+      setCheckoutBusy(false);
+    }
   }
 
   return (
@@ -131,16 +146,17 @@ function ProLanding() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
             <div className="rounded-2xl border border-blue-300 dark:border-blue-800 bg-white dark:bg-zinc-900 px-5 py-7">
               {foundingActive ? (
-                <FoundingHero onUpgrade={() => upgrade("founding")} canCheckout={false} />
+                <FoundingHero onUpgrade={() => upgrade("founding")} canCheckout={!checkoutBusy} />
               ) : (
-                <AnnualHero onUpgrade={() => upgrade("annual")} canCheckout={false} />
+                <AnnualHero onUpgrade={() => upgrade("annual")} canCheckout={!checkoutBusy} />
               )}
             </div>
             <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-5 py-7">
-              <MonthlyHero onUpgrade={() => upgrade("monthly")} canCheckout={false} />
+              <MonthlyHero onUpgrade={() => upgrade("monthly")} canCheckout={!checkoutBusy} />
             </div>
           </div>
         )}
+        {checkoutError && <p role="alert" className="mt-3 text-center text-sm text-red-600">{checkoutError}</p>}
         <p className="mt-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
           Pro access works on web and in the GigDock app.
         </p>
@@ -190,7 +206,7 @@ function FoundingHero({ onUpgrade, canCheckout }: { onUpgrade: () => void; canCh
       >
         Upgrade to GigDock Pro
       </button>
-      {!canCheckout && <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Checkout is not available yet. This is the planned founding offer.</p>}
+      {!canCheckout && <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Checkout uses Stripe sandbox in preview.</p>}
     </div>
   );
 }
@@ -216,7 +232,7 @@ function AnnualHero({ onUpgrade, canCheckout }: { onUpgrade: () => void; canChec
       >
         Upgrade to GigDock Pro
       </button>
-      {!canCheckout && <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Checkout is not available yet.</p>}
+      {!canCheckout && <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Checkout uses Stripe sandbox in preview.</p>}
     </div>
   );
 }
@@ -245,7 +261,7 @@ function MonthlyHero({ onUpgrade, canCheckout }: { onUpgrade: () => void; canChe
       >
         Upgrade to GigDock Pro
       </button>
-      {!canCheckout && <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Checkout is not available yet.</p>}
+      {!canCheckout && <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Checkout uses Stripe sandbox in preview.</p>}
     </div>
   );
 }
