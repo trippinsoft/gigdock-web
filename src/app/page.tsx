@@ -8,14 +8,14 @@ import PublicShell from "@/components/PublicShell";
 import { APP_LIVE, IOS_STORE_URL, ANDROID_STORE_URL, BETA_HREF } from "@/lib/appPromo";
 
 export const metadata: Metadata = {
-  title: "GigDock — Find Opportunities, Manage Gigs & Track Pay",
+  title: "GigDock — Manage Gigs, Earnings & Payments",
   description:
-    "GigDock helps production gig professionals find opportunities, organize gigs and work dates, track earnings and payments, keep records together, and understand their work history.",
+    "GigDock helps background performers organize gigs and work dates, track earnings and payments, and keep work records together.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "GigDock — Find Opportunities, Manage Gigs & Track Pay",
+    title: "GigDock — Manage Gigs, Earnings & Payments",
     description:
-      "One place for the work behind your work — opportunities, gigs, hours, earnings, payments, documents.",
+      "One place to manage gigs, hours, earnings, payments, and documents.",
     type: "website",
     siteName: "GigDock",
   },
@@ -79,14 +79,12 @@ export default async function Home() {
   const { data: { user } } = await supabase.auth.getUser();
   if (user) redirect("/today");
 
-  const preview = await getPreviewOpps();
 
   return (
     <PublicShell>
       <Hero />
       <ScatteredProblem />
       <FourPillars />
-      <OpportunitiesRail preview={preview} />
       <ProductShowcase />
       <AudienceExpansion />
       <FinalCta />
@@ -112,16 +110,16 @@ function Hero() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.22fr] gap-8 lg:gap-12 items-center">
         <div className="text-center lg:text-left">
           <span className="inline-block text-xs sm:text-sm font-semibold tracking-[0.12em] uppercase text-blue-600 dark:text-blue-400">
-            For People Who Work in Film &amp; TV
+            Built for Background Performers
           </span>
           <h1 className="mt-3 text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance leading-[1.05]">
             Your gig life. <span className="text-blue-600 dark:text-blue-400">Simplified.</span>
           </h1>
           <p className="mt-4 text-lg sm:text-xl font-medium text-zinc-700 dark:text-zinc-200 max-w-xl mx-auto lg:mx-0">
-            Find opportunities. Manage your gigs. Track your money. All in one place.
+            Find more opportunities. Manage your gigs. Take control of your earnings.
           </p>
           <p className="mt-3 text-sm sm:text-base text-zinc-600 dark:text-zinc-400 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-            GigDock brings the work around your production gig life together — from finding the next opportunity to keeping gigs organized and knowing what you&rsquo;ve earned and what&rsquo;s still owed.
+            From finding your next gig to getting paid, GigDock helps you manage the work and the money behind it. Track work dates, earnings, payments, expenses and mileage. Know what you’re owed, uncover income insights and keep records ready for tax time.
           </p>
           <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3">
             <Link
@@ -131,14 +129,14 @@ function Hero() {
               Get Started Free
             </Link>
             <Link
-              href="/opportunities"
+              href="/features"
               className="px-6 py-3 rounded-full border border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-semibold text-sm text-center hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
             >
-              Explore Opportunities
+              Explore Features
             </Link>
           </div>
           <p className="mt-4 text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-xl mx-auto lg:mx-0">
-            Built for background performers, stand-ins, production assistants, crew and other production gig workers.
+            Built for background performers, including stand-ins and photo doubles.
           </p>
         </div>
 
@@ -455,7 +453,7 @@ function FourPillars() {
     {
       key: "discover",
       title: "Discover",
-      body: "Find relevant production opportunities and use GigFit to compare requirements with your profile.",
+      body: "Find background opportunities and use GigFit to assess potential matches.",
       icon: <IconSearch />,
     },
     {
@@ -485,7 +483,7 @@ function FourPillars() {
           One place for the work behind your work.
         </h2>
         <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400">
-          From finding the next opportunity to understanding where your money stands, GigDock keeps the pieces connected.
+          From managing your work to understanding where your money stands, GigDock keeps the pieces connected.
         </p>
       </div>
 
@@ -505,10 +503,10 @@ function FourPillars() {
             />
             {p.key === "discover" && (
               <Link
-                href="/opportunities"
+                href="/features"
                 className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
               >
-                Explore Opportunities →
+                Explore Features →
               </Link>
             )}
           </div>
@@ -551,13 +549,13 @@ function OpportunitiesRail({ preview }: { preview: Opportunity[] }) {
           </p>
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <Link
-              href="/opportunities"
+              href="/features"
               className="px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors"
             >
-              Explore Opportunities
+              Explore Features
             </Link>
             <Link
-              href="/opportunities/locations"
+              href="/features"
               className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
             >
               Browse by location →
@@ -729,37 +727,14 @@ function ShowcaseRowBlock({ row, reverse }: { row: ShowcaseRow; reverse: boolean
    ============================================================ */
 
 function AudienceExpansion() {
-  const roles = [
-    { label: "Background & performing talent", icon: <IconPerformer /> },
-    { label: "Stand-ins & photo doubles", icon: <IconStandIn /> },
-    { label: "Production assistants", icon: <IconClipboard /> },
-    { label: "Camera & production crew", icon: <IconCamera /> },
-    { label: "Hair, makeup & wardrobe", icon: <IconWardrobe /> },
-    { label: "Other production roles", icon: <IconPeople /> },
-  ];
   return (
     <section className="py-12 sm:py-14 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-white dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800">
       <div className="max-w-3xl mx-auto text-center">
-        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
-          Built for the people who make production happen.
-        </h2>
+        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">Built for background performers.</h2>
         <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400">
-          From performers and background talent to production and crew, GigDock is being built around people whose work moves from gig to gig.
+          Keep track of every gig, work date and payment in one place. Opportunity discovery and GigFit matching help you find your next background job.
         </p>
-      </div>
-
-      <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-4xl mx-auto">
-        {roles.map((r) => (
-          <div
-            key={r.label}
-            className="flex items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 px-4 py-4"
-          >
-            <span className="h-10 w-10 shrink-0 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-blue-600 dark:text-blue-400">
-              {r.icon}
-            </span>
-            <span className="text-sm font-medium text-zinc-800 dark:text-zinc-100 leading-snug">{r.label}</span>
-          </div>
-        ))}
+        <Link href="/features" className="mt-6 inline-block font-semibold text-blue-600 dark:text-blue-400 hover:underline">Explore Features →</Link>
       </div>
     </section>
   );
@@ -824,10 +799,10 @@ function FinalCta() {
 
       <div className="mt-4">
         <Link
-          href="/opportunities"
+          href="/features"
           className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
         >
-          Explore Opportunities →
+          Explore Features →
         </Link>
       </div>
 
