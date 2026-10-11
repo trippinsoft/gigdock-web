@@ -86,20 +86,41 @@ function LockedAlertsPreview() {
         <p className="mt-1 text-sm text-zinc-500">
           Create multiple alerts tailored to your interests. Fine-tune the filters below to focus on the work that fits you.
         </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {[
-            ["Regions", "Choose the markets where you want to work"],
-            ["Opportunity type", "Background, featured, stand-in or photo double"],
-            ["GigFit requirements", "Eligible, Good Match or Strong Match"],
-            ["Minimum pay", "Only opportunities meeting your rate"],
-            ["Casting company", "Follow specific companies"],
-            ["More filters", "Union status and opportunity sources"],
-          ].map(([label, description]) => (
-            <div key={label} className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/50">
-              <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{label}</div>
-              <p className="mt-1 text-sm text-zinc-500">{description}</p>
+        <div className="mt-4 grid gap-5 sm:grid-cols-2">
+          <div>
+            <div className="mb-2 text-sm font-semibold">Regions</div>
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/50">Your selected work markets · Locked</div>
+          </div>
+          <div>
+            <div className="mb-2 text-sm font-semibold">Opportunity type</div>
+            <div className="flex flex-wrap gap-2">
+              {WORK_TYPES.map(([key, label]) => <button key={key} type="button" disabled className="cursor-not-allowed rounded-full border border-zinc-200 px-3 py-2 text-sm text-zinc-500 dark:border-zinc-700">{label}</button>)}
             </div>
-          ))}
+          </div>
+          <div className="sm:col-span-2">
+            <div className="mb-2 text-sm font-semibold">GigFit requirements</div>
+            <div className="flex flex-wrap gap-2">
+              {TIERS.map(([key, label]) => <button key={key} type="button" disabled className="cursor-not-allowed rounded-full border border-zinc-200 px-3 py-2 text-sm text-zinc-500 dark:border-zinc-700">{label}</button>)}
+            </div>
+          </div>
+          <div>
+            <label htmlFor="preview-min-pay" className="mb-2 block text-sm font-semibold">Minimum pay</label>
+            <input id="preview-min-pay" disabled placeholder="Any amount" className="w-full cursor-not-allowed rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm dark:border-zinc-700 dark:bg-zinc-800/50" />
+          </div>
+          <div>
+            <label htmlFor="preview-company" className="mb-2 block text-sm font-semibold">Casting company</label>
+            <input id="preview-company" disabled placeholder="Any company" className="w-full cursor-not-allowed rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm dark:border-zinc-700 dark:bg-zinc-800/50" />
+          </div>
+          <div>
+            <div className="mb-2 text-sm font-semibold">Union status</div>
+            <div className="flex flex-wrap gap-2">
+              {["SAG-AFTRA", "Non-union"].map(label => <button key={label} type="button" disabled className="cursor-not-allowed rounded-full border border-zinc-200 px-3 py-2 text-sm text-zinc-500 dark:border-zinc-700">{label}</button>)}
+            </div>
+          </div>
+          <div>
+            <div className="mb-2 text-sm font-semibold">Sources</div>
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/50">Any source · Locked</div>
+          </div>
         </div>
         <button type="button" disabled className="mt-4 rounded-lg bg-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-500 cursor-not-allowed dark:bg-zinc-800">
           + New alert · Pro
