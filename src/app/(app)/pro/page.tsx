@@ -115,11 +115,8 @@ function ProLanding() {
         ))}
       </div>
 
-      {/* Pricing — narrowed and centered on desktop so it reads as one
-          deliberate block rather than stretching across the six-card grid.
-          Founding-primary + Monthly-secondary during the launch window;
-          LAUNCH_OFFER === null → collapses to annual-primary using the same
-          components without any downstream change. */}
+      {/* One founding-member offer with the regular annual rate as an anchor.
+          The launch flag switches to regular annual pricing after launch. */}
       <div className="mx-auto max-w-[640px]">
         <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 py-7 sm:px-8">
           {LAUNCH_OFFER === "founding" ? (
