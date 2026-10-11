@@ -110,7 +110,7 @@ function Hero() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.22fr] gap-8 lg:gap-12 items-center">
         <div className="text-center lg:text-left">
           <span className="inline-block text-xs sm:text-sm font-semibold tracking-[0.12em] uppercase text-blue-600 dark:text-blue-400">
-            Built for Background Performers
+            Built for Entertainment Performers
           </span>
           <h1 className="mt-3 text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 text-balance leading-[1.05]">
             Your gig life. <span className="text-blue-600 dark:text-blue-400">Simplified.</span>
@@ -136,7 +136,7 @@ function Hero() {
             </Link>
           </div>
           <p className="mt-4 text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-xl mx-auto lg:mx-0">
-            Built for background performers, including stand-ins and photo doubles.
+            For background actors, stand-ins, photo doubles and other entertainment performers.
           </p>
         </div>
 
@@ -730,9 +730,9 @@ function AudienceExpansion() {
   return (
     <section className="py-12 sm:py-14 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-white dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800">
       <div className="max-w-3xl mx-auto text-center">
-        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">Built for background performers.</h2>
+        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">Built for entertainment performers.</h2>
         <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400">
-          Keep track of every gig, work date and payment in one place. Opportunity discovery and GigFit matching help you find your next background job.
+          From background actors and stand-ins to photo doubles and other performers, GigDock helps you manage your gigs, track your earnings and stay organized. Optional background opportunities and GigFit help you discover relevant work.
         </p>
         <Link href="/features" className="mt-6 inline-block font-semibold text-blue-600 dark:text-blue-400 hover:underline">Explore Features →</Link>
       </div>
