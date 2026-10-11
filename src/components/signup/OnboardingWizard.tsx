@@ -36,11 +36,10 @@ import { useRouter } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import { stateLabel } from "@/components/FilterChips";
 import { ETHNICITY_OPTIONS } from "@/lib/gigfit";
-import OpportunityPreview, { type PreviewOpportunity } from "@/components/signup/OpportunityPreview";
 import { trackOnboarding } from "@/lib/onboardingEvents";
 
 type Intent = "save" | "applied" | "gigfit" | "manage" | "default";
-type Step = "roles" | "where" | "gigfit_details" | "preview" | "account";
+type Step = "roles" | "where" | "gigfit_details" | "account";
 
 const COPY: Record<Intent, { heading: string; sub: string; cta: string }> = {
   save: {
@@ -177,8 +176,8 @@ export default function OnboardingWizard({
   // surface crew opportunities. Performer/mixed users go through both steps.
   const totalSteps = extrajobsBackground ? 4 : 3;
   const stepNumber: Record<Step, number> = extrajobsBackground
-    ? { roles: 1, where: 2, gigfit_details: 3, preview: 0, account: 4 }
-    : { roles: 1, where: 2, gigfit_details: 0, preview: 0, account: 3 };
+    ? { roles: 1, where: 2, gigfit_details: 3, account: 4 }
+    : { roles: 1, where: 2, gigfit_details: 0, account: 3 };
   const stepIndex = stepNumber[step];
 
   function advance() {
@@ -207,17 +206,12 @@ export default function OnboardingWizard({
       setStep("account");
       return;
     }
-    if (step === "preview") {
-      setStep("account");
-      return;
-    }
   }
 
   function back() {
     setError(null);
     if (step === "where") setStep("roles");
     else if (step === "gigfit_details") setStep("where");
-    else if (step === "preview") setStep("gigfit_details");
     else if (step === "account") setStep(extrajobsBackground ? "gigfit_details" : "where");
   }
 
@@ -420,7 +414,6 @@ function stepLabel(step: Step, _anyPerformer: boolean): string {
     case "roles":          return "Opportunities";
     case "where":          return "Where";
     case "gigfit_details": return "GigFit Profile";
-    case "preview":        return "Opportunities for you";
     case "account":        return "Create Account";
   }
 }
@@ -660,56 +653,6 @@ function StepGigFitDetails({
           </div>
         </Field>
       </div>
-
-      <div className="mt-10 flex items-center justify-between gap-3">
-        <button type="button" onClick={onBack} className="text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100">
-          ← Back
-        </button>
-        <button
-          type="button"
-          onClick={onContinue}
-          className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 hover:bg-blue-700 px-6 py-2.5 text-sm font-semibold text-white transition-colors"
-        >
-          Continue
-        </button>
-      </div>
-    </>
-  );
-}
-
-function StepPreview({
-  workRoles, workMarkets, performer, opportunities, onBack, onContinue,
-}: {
-  workRoles: string[];
-  workMarkets: string[];
-  performer: {
-    gender: string | null;
-    ethnicity: string[];
-    date_of_birth: string | null;
-    union_status: string | null;
-    height_inches: number | null;
-  } | null;
-  opportunities: PreviewOpportunity[];
-  onBack: () => void;
-  onContinue: () => void;
-}) {
-  return (
-    <>
-      <div className="mb-8">
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 leading-tight">
-          Opportunities for you
-        </h1>
-        <p className="mt-3 text-base text-zinc-600 dark:text-zinc-300 leading-relaxed">
-          Here&rsquo;s a preview based on what you&rsquo;ve told us. Create a free account to save these, mark them as applied, and get notified when new matches come in.
-        </p>
-      </div>
-
-      <OpportunityPreview
-        workRoles={workRoles}
-        workMarkets={workMarkets}
-        performer={performer}
-        opportunities={opportunities}
-      />
 
       <div className="mt-10 flex items-center justify-between gap-3">
         <button type="button" onClick={onBack} className="text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100">
