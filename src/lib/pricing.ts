@@ -5,9 +5,9 @@
 
 export const PRICING = {
   currency: "USD",
-  monthly: { amount: 7.99, label: "$7.99", period: "/mo" },
-  annual: { amount: 69.99, label: "$69.99", period: "/yr", preferred: true, perMonth: "$5.83/mo" },
-  founding: { amount: 49.99, label: "$49.99", period: "/yr", note: "Founding member — locked in while your subscription stays active" },
+  monthly: { amount: 9.99, label: "$9.99", period: "/mo" },
+  annual: { amount: 99, label: "$99", period: "/yr", preferred: false, perMonth: "$8.25/mo" },
+  founding: { amount: 49, label: "$49", period: "/yr", note: "Founding member — locked in while your subscription stays active" },
 } as const;
 
 /** The product id stored in `entitlements.product` that grants Pro.
