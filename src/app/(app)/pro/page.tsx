@@ -1,9 +1,8 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  LAUNCH_OFFER,
   PAYWALL_CONTEXT,
   PRICING,
   PRO_HEADLINE,
@@ -21,11 +20,6 @@ import { ProBadge, useIsPro } from "@/components/app/pro";
 
 type PlanTier = "founding" | "annual";
 
-const PLAN_TARGET: Record<PlanTier, string | undefined> = {
-  founding: process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_FOUNDING_URL,
-  annual: process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_ANNUAL_URL,
-};
-
 export default function ProPage() {
   return (
     <Suspense>
@@ -40,6 +34,18 @@ function ProLanding() {
   const isPro = useIsPro();
   const story = PAYWALL_CONTEXT[from];
   const emphasize = story?.emphasize;
+  const [foundingActive, setFoundingActive] = useState(false);
+  const [pricingLoaded, setPricingLoaded] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/pricing/pro", { cache: "no-store" })
+      .then((response) => { if (!response.ok) throw new Error("Pricing unavailable"); return response.json(); })
+      .then((data) => { if (mounted) setFoundingActive(data.foundingActive === true); })
+      .catch(() => { if (mounted) setFoundingActive(false); })
+      .finally(() => { if (mounted) setPricingLoaded(true); });
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     trackPro("paywall_open", from);
@@ -67,11 +73,10 @@ function ProLanding() {
   );
 
   function upgrade(tier: PlanTier) {
-    const target = PLAN_TARGET[tier];
-    if (!target) return; // Never imply checkout began when none exists.
-    trackPro("checkout_start", from, { tier });
-    if (tier === "founding") trackPro("founding_offer_selected", from);
-    window.location.assign(target);
+    // Preview only: no public payment link may bypass server-side deadline and entitlement checks.
+    // Replace with authenticated, server-quoted sandbox checkout in the next phase.
+    void tier;
+    return;
   }
 
   return (
@@ -119,10 +124,12 @@ function ProLanding() {
           The launch flag switches to regular annual pricing after launch. */}
       <div className="mx-auto max-w-[640px]">
         <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 py-7 sm:px-8">
-          {LAUNCH_OFFER === "founding" ? (
-            <FoundingHero onUpgrade={() => upgrade("founding")} canCheckout={!!PLAN_TARGET.founding} />
+          {!pricingLoaded ? (
+            <p className="text-center text-sm text-zinc-500">Loading current pricing…</p>
+          ) : foundingActive ? (
+            <FoundingHero onUpgrade={() => upgrade("founding")} canCheckout={false} />
           ) : (
-            <AnnualHero onUpgrade={() => upgrade("annual")} canCheckout={!!PLAN_TARGET.annual} />
+            <AnnualHero onUpgrade={() => upgrade("annual")} canCheckout={false} />
           )}
 
         </div>
