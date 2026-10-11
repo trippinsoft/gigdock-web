@@ -18,7 +18,7 @@ import { ProBadge, useIsPro } from "@/components/app/pro";
 // price as the crossed-out anchor. No competing plan selector.
 // Purchasing is offered only when the matching checkout URL is configured.
 
-type PlanTier = "founding" | "annual";
+type PlanTier = "founding" | "annual" | "monthly";
 
 export default function ProPage() {
   return (
@@ -120,20 +120,27 @@ function ProLanding() {
         ))}
       </div>
 
-      {/* One founding-member offer with the regular annual rate as an anchor.
-          The launch flag switches to regular annual pricing after launch. */}
-      <div className="mx-auto max-w-[640px]">
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 py-7 sm:px-8">
-          {!pricingLoaded ? (
-            <p className="text-center text-sm text-zinc-500">Loading current pricing…</p>
-          ) : foundingActive ? (
-            <FoundingHero onUpgrade={() => upgrade("founding")} canCheckout={false} />
-          ) : (
-            <AnnualHero onUpgrade={() => upgrade("annual")} canCheckout={false} />
-          )}
-
-        </div>
-
+      {/* Founding annual remains the primary offer; monthly is always available
+          as an alternative. Checkout stays disabled until sandbox integration. */}
+      <div className="mx-auto max-w-[760px]">
+        {!pricingLoaded ? (
+          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 p-7 text-center text-sm text-zinc-500">
+            Loading current pricing…
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
+            <div className="rounded-2xl border border-blue-300 dark:border-blue-800 bg-white dark:bg-zinc-900 px-5 py-7">
+              {foundingActive ? (
+                <FoundingHero onUpgrade={() => upgrade("founding")} canCheckout={false} />
+              ) : (
+                <AnnualHero onUpgrade={() => upgrade("annual")} canCheckout={false} />
+              )}
+            </div>
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-5 py-7">
+              <MonthlyHero onUpgrade={() => upgrade("monthly")} canCheckout={false} />
+            </div>
+          </div>
+        )}
         <p className="mt-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
           Pro access works on web and in the GigDock app.
         </p>
@@ -206,6 +213,35 @@ function AnnualHero({ onUpgrade, canCheckout }: { onUpgrade: () => void; canChec
         onClick={onUpgrade}
         disabled={!canCheckout}
         className="mt-6 inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400 px-8 py-3 text-sm font-semibold text-white"
+      >
+        Upgrade to GigDock Pro
+      </button>
+      {!canCheckout && <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Checkout is not available yet.</p>}
+    </div>
+  );
+}
+
+function MonthlyHero({ onUpgrade, canCheckout }: { onUpgrade: () => void; canCheckout: boolean }) {
+  return (
+    <div className="text-center">
+      <div className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 px-3 py-1 text-[11px] font-bold uppercase tracking-wide">
+        Monthly
+      </div>
+      <div className="mt-9 flex items-baseline justify-center gap-1">
+        <span className="text-5xl sm:text-6xl font-extrabold text-zinc-900 dark:text-zinc-100 tabular-nums leading-none">
+          {PRICING.monthly.label}
+        </span>
+        <span className="text-lg font-semibold text-zinc-500 dark:text-zinc-400">
+          {PRICING.monthly.period}
+        </span>
+      </div>
+      <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-300">
+        Flexible monthly billing. Cancel anytime.
+      </p>
+      <button
+        onClick={onUpgrade}
+        disabled={!canCheckout}
+        className="mt-5 inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400 px-6 py-3 text-sm font-semibold text-white"
       >
         Upgrade to GigDock Pro
       </button>
