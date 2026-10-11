@@ -21,12 +21,13 @@ function buildGroups(hasExtraJobs: boolean): NavGroup[] {
   const groups: NavGroup[] = [
     { label: null, items: [{ href: "/today", label: "Today", icon: iconHome() }] },
   ];
-  if (hasExtraJobs) {
-    groups.push({
-      label: "Find work",
-      items: [{ href: "/opportunities", label: "Opportunities", icon: iconSearch() }],
-    });
-  }
+  groups.push({
+    label: "Find work",
+    items: [
+      ...(hasExtraJobs ? [{ href: "/opportunities", label: "Opportunities", icon: iconSearch() }] : []),
+      { href: "/settings/alerts", label: "Opportunity Alerts", icon: iconBell(), pro: true },
+    ],
+  });
   groups.push(
     {
       label: "Manage work",
@@ -102,6 +103,9 @@ export default function AppShell({
   }
 
   const isActive = (item: NavItem) => {
+    // Alerts has its own primary nav entry even though its existing route
+    // remains under /settings. Don't highlight Settings at the same time.
+    if (item.href === "/settings" && pathname.startsWith("/settings/alerts")) return false;
     const bases = [item.match ?? item.href].flat();
     return bases.some((base) => pathname === base || pathname.startsWith(base + "/"));
   };
@@ -247,6 +251,7 @@ function svg(children: React.ReactNode) {
 }
 function iconHome() { return svg(<><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></>); }
 function iconSearch() { return svg(<><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></>); }
+function iconBell() { return svg(<><path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8" /><path d="M10 21h4" /></>); }
 function iconBriefcase() { return svg(<><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" /><path d="M3 12h18" /></>); }
 function iconCalendar() { return svg(<><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 9h18M8 2v4M16 2v4" /></>); }
 function iconDollar() { return svg(<><path d="M12 2v20" /><path d="M17 6.5C17 4.6 14.8 3.5 12 3.5S7 4.6 7 6.5s2.2 3 5 3.5 5 1.6 5 3.5-2.2 3-5 3-5-1.1-5-3" /></>); }
