@@ -13,7 +13,7 @@ import PublicShell from "@/components/PublicShell";
 
 const TITLE = "Features — GigDock";
 const DESCRIPTION =
-  "The complete GigDock product tour: opportunities, gigs, money, insights, documents, tax-time readiness, and read-only AI connections — on web, iPhone and Android.";
+  "Explore GigDock gig management: work dates, earnings, payments, insights, documents, and optional background acting opportunities — on web, iPhone and Android.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -68,7 +68,7 @@ function Hero() {
             One place for the work behind your work.
           </h1>
           <p className="mt-5 text-lg sm:text-xl text-zinc-600 dark:text-zinc-300 leading-relaxed max-w-2xl">
-            Find opportunities. Manage your gigs. Track your money. Keep your records organized. Understand what your work is adding up to.
+            Manage your gigs. Track your money. Keep your records organized. Understand what your work is adding up to.
           </p>
 
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
@@ -79,10 +79,10 @@ function Hero() {
               Get Started Free
             </Link>
             <Link
-              href="/opportunities"
+              href="#gig-management"
               className="inline-flex items-center justify-center gap-1.5 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-6 py-3 text-base font-semibold text-zinc-800 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
             >
-              Explore Opportunities
+              Explore Gig Management
             </Link>
           </div>
 
@@ -168,7 +168,7 @@ function Framework() {
     {
       label: "Discover",
       title: "Find work worth pursuing",
-      body: "Search, filter and assess potential fit across opportunities from multiple sources.",
+      body: "Optionally browse background opportunities and assess your fit with GigFit.",
       icon: <IconDiscover />,
     },
     {
@@ -198,7 +198,7 @@ function Framework() {
             Everything around the gig, connected.
           </h2>
           <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-300 leading-relaxed">
-            From finding the opportunity to getting paid and understanding what your work is adding up to, GigDock keeps the whole lifecycle together.
+            From managing work dates to tracking payments and understanding your earnings, GigDock keeps the whole lifecycle together.
           </p>
         </div>
 
@@ -277,12 +277,12 @@ function Opportunities() {
       <SectionHeader
         eyebrow="1 · Opportunities"
         title="Find gigs worth your time — then keep them moving."
-        lead="Browse opportunities from casting, production and other providers in one feed. Search, filter, save, share and mark applied. When work becomes real, add it straight to My Gigs so nothing gets re-typed."
+        lead="Optional background acting opportunities appear in your GigDock account when the Opportunities connection is enabled. Search, save and track listings, then add booked work to My Gigs."
       />
 
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-8 lg:gap-12 items-start">
         <div className="space-y-4">
-          <FeatureRow title="One feed, many sources" body="Opportunities are gathered from across the industry so you don't tab-hop between listings sites." />
+          <FeatureRow title="One feed, many sources" body="Background opportunities from multiple casting sources appear together when Opportunities is enabled." />
           <FeatureRow title="Real filters, real sorting" body="Search text, U.S. state, sources, date posted, work-date range, work type, gender, union status and minimum pay. Sort by most recent, shoot date, or apply deadline." />
           <FeatureRow title="Location browsing" body="Jump into a specific state or market and see everything currently active there." />
           <FeatureRow title="Save / Applied / Share" body="Bookmark listings you're considering. Mark ones you've applied to. Share a listing to anyone with the URL." />
@@ -325,13 +325,13 @@ function AdvancedAlertsPanel() {
             </span>
           </div>
           <h3 className="mt-2 text-xl sm:text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 leading-tight">
-            Advanced Alerts — the listings you actually want, the moment they arrive.
+            Opportunity alerts for the work you want.
           </h3>
           <p className="mt-3 text-sm sm:text-base text-zinc-600 dark:text-zinc-300 leading-relaxed">
-            Save personalized rules — region, work type, minimum pay, casting company, GigFit tier and more — and get notified the moment a matching opportunity goes live. Switch between personalized alerts, all-new-in-your-regions, or off without losing your saved rules.
+            Choose your regions and notification preferences for background opportunities. Advanced alert rules can narrow matches further. Delivery timing varies by source and notification channel.
           </p>
           <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-            Currently available in the GigDock mobile app.
+            Manage opportunity alert preferences in GigDock on web or mobile.
           </p>
         </div>
         <div className="mx-auto lg:mx-0 w-full max-w-[240px]">
@@ -811,10 +811,10 @@ function FinalCta() {
           Get Started Free
         </Link>
         <Link
-          href="/opportunities"
+          href="#gig-management"
           className="inline-flex items-center justify-center gap-1.5 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-6 py-3 text-base font-semibold text-zinc-800 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
         >
-          Explore Opportunities
+          Explore Features
         </Link>
       </div>
     </section>
