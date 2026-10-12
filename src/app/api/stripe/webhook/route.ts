@@ -75,5 +75,25 @@ export async function POST(request: NextRequest) {
     console.error("Entitlement sync failed", result.error);
     return NextResponse.json({ error: "Entitlement sync failed" }, { status: 500 });
   }
+  // Once the new Pro subscription is active, end the old annual Alerts
+  // subscription. The ExtraJobs webhook remains authoritative for its row.
+  const oldAlertsId = subscription.metadata?.alerts_upgrade_subscription_id;
+  if (subscription.status === "active" && oldAlertsId?.startsWith("sub_")) {
+    const { data: alertsRow, error: alertsError } = await db.from("entitlements")
+      .select("id").eq("user_id", subscription.metadata.supabase_user_id)
+      .eq("product", "extrajobs_alerts").eq("external_ref", oldAlertsId)
+      .eq("status", "active").maybeSingle();
+    if (alertsError) return NextResponse.json({ error: "Alerts verification failed" }, { status: 500 });
+    if (alertsRow) {
+      const key = getPreviewStripeKey();
+      const canceled = await fetch(`https://api.stripe.com/v1/subscriptions/${encodeURIComponent(oldAlertsId)}`, {
+        method: "DELETE", headers: { Authorization: `Bearer ${key}` }, cache: "no-store",
+      });
+      if (!canceled.ok) {
+        console.error("Alerts cancellation failed", canceled.status);
+        return NextResponse.json({ error: "Alerts cancellation failed" }, { status: 500 });
+      }
+    }
+  }
   return NextResponse.json({received:true});
 }
