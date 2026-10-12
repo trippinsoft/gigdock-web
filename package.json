@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test:pricing": "node --experimental-strip-types --test tests/founding-offer.test.mjs"
+    "test:pricing": "node --experimental-strip-types --test tests/founding-offer.test.mjs",
+    "test:onboarding": "node --experimental-strip-types --test tests/onboarding-performer-profile.test.mjs"
   },
   "dependencies": {
     "@amplitude/analytics-browser": "^2.45.6",

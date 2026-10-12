@@ -11,6 +11,10 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { dayGrossEarned, type PayType } from "@/lib/pay";
 import { isDocumentType } from "@/lib/documentTypes";
+import {
+  saveOnboardingDefaultPerformerProfile,
+  type OnboardingPerformerPayload,
+} from "@/lib/onboarding-performer-profile";
 
 type ActionResult<T = undefined> =
   | { ok: true; data?: T }
@@ -828,21 +832,12 @@ export async function updateWorkMarkets(
   }
 }
 
-/** Optional performer-profile fields captured during the pre-account
- * wizard. All are individually optional. */
-export interface OnboardingPerformerPayload {
-  gender?: string | null;
-  ethnicity?: string[] | null;
-  date_of_birth?: string | null;
-  union_status?: string | null;
-  height_inches?: number | null;
-}
-
 /** Consume the pre-account onboarding draft (must have already been
  * claimed to this session's user via claim_onboarding_draft) and persist:
  *   1. set_work_roles(role_keys, other_detail)
  *   2. set_work_markets(market_codes)
- *   3. optional upsert of performer_profiles for the default row
+ *   3. optional create/complete of the default performer_profiles row
+ *      (saveOnboardingDefaultPerformerProfile — fills empty fields only)
  *
  * Returns the final destination hint the caller wants (routes on to
  * /profile?from=... or straight to `next`) — but the CALLER decides where
@@ -893,77 +888,12 @@ export async function persistOnboardingDraft(input: {
     }
 
     if (input.performer) {
-      // Upsert the user's default performer_profiles row. Idempotent:
-      // match on (user_id, is_default = true).
-      //
-      // markets is intentionally included here even though the universal
-      // source of truth is profiles.work_markets. During the mobile
-      // transition, `sync_legacy_performer_markets_to_universal` fires on
-      // AFTER INSERT/UPDATE of performer_profiles and treats an empty
-      // new.markets as a legitimate legacy write, which could clobber
-      // the just-persisted universal value. Populating markets here with
-      // the same codes the caller just persisted makes the trigger a
-      // no-op (v_current matches new.markets). Belt to the trigger's
-      // v3 cardinality-guard suspenders.
-      const perf = input.performer;
-      const payload: Record<string, unknown> = {
-        user_id: user.id,
-        is_default: true,
-        label: "My Profile",
-        markets: input.marketCodes,
-        gender: perf.gender ?? null,
-        ethnicity: perf.ethnicity ?? [],
-        date_of_birth: perf.date_of_birth ?? null,
-        union_status: perf.union_status ?? null,
-        height_inches:
-          typeof perf.height_inches === "number" && perf.height_inches > 0
-            ? perf.height_inches
-            : null,
-      };
-
-      const defaultProfileQuery = () =>
-        supabase
-          .from("performer_profiles")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("is_default", true)
-          .maybeSingle();
-
-      const { data: existing, error: lookupErr } = await defaultProfileQuery();
-      if (lookupErr) throw lookupErr;
-
-      if (existing?.id) {
-        const { error: upErr } = await supabase
-          .from("performer_profiles")
-          .update(payload)
-          .eq("id", existing.id);
-        if (upErr) throw upErr;
-      } else {
-        const { error: insErr } = await supabase
-          .from("performer_profiles")
-          .insert(payload);
-
-        if (insErr) {
-          // Signup can race a DB trigger or another completion request
-          // creating the default profile after our lookup. The partial
-          // unique index protects the invariant; recover by updating the
-          // winning row instead of failing an otherwise valid signup.
-          const isDefaultConflict =
-            insErr.code === "23505" &&
-            (insErr.message?.includes("one_default_performer_profile") ?? false);
-          if (!isDefaultConflict) throw insErr;
-
-          const { data: winner, error: winnerErr } = await defaultProfileQuery();
-          if (winnerErr) throw winnerErr;
-          if (!winner?.id) throw insErr;
-
-          const { error: retryErr } = await supabase
-            .from("performer_profiles")
-            .update(payload)
-            .eq("id", winner.id);
-          if (retryErr) throw retryErr;
-        }
-      }
+      await saveOnboardingDefaultPerformerProfile(
+        supabase,
+        user.id,
+        input.marketCodes,
+        input.performer
+      );
     }
 
     return { ok: true };

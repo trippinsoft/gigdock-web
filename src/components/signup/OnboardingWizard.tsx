@@ -32,7 +32,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import { stateLabel } from "@/components/FilterChips";
 import { ETHNICITY_OPTIONS } from "@/lib/gigfit";
@@ -91,7 +90,6 @@ export default function OnboardingWizard({
   nextPath,
   intent,
 }: OnboardingWizardProps) {
-  const router = useRouter();
   const supabase = useMemo(() => createSupabaseBrowser(), []);
 
   // Step state.
@@ -286,9 +284,13 @@ export default function OnboardingWizard({
     }
 
     // 3) Auto-confirm project → we have a session; go finish the handoff.
+    //    One full-page navigation = exactly one server render of
+    //    /signup/complete. router.push() + router.refresh() issued two
+    //    concurrent renders, both running the draft persistence.
     if (signData.session) {
-      router.push(`/signup/complete?next=${encodeURIComponent(effectiveNext)}`);
-      router.refresh();
+      window.location.assign(
+        `/signup/complete?next=${encodeURIComponent(effectiveNext)}`
+      );
       return;
     }
 
