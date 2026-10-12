@@ -42,15 +42,16 @@ export async function POST(request: NextRequest) {
   const db = createClient(url,key,{auth:{persistSession:false}});
   const { error } = await db.from("entitlements").upsert({
     user_id: subscription.metadata.supabase_user_id, product:"pro",provider:"stripe",
-    status:subscription.status, price_id:item.price.id,
-    plan_interval:item.price.recurring?.interval === "year" ? "annual" : "monthly",
+    status:subscription.status === 'active' || subscription.status === 'trialing' ? subscription.status : subscription.status === 'canceled' ? 'cancelled' : 'expired', price_id:item.price.id,
+    plan_interval:item.price.recurring?.interval === "year" ? "year" : "month",
     current_period_end:item.current_period_end ? new Date(item.current_period_end*1000).toISOString():null,
     cancel_at_period_end:subscription.cancel_at_period_end,
     canceled_at:subscription.canceled_at ? new Date(subscription.canceled_at*1000).toISOString():null,
     metadata:{stripe_subscription_id:subscription.id,stripe_customer_id:subscription.customer,tier:subscription.metadata.tier,
       price_label:subscription.metadata.tier === "founding" ? "$49/year · Founding member" : item.price.recurring?.interval === "year" ? "$99/year" : "$9.99/month"},
+    external_ref:subscription.id,
     updated_at:new Date().toISOString(),
-  },{onConflict:"user_id,product"});
+  },{onConflict:"external_ref"});
   if(error){console.error("Entitlement sync failed",error);return NextResponse.json({error:"Entitlement sync failed"},{status:500});}
   return NextResponse.json({received:true});
 }
