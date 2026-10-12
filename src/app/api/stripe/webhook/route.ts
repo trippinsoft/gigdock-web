@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 type Subscription = {
   id: string; customer: string; status: string; metadata?: Record<string,string>;
   items: { data: Array<{ price: { id: string; recurring?: { interval: string } }; current_period_end?: number }> };
-  cancel_at_period_end: boolean; canceled_at: number | null;
+  cancel_at_period_end: boolean; canceled_at: number | null; start_date?: number;
 };
 
 export async function POST(request: NextRequest) {
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     metadata:{stripe_subscription_id:subscription.id,stripe_customer_id:subscription.customer,tier:subscription.metadata.tier,
       price_label:subscription.metadata.tier === "founding" ? "$49/year · Founding member" : item.price.recurring?.interval === "year" ? "$99/year" : "$9.99/month"},
     external_ref:subscription.id,
-    started_at: null,
+    started_at: subscription.start_date ? new Date(subscription.start_date * 1000).toISOString() : null,
     updated_at:new Date().toISOString(),
   };
   const { data: existing, error: lookupError } = await db.from("entitlements")
