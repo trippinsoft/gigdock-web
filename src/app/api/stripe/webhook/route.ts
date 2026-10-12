@@ -29,7 +29,19 @@ export async function POST(request: NextRequest) {
   let event: { type: string; data: { object: Subscription } };
   try { event = JSON.parse(raw); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
   if (!["customer.subscription.created","customer.subscription.updated","customer.subscription.deleted"].includes(event.type)) return NextResponse.json({ received: true });
-  const subscription = event.data.object;
+  let subscription = event.data.object;
+  // Stripe can deliver older created/updated events after newer ones.
+  // Re-fetch current state before writing; deleted events use their final snapshot.
+  if (event.type !== "customer.subscription.deleted") {
+    try {
+      const key = getPreviewStripeKey();
+      const response = await fetch(`https://api.stripe.com/v1/subscriptions/${encodeURIComponent(subscription.id)}`, {
+        headers: { Authorization: `Bearer ${key}` }, cache: "no-store",
+      });
+      if (!response.ok) return NextResponse.json({ error: "Subscription refresh failed" }, { status: 502 });
+      subscription = await response.json() as Subscription;
+    } catch { return NextResponse.json({ error: "Subscription refresh failed" }, { status: 502 }); }
+  }
   if (subscription.metadata?.product !== "pro" || !subscription.metadata.supabase_user_id) return NextResponse.json({ received: true });
   const item = subscription.items?.data?.[0];
   if (!item?.price?.id) return NextResponse.json({ error: "Price missing" }, { status: 400 });
@@ -42,7 +54,7 @@ export async function POST(request: NextRequest) {
   const db = createClient(url,key,{auth:{persistSession:false}});
   const record = {
     user_id: subscription.metadata.supabase_user_id, product:"pro",provider:"stripe",
-    status:subscription.status === 'active' || subscription.status === 'trialing' ? subscription.status : subscription.status === 'canceled' ? 'cancelled' : 'expired', price_id:item.price.id,
+    status:subscription.status === "active" || subscription.status === "trialing" ? subscription.status : subscription.status === "canceled" ? "cancelled" : "expired", price_id:item.price.id,
     plan_interval:item.price.recurring?.interval === "year" ? "year" : "month",
     current_period_end:item.current_period_end ? new Date(item.current_period_end*1000).toISOString():null,
     cancel_at_period_end:subscription.cancel_at_period_end,
@@ -50,6 +62,7 @@ export async function POST(request: NextRequest) {
     metadata:{stripe_subscription_id:subscription.id,stripe_customer_id:subscription.customer,tier:subscription.metadata.tier,
       price_label:subscription.metadata.tier === "founding" ? "$49/year · Founding member" : item.price.recurring?.interval === "year" ? "$99/year" : "$9.99/month"},
     external_ref:subscription.id,
+    started_at: null,
     updated_at:new Date().toISOString(),
   };
   const { data: existing, error: lookupError } = await db.from("entitlements")
