@@ -15,10 +15,11 @@ export async function POST(request: NextRequest) {
     const tier = typeof body === "object" && body !== null && "tier" in body ? (body as { tier?: unknown }).tier : null;
     if (tier !== "monthly" && tier !== "annual") return NextResponse.json({ error: "Invalid plan." }, { status: 400 });
     const { data: entitlement, error: entitlementError } = await supabase.from("entitlements")
-      .select("id").in("product", ["pro", "premium"]).in("status", ["active", "trialing"])
+      .select("id,provider").in("product", ["pro", "premium"]).in("status", ["active", "trialing"])
       .or(`current_period_end.is.null,current_period_end.gt.${new Date().toISOString()}`).limit(1);
     if (entitlementError) throw entitlementError;
-    if (entitlement?.length) return NextResponse.json({ error: "Pro is already active." }, { status: 409 });
+    if (entitlement?.some(row => !["beta", "admin", "promo", "partner"].includes(row.provider ?? ""))) return NextResponse.json({ error: "Pro is already active." }, { status: 409 });
+    // Beta grants do not block sandbox checkout; paid subscriptions do.
     const founding = tier === "annual" && getAnnualProOfferForCheckout().founding;
     const price = proPriceId(tier, founding);
     const origin = new URL(request.url).origin;
