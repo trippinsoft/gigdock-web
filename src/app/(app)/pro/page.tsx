@@ -247,7 +247,7 @@ function MonthlyHero({ onUpgrade, canCheckout }: { onUpgrade: () => void; canChe
         Monthly
       </div>
       <div className="mt-9 flex items-baseline justify-center gap-1">
-        <span className="text-5xl sm:text-6xl font-extrabold text-zinc-900 dark:text-zinc-100 tabular-nums leading-none">
+        <span className="text-4xl sm:text-5xl font-extrabold text-zinc-900 dark:text-zinc-100 tabular-nums leading-none">
           {PRICING.monthly.label}
         </span>
         <span className="text-lg font-semibold text-zinc-500 dark:text-zinc-400">
