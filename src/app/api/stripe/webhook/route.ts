@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!key || !url) return NextResponse.json({ error: "Entitlement writer not configured" }, { status: 503 });
   const db = createClient(url,key,{auth:{persistSession:false}});
-  const { error } = await db.from("entitlements").upsert({
+  const record = {
     user_id: subscription.metadata.supabase_user_id, product:"pro",provider:"stripe",
     status:subscription.status === 'active' || subscription.status === 'trialing' ? subscription.status : subscription.status === 'canceled' ? 'cancelled' : 'expired', price_id:item.price.id,
     plan_interval:item.price.recurring?.interval === "year" ? "year" : "month",
@@ -51,7 +51,16 @@ export async function POST(request: NextRequest) {
       price_label:subscription.metadata.tier === "founding" ? "$49/year · Founding member" : item.price.recurring?.interval === "year" ? "$99/year" : "$9.99/month"},
     external_ref:subscription.id,
     updated_at:new Date().toISOString(),
-  },{onConflict:"external_ref"});
-  if(error){console.error("Entitlement sync failed",error);return NextResponse.json({error:"Entitlement sync failed"},{status:500});}
+  };
+  const { data: existing, error: lookupError } = await db.from("entitlements")
+    .select("id").eq("external_ref", subscription.id).maybeSingle();
+  if (lookupError) return NextResponse.json({ error: "Entitlement lookup failed" }, { status: 500 });
+  const result = existing?.id
+    ? await db.from("entitlements").update(record).eq("id", existing.id)
+    : await db.from("entitlements").insert(record);
+  if (result.error) {
+    console.error("Entitlement sync failed", result.error);
+    return NextResponse.json({ error: "Entitlement sync failed" }, { status: 500 });
+  }
   return NextResponse.json({received:true});
 }
