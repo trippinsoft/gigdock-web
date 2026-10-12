@@ -54,7 +54,10 @@ function ProLanding() {
     trackPro("pricing_view", from);
   }, [from]);
 
-  if (isPro) {
+  // Preview beta testers already have complimentary Pro; this query flag
+  // exposes the real checkout UI for sandbox QA without revoking beta access.
+  const testCheckout = params.get("test_checkout") === "1";
+  if (isPro && !testCheckout) {
     return (
       <div className="max-w-2xl mx-auto py-16 text-center">
         <ProBadge />
@@ -136,7 +139,7 @@ function ProLanding() {
       </div>
 
       {/* Founding annual remains the primary offer; monthly is always available
-          as an alternative. Checkout stays disabled until sandbox integration. */}
+          as an alternative. Checkout is restricted to the Stripe sandbox preview environment. */}
       <div className="mx-auto max-w-[760px]">
         {!pricingLoaded ? (
           <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 p-7 text-center text-sm text-zinc-500">
