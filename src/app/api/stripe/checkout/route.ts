@@ -22,6 +22,15 @@ export async function POST(request: NextRequest) {
     // Beta grants do not block sandbox checkout; paid subscriptions do.
     const founding = tier === "annual" && getAnnualProOfferForCheckout().founding;
     const price = proPriceId(tier, founding);
+    // Existing annual Alerts subscribers receive a $30 one-time credit
+    // toward a NEW annual Pro term. Monthly Alerts are not eligible.
+    const { data: alerts, error: alertsError } = await supabase.from("entitlements")
+      .select("external_ref,current_period_end").eq("product", "extrajobs_alerts")
+      .eq("status", "active").eq("plan_interval", "year")
+      .gt("current_period_end", new Date().toISOString()).limit(1);
+    if (alertsError) throw alertsError;
+    const alertsSubId = tier === "annual" && alerts?.[0]?.external_ref?.startsWith("sub_")
+      ? alerts[0].external_ref : null;
     const origin = new URL(request.url).origin;
     const params = new URLSearchParams({
       mode: "subscription",
@@ -37,6 +46,18 @@ export async function POST(request: NextRequest) {
       success_url: origin + "/pro?checkout=success",
       cancel_url: origin + "/pro?checkout=cancel",
     });
+    if (alertsSubId) {
+      // Coupon is single-redemption, so it cannot be reused for a second purchase.
+      // Creating it with an idempotency key also handles repeated checkout requests.
+      const coupon = await stripeRequest<{ id: string }>("POST", "coupons",
+        new URLSearchParams({
+          amount_off: "3000", currency: "usd", duration: "once",
+          max_redemptions: "1", name: "ExtraJobs annual Alerts upgrade credit",
+          "metadata[alerts_subscription_id]": alertsSubId,
+        }), `gigdock-alerts-upgrade-coupon-${alertsSubId}`);
+      params.set("discounts[0][coupon]", coupon.id);
+      params.set("subscription_data[metadata][alerts_upgrade_subscription_id]", alertsSubId);
+    }
     const session = await stripeRequest<{ url: string }>("POST", "checkout/sessions", params, `gigdock-pro-${user.id}-${tier}-${Math.floor(Date.now()/60000)}`);
     if (!session.url) throw new Error("Missing checkout URL");
     return NextResponse.json({ url: session.url }, { headers: { "Cache-Control": "no-store" } });
