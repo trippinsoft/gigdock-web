@@ -46,9 +46,11 @@ function NavRow({ href, label, hint }: { href: string; label: string; hint: stri
 export default function SettingsPanel({
   email,
   subscription,
+  billingNotice = null,
 }: {
   email: string | null;
   subscription: Subscription;
+  billingNotice?: string | null;
 }) {
   const router = useRouter();
   const supabase = createSupabaseBrowser();
@@ -68,7 +70,7 @@ export default function SettingsPanel({
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Account and app preferences.</p>
       </header>
 
-      <PlanPanel subscription={subscription} />
+      <PlanPanel subscription={subscription} billingNotice={billingNotice} />
 
       <Card title="Account">
         <Row label="Email">

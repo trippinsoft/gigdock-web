@@ -17,7 +17,7 @@
 //                                  we can't actually route to.
 //
 // Provider portals (mobile + web share the same normalization):
-//   • web    → /account/billing (Stripe customer portal lands here later)
+//   • web    → /account/billing (route handler → Stripe Customer Portal)
 //   • apple  → https://apps.apple.com/account/subscriptions
 //   • google → https://play.google.com/store/account/subscriptions
 //
@@ -57,7 +57,21 @@ function providerPortal(p: SubscriptionProvider): { kind: "internal" | "external
   return null;
 }
 
-export default function PlanPanel({ subscription }: { subscription: Subscription }) {
+// /account/billing returns here with ?billing=<reason> when the portal
+// can't open. Unknown values render nothing.
+const BILLING_NOTICES: Record<string, string> = {
+  no_subscription: "We couldn\u2019t find a GigDock Pro subscription to manage for this account.",
+  not_owner: "We couldn\u2019t find a GigDock Pro subscription to manage for this account.",
+  portal_unavailable: "Subscription management is temporarily unavailable. Please try again shortly.",
+};
+
+export default function PlanPanel({
+  subscription,
+  billingNotice = null,
+}: {
+  subscription: Subscription;
+  billingNotice?: string | null;
+}) {
   if (subscription.kind === "free") {
     return (
       <Card>
@@ -139,6 +153,16 @@ export default function PlanPanel({ subscription }: { subscription: Subscription
           <div className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">{secondary}</div>
         )}
 
+        {billingNotice && BILLING_NOTICES[billingNotice] && (
+          <p role="alert" className="mt-3 text-sm text-amber-700 dark:text-amber-400">
+            {BILLING_NOTICES[billingNotice]} If you need help, email{" "}
+            <a href="mailto:gigdocksupport@gmail.com" className="text-blue-600 dark:text-blue-400 hover:underline">
+              gigdocksupport@gmail.com
+            </a>
+            .
+          </p>
+        )}
+
         {isUserManaged(provider) && portal && state === "active_renewing" && (
           <div className="mt-3">
             <PortalLink portal={portal} label="Manage subscription" />
@@ -174,10 +198,13 @@ function PortalLink({
       </a>
     );
   }
+  // Plain anchor, not <Link>: /account/billing is a route handler that
+  // redirects off-site to Stripe, so it needs a full-page navigation (and
+  // must not be prefetched, which would create portal sessions).
   return (
-    <Link href={portal.href} className={cls}>
+    <a href={portal.href} className={cls}>
       {label}
-    </Link>
+    </a>
   );
 }
 

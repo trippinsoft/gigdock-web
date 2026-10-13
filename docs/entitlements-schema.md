@@ -97,6 +97,13 @@ resume actions. The web app never mutates `entitlements`.
   with `metadata.note='Complimentary during beta'` would consolidate on a
   single canonical value; either provider is treated as complimentary
   today, so the migration can happen without a UI change.
-- When a real web billing provider is wired (Stripe expected), build
-  `/account/billing` to render / redirect to its customer portal. The
-  Plan panel already sends web-managed subscribers there.
+- `/account/billing` (`src/app/account/billing/route.ts`) opens the Stripe
+  Customer Portal for web-managed subscribers. The signed-in user's own
+  entitlement names a `sub_…`; Stripe must confirm that subscription's
+  `metadata.supabase_user_id` is the user (and its customer matches any
+  recorded `stripe_customer_id`) before a portal session is created for
+  that customer, returning to `/settings`. Failures return to
+  `/settings?billing=no_subscription|not_owner|portal_unavailable`. The
+  Stripe account needs a saved Customer Portal configuration (test mode
+  for the preview sandbox). Preview-only, like checkout. Tests:
+  `npm run test:billing`.
