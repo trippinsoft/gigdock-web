@@ -8,7 +8,17 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function SettingsPage() {
-  const [user, subscription] = await Promise.all([getSessionUser(), getSubscription()]);
-  return <SettingsPanel email={user?.email ?? null} subscription={subscription} />;
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ billing?: string }>;
+}) {
+  const [user, subscription, sp] = await Promise.all([getSessionUser(), getSubscription(), searchParams]);
+  return (
+    <SettingsPanel
+      email={user?.email ?? null}
+      subscription={subscription}
+      billingNotice={typeof sp.billing === "string" ? sp.billing : null}
+    />
+  );
 }

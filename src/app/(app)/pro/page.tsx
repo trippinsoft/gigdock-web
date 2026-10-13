@@ -1,9 +1,8 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  LAUNCH_OFFER,
   PAYWALL_CONTEXT,
   PRICING,
   PRO_HEADLINE,
@@ -19,12 +18,7 @@ import { ProBadge, useIsPro } from "@/components/app/pro";
 // price as the crossed-out anchor. No competing plan selector.
 // Purchasing is offered only when the matching checkout URL is configured.
 
-type PlanTier = "founding" | "annual";
-
-const PLAN_TARGET: Record<PlanTier, string | undefined> = {
-  founding: process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_FOUNDING_URL,
-  annual: process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_ANNUAL_URL,
-};
+type PlanTier = "founding" | "annual" | "monthly";
 
 export default function ProPage() {
   return (
@@ -40,13 +34,30 @@ function ProLanding() {
   const isPro = useIsPro();
   const story = PAYWALL_CONTEXT[from];
   const emphasize = story?.emphasize;
+  const [foundingActive, setFoundingActive] = useState(false);
+  const [pricingLoaded, setPricingLoaded] = useState(false);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/pricing/pro", { cache: "no-store" })
+      .then((response) => { if (!response.ok) throw new Error("Pricing unavailable"); return response.json(); })
+      .then((data) => { if (mounted) setFoundingActive(data.foundingActive === true); })
+      .catch(() => { if (mounted) setFoundingActive(false); })
+      .finally(() => { if (mounted) setPricingLoaded(true); });
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     trackPro("paywall_open", from);
     trackPro("pricing_view", from);
   }, [from]);
 
-  if (isPro) {
+  // Preview beta testers already have complimentary Pro; this query flag
+  // exposes the real checkout UI for sandbox QA without revoking beta access.
+  const testCheckout = params.get("test_checkout") === "1";
+  if (isPro && !testCheckout) {
     return (
       <div className="max-w-2xl mx-auto py-16 text-center">
         <ProBadge />
@@ -66,12 +77,24 @@ function ProLanding() {
     a.key === emphasize ? -1 : b.key === emphasize ? 1 : 0,
   );
 
-  function upgrade(tier: PlanTier) {
-    const target = PLAN_TARGET[tier];
-    if (!target) return; // Never imply checkout began when none exists.
-    trackPro("checkout_start", from, { tier });
-    if (tier === "founding") trackPro("founding_offer_selected", from);
-    window.location.assign(target);
+  async function upgrade(tier: PlanTier) {
+    if (checkoutBusy) return;
+    setCheckoutBusy(true);
+    setCheckoutError(null);
+    try {
+      const response = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier: tier === "founding" ? "annual" : tier }),
+      });
+      const data = await response.json();
+      if (!response.ok || typeof data.url !== "string") throw new Error(data.error || "Checkout unavailable");
+      trackPro("checkout_start", from, { tier });
+      window.location.assign(data.url);
+    } catch (error) {
+      setCheckoutError(error instanceof Error ? error.message : "Checkout unavailable");
+      setCheckoutBusy(false);
+    }
   }
 
   return (
@@ -115,18 +138,28 @@ function ProLanding() {
         ))}
       </div>
 
-      {/* One founding-member offer with the regular annual rate as an anchor.
-          The launch flag switches to regular annual pricing after launch. */}
-      <div className="mx-auto max-w-[640px]">
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 py-7 sm:px-8">
-          {LAUNCH_OFFER === "founding" ? (
-            <FoundingHero onUpgrade={() => upgrade("founding")} canCheckout={!!PLAN_TARGET.founding} />
-          ) : (
-            <AnnualHero onUpgrade={() => upgrade("annual")} canCheckout={!!PLAN_TARGET.annual} />
-          )}
-
-        </div>
-
+      {/* Founding annual remains the primary offer; monthly is always available
+          as an alternative. Checkout is restricted to the Stripe sandbox preview environment. */}
+      <div className="mx-auto max-w-[760px]">
+        {!pricingLoaded ? (
+          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 p-7 text-center text-sm text-zinc-500">
+            Loading current pricing…
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
+            <div className="rounded-2xl border border-blue-300 dark:border-blue-800 bg-white dark:bg-zinc-900 px-5 py-7">
+              {foundingActive ? (
+                <FoundingHero onUpgrade={() => upgrade("founding")} canCheckout={!checkoutBusy} />
+              ) : (
+                <AnnualHero onUpgrade={() => upgrade("annual")} canCheckout={!checkoutBusy} />
+              )}
+            </div>
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-5 py-7">
+              <MonthlyHero onUpgrade={() => upgrade("monthly")} canCheckout={!checkoutBusy} />
+            </div>
+          </div>
+        )}
+        {checkoutError && <p role="alert" className="mt-3 text-center text-sm text-red-600">{checkoutError}</p>}
         <p className="mt-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
           Pro access works on web and in the GigDock app.
         </p>
@@ -176,7 +209,7 @@ function FoundingHero({ onUpgrade, canCheckout }: { onUpgrade: () => void; canCh
       >
         Upgrade to GigDock Pro
       </button>
-      {!canCheckout && <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Checkout is not available yet. This is the planned founding offer.</p>}
+      {!canCheckout && <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Checkout uses Stripe sandbox in preview.</p>}
     </div>
   );
 }
@@ -202,7 +235,36 @@ function AnnualHero({ onUpgrade, canCheckout }: { onUpgrade: () => void; canChec
       >
         Upgrade to GigDock Pro
       </button>
-      {!canCheckout && <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Checkout is not available yet.</p>}
+      {!canCheckout && <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Checkout uses Stripe sandbox in preview.</p>}
+    </div>
+  );
+}
+
+function MonthlyHero({ onUpgrade, canCheckout }: { onUpgrade: () => void; canCheckout: boolean }) {
+  return (
+    <div className="text-center">
+      <div className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 px-3 py-1 text-[11px] font-bold uppercase tracking-wide">
+        Monthly
+      </div>
+      <div className="mt-9 flex items-baseline justify-center gap-1">
+        <span className="text-4xl sm:text-5xl font-extrabold text-zinc-900 dark:text-zinc-100 tabular-nums leading-none">
+          {PRICING.monthly.label}
+        </span>
+        <span className="text-lg font-semibold text-zinc-500 dark:text-zinc-400">
+          {PRICING.monthly.period}
+        </span>
+      </div>
+      <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-300">
+        Flexible monthly billing. Cancel anytime.
+      </p>
+      <button
+        onClick={onUpgrade}
+        disabled={!canCheckout}
+        className="mt-5 inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400 px-6 py-3 text-sm font-semibold text-white"
+      >
+        Upgrade to GigDock Pro
+      </button>
+      {!canCheckout && <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Checkout uses Stripe sandbox in preview.</p>}
     </div>
   );
 }
