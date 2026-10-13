@@ -288,17 +288,15 @@ export default function OnboardingWizard({
         }
       : null;
 
-    // Persist the ExtraJobs background-opportunities selection ONLY
-    // when Background Actor is selected. Non-Background users are never
-    // auto-enabled; leaving `connections` off the draft means
-    // /signup/complete → persistOnboardingDraft skips set_user_connection
-    // and the user's server-side state (a fresh row with the catalog
-    // default) is left untouched. This preserves the contract that we
-    // never write on a user's behalf without an explicit choice.
-    const connectionsPayload =
-      selectedRoles.has("background_actor")
-        ? { extrajobs_background: extrajobsBackground ?? true }
-        : undefined;
+    // New GigDock web accounts connect the shared ExtraJobs opportunity
+    // experience by default so the same account is immediately useful in
+    // GigDock mobile. If a Background Actor explicitly turns the inline
+    // ExtraJobs choice OFF, preserve that explicit opt-out.
+    const connectionsPayload = {
+      extrajobs_background: selectedRoles.has("background_actor")
+        ? (extrajobsBackground ?? true)
+        : true,
+    };
 
     const { data: draftIdData, error: draftErr } = await supabase.rpc(
       "create_onboarding_draft",
@@ -308,7 +306,7 @@ export default function OnboardingWizard({
           work_roles_other: selectedRoles.has("other") ? roleOther.trim().slice(0, 60) : null,
           work_markets: marketCodes,
           performer: performerPayload,
-          ...(connectionsPayload ? { connections: connectionsPayload } : {}),
+          connections: connectionsPayload,
         },
         p_intended_email: email,
       }
