@@ -57,7 +57,15 @@ export async function POST(request: NextRequest) {
     status:subscription.status === "active" || subscription.status === "trialing" ? subscription.status : subscription.status === "canceled" ? "cancelled" : "expired", price_id:item.price.id,
     plan_interval:item.price.recurring?.interval === "year" ? "year" : "month",
     current_period_end:item.current_period_end ? new Date(item.current_period_end*1000).toISOString():null,
-    // Stripe may represent a scheduled end using cancel_at while returning\n    // cancel_at_period_end=false (notably Customer Portal cancellations).\n    // Keep the UI flag true when cancellation is scheduled for the period end.\n    cancel_at_period_end: subscription.status !== "canceled" && (\n      subscription.cancel_at_period_end === true ||\n      (typeof subscription.cancel_at === "number" &&\n        typeof item.current_period_end === "number" &&\n        subscription.cancel_at === item.current_period_end)\n    ),
+    // Stripe may represent a scheduled end using cancel_at while returning
+    // cancel_at_period_end=false (notably Customer Portal cancellations).
+    // Keep the UI flag true when cancellation is scheduled for the period end.
+    cancel_at_period_end: subscription.status !== "canceled" && (
+      subscription.cancel_at_period_end === true ||
+      (typeof subscription.cancel_at === "number" &&
+        typeof item.current_period_end === "number" &&
+        subscription.cancel_at === item.current_period_end)
+    ),
     canceled_at:subscription.canceled_at ? new Date(subscription.canceled_at*1000).toISOString():null,
     metadata:{stripe_subscription_id:subscription.id,stripe_customer_id:subscription.customer,tier:subscription.metadata.tier,
       price_label:subscription.metadata.tier === "founding" ? "$49/year · Founding member" : item.price.recurring?.interval === "year" ? "$99/year" : "$9.99/month"},
