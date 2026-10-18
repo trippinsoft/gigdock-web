@@ -3,7 +3,7 @@ import { isCancellationScheduledAtPeriodEnd } from "@/lib/stripe-cancellation";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { getPreviewStripeKey } from "@/lib/stripe-preview.server";
+import { getStripeKey } from "@/lib/stripe-preview.server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -16,7 +16,7 @@ type Subscription = {
 };
 
 export async function POST(request: NextRequest) {
-  try { getPreviewStripeKey(); } catch { return NextResponse.json({ error: "Preview sandbox only" }, { status: 503 }); }
+  try { getStripeKey(); } catch { return NextResponse.json({ error: "Stripe billing unavailable" }, { status: 503 }); }
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret?.startsWith("whsec_")) return NextResponse.json({ error: "Signing secret missing" }, { status: 503 });
   const signature = request.headers.get("stripe-signature") || "";
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
   // Re-fetch current state before writing; deleted events use their final snapshot.
   if (event.type !== "customer.subscription.deleted") {
     try {
-      const key = getPreviewStripeKey();
+      const key = getStripeKey();
       const response = await fetch(`https://api.stripe.com/v1/subscriptions/${encodeURIComponent(subscription.id)}?expand%5B%5D=latest_invoice`, {
         headers: { Authorization: `Bearer ${key}` }, cache: "no-store",
       });
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       .eq("status", "active").maybeSingle();
     if (alertsError) return NextResponse.json({ error: "Alerts verification failed" }, { status: 500 });
     if (alertsRow) {
-      const key = getPreviewStripeKey();
+      const key = getStripeKey();
       const canceled = await fetch(`https://api.stripe.com/v1/subscriptions/${encodeURIComponent(oldAlertsId)}`, {
         method: "DELETE", headers: { Authorization: `Bearer ${key}` }, cache: "no-store",
       });
