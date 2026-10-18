@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
-import { getPreviewStripeKey, stripeRequest } from "@/lib/stripe-preview.server";
+import { getStripeKey, stripeRequest } from "@/lib/stripe-preview.server";
 import { createBillingPortalSession } from "@/lib/billing-portal.server";
 
 // GET /account/billing — Settings → Plan "Manage subscription" / "Keep
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
   if (!user) return back(origin, "/login?next=%2Faccount%2Fbilling");
 
   try {
-    getPreviewStripeKey();
+    getStripeKey();
   } catch {
     return back(origin, "/settings?billing=portal_unavailable");
   }
