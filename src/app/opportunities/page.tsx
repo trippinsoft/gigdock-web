@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import OpportunitiesFeed from "@/components/OpportunitiesFeed";
 import AppShell from "@/components/AppShell";
+import PublicShell from "@/components/PublicShell";
 import {
   getSessionUser,
   getPlan,
@@ -34,7 +35,8 @@ export default async function OpportunitiesPage() {
   // Public visitors no longer see a duplicate opportunity directory.
   if (!user) {
     return (
-      <div className="mx-auto max-w-3xl py-10 sm:py-16">
+      <PublicShell>
+      <div className="mx-auto max-w-3xl py-6 sm:py-10">
         <div className="rounded-2xl border border-zinc-200 bg-white p-7 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-12">
           <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-4xl">
             Looking for background acting opportunities?
@@ -56,26 +58,22 @@ export default async function OpportunitiesPage() {
         </div>
         <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-7 text-center dark:border-zinc-800 dark:bg-zinc-900 sm:p-9">
           <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-            Already using GigDock?
+            Finding gigs is just the beginning.
           </h2>
+          <p className="mx-auto mt-3 max-w-xl text-base leading-relaxed text-zinc-600 dark:text-zinc-300">
+            GigDock helps background actors, stand-ins, and photo doubles manage everything that comes after finding work. Track gigs and work dates, monitor earnings and outstanding payments, organize documents, and understand your income — all in one place.
+          </p>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-300">
-            Find opportunities provided by{" "}
-            <a
-              href="https://extrajobs.co"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-blue-600 underline-offset-2 hover:underline dark:text-blue-400"
-            >
-              ExtraJobs
-            </a>{" "}
-            right inside GigDock. Manage your gigs, earnings, and payments in one place.
+            You can also find opportunities provided by{" "}
+            <a href="https://extrajobs.co" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 underline-offset-2 hover:underline dark:text-blue-400">ExtraJobs</a>{" "}
+            right inside your GigDock account.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <Link
-              href="/login"
+              href="/features"
               className="rounded-lg border border-zinc-300 px-5 py-2.5 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800"
             >
-              Sign In
+              Explore GigDock Features
             </Link>
             <Link
               href="/signup"
@@ -85,7 +83,12 @@ export default async function OpportunitiesPage() {
             </Link>
           </div>
         </div>
+        <p className="mt-5 text-center text-sm text-zinc-600 dark:text-zinc-400">
+          Already have an account?{" "}
+          <Link href="/login" className="font-semibold text-blue-600 hover:underline dark:text-blue-400">Sign In</Link>
+        </p>
       </div>
+      </PublicShell>
     );
   }
 
