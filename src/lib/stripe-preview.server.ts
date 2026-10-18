@@ -6,8 +6,8 @@ export function getStripeKey(): string {
     throw new Error("Live Stripe billing has not been enabled");
   }
   const key = process.env.STRIPE_SECRET_KEY;
-  const prefix = env === "production" ? "sk_live_" : "sk_test_";
-  if (!key?.startsWith(prefix)) throw new Error("Stripe key does not match deployment environment");
+  const validPrefixes = env === "production" ? ["sk_live_", "rk_live_"] : ["sk_test_", "rk_test_"];
+  if (!validPrefixes.some(prefix => key?.startsWith(prefix))) throw new Error("Stripe key does not match deployment environment");
   return key;
 }
 
