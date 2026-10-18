@@ -20,7 +20,7 @@ export function proAccessForStripeStatus(
     const graceEndsAt = latestInvoice.created + PAYMENT_GRACE_SECONDS;
     return {
       status: "active",
-      periodEnd: Math.min(periodEnd ?? graceEndsAt, graceEndsAt),
+      periodEnd: graceEndsAt,
       graceEndsAt,
     };
   }
