@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { getAnnualProOfferForCheckout } from "@/lib/founding-offer.server";
-import { getPreviewStripeKey, proPriceId, stripeRequest } from "@/lib/stripe-preview.server";
+import { getStripeKey, proPriceId, stripeRequest } from "@/lib/stripe-preview.server";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
-    getPreviewStripeKey();
+    getStripeKey();
     const supabase = await createSupabaseServer();
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user?.id || !user.email) return NextResponse.json({ error: "Sign in to subscribe." }, { status: 401 });
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       .or(`current_period_end.is.null,current_period_end.gt.${new Date().toISOString()}`).limit(1);
     if (entitlementError) throw entitlementError;
     if (entitlement?.some(row => !["beta", "admin", "promo", "partner"].includes(row.provider ?? ""))) return NextResponse.json({ error: "Pro is already active." }, { status: 409 });
-    // Beta grants do not block sandbox checkout; paid subscriptions do.
+    // Complimentary grants do not block checkout; paid subscriptions do.
     const founding = tier === "annual" && getAnnualProOfferForCheckout().founding;
     const price = proPriceId(tier, founding);
     // Existing annual Alerts subscribers receive a $30 one-time credit
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     if (!session.url) throw new Error("Missing checkout URL");
     return NextResponse.json({ url: session.url }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    console.error("Sandbox checkout unavailable", error);
-    return NextResponse.json({ error: "Checkout unavailable. Check sandbox configuration." }, { status: 503 });
+    console.error("Stripe checkout unavailable", error);
+    return NextResponse.json({ error: "Checkout is currently unavailable." }, { status: 503 });
   }
 }
