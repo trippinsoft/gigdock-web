@@ -277,7 +277,7 @@ function Opportunities() {
       <SectionHeader
         eyebrow="1 · Opportunities"
         title="Find gigs worth your time — then keep them moving."
-        lead="Optional background acting opportunities appear in your GigDock account when the Opportunities connection is enabled. Search, save and track listings, then add booked work to My Gigs."
+        lead="Browse background acting opportunities provided by ExtraJobs inside your GigDock account when the Opportunities connection is enabled. Search, save and track listings, then add booked work to My Gigs."
       />
 
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-8 lg:gap-12 items-start">
@@ -300,7 +300,7 @@ function Opportunities() {
         </div>
       </div>
 
-      <AdvancedAlertsPanel />
+      <OpportunityAlertsPanel />
 
       <Callout title="Providers keep their application flow">
         Apply through the same channel the listing points to. GigDock helps you find and track the opportunity — it doesn&rsquo;t replace the provider&rsquo;s system.
@@ -311,27 +311,27 @@ function Opportunities() {
   );
 }
 
-function AdvancedAlertsPanel() {
+function OpportunityAlertsPanel() {
   return (
     <div className="mt-10 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/60 dark:bg-blue-950/20 overflow-hidden">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-6 lg:gap-8 items-center p-5 sm:p-6">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-              Pro
+              Pro or ExtraJobs Alerts
             </span>
             <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
-              Mobile
+              Web & mobile
             </span>
           </div>
           <h3 className="mt-2 text-xl sm:text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 leading-tight">
             Opportunity alerts for the work you want.
           </h3>
           <p className="mt-3 text-sm sm:text-base text-zinc-600 dark:text-zinc-300 leading-relaxed">
-            Choose your regions and notification preferences for background opportunities. Advanced alert rules can narrow matches further. Delivery timing varies by source and notification channel.
+            Choose your regions, personalize alert rules, and choose email or mobile push notifications for background opportunities. Opportunity Alerts are included with GigDock Pro or available separately through ExtraJobs Alerts. Delivery timing varies by source and channel.
           </p>
           <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-            Manage opportunity alert preferences in GigDock on web or mobile.
+            Opportunity Alerts provided by <a href="https://extrajobs.co" target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-600 hover:underline dark:text-blue-400">ExtraJobs</a>. Manage your preferences in GigDock on web or mobile.
           </p>
         </div>
         <div className="mx-auto lg:mx-0 w-full max-w-[240px]">
@@ -695,7 +695,7 @@ function FreeVsPro() {
     "Advanced Reports & PDF / CSV exports — report across your full GigDock history",
     "Tax Ready organizer",
     "Connect documents to specific gigs",
-    "Advanced Alerts (mobile)",
+    "Opportunity Alerts provided by ExtraJobs (also available separately)",
     "AI connections (MCP) — Claude, ChatGPT, Cursor",
   ];
   return (
@@ -774,7 +774,7 @@ function PlatformAvailability() {
         </div>
 
         <p className="mt-6 text-sm text-zinc-500 dark:text-zinc-400">
-          Some capabilities — including <span className="font-semibold text-zinc-700 dark:text-zinc-200">Advanced Alerts</span> — are currently available only in the mobile app.
+          Opportunity Alerts can be configured on web or mobile. Push notifications are delivered through the GigDock mobile app.
         </p>
       </div>
     </Section>
