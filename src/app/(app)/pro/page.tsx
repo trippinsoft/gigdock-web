@@ -65,7 +65,7 @@ function ProLanding() {
           You&rsquo;re on GigDock Pro
         </h1>
         <p className="mt-2 text-zinc-500 dark:text-zinc-400">
-          Complete history, advanced insights, alerts, documents, expenses,
+          Complete history, advanced insights, ExtraJobs Opportunity Alerts, documents, expenses,
           reports and tax organization are all unlocked — on web and in the
           app.
         </p>
