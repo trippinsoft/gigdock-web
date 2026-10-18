@@ -1,3 +1,4 @@
+import { proAccessForStripeStatus } from "@/lib/stripe-payment-grace";
 import { isCancellationScheduledAtPeriodEnd } from "@/lib/stripe-cancellation";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
@@ -10,6 +11,7 @@ export const runtime = "nodejs";
 type Subscription = {
   id: string; customer: string; status: string; metadata?: Record<string,string>;
   items: { data: Array<{ price: { id: string; recurring?: { interval: string } }; current_period_end?: number }> };
+  latest_invoice?: string | { created: number; status?: string } | null;
   cancel_at_period_end: boolean; cancel_at?: number | null; canceled_at: number | null; ended_at?: number | null; start_date?: number;
 };
 
@@ -36,7 +38,7 @@ export async function POST(request: NextRequest) {
   if (event.type !== "customer.subscription.deleted") {
     try {
       const key = getPreviewStripeKey();
-      const response = await fetch(`https://api.stripe.com/v1/subscriptions/${encodeURIComponent(subscription.id)}`, {
+      const response = await fetch(`https://api.stripe.com/v1/subscriptions/${encodeURIComponent(subscription.id)}?expand%5B%5D=latest_invoice`, {
         headers: { Authorization: `Bearer ${key}` }, cache: "no-store",
       });
       if (!response.ok) return NextResponse.json({ error: "Subscription refresh failed" }, { status: 502 });
@@ -53,14 +55,23 @@ export async function POST(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!key || !url) return NextResponse.json({ error: "Entitlement writer not configured" }, { status: 503 });
   const db = createClient(url,key,{auth:{persistSession:false}});
+  let access: ReturnType<typeof proAccessForStripeStatus>;
+  try {
+    const invoice = typeof subscription.latest_invoice === "object" ? subscription.latest_invoice : null;
+    access = proAccessForStripeStatus(subscription.status, item.current_period_end, invoice);
+  } catch (error) {
+    console.error("Unable to determine renewal grace period", error);
+    return NextResponse.json({ error: "Renewal invoice unavailable" }, { status: 502 });
+  }
   const record = {
     user_id: subscription.metadata.supabase_user_id, product:"pro",provider:"stripe",
-    status:subscription.status === "active" || subscription.status === "trialing" ? subscription.status : subscription.status === "canceled" ? "cancelled" : "expired", price_id:item.price.id,
+    status:access.status, price_id:item.price.id,
     plan_interval:item.price.recurring?.interval === "year" ? "year" : "month",
-    current_period_end:item.current_period_end ? new Date(item.current_period_end*1000).toISOString():null,
+    current_period_end:access.periodEnd ? new Date(access.periodEnd*1000).toISOString():null,
     cancel_at_period_end: isCancellationScheduledAtPeriodEnd(subscription, item.current_period_end),
     canceled_at:subscription.canceled_at ? new Date(subscription.canceled_at*1000).toISOString():null,
     metadata:{stripe_subscription_id:subscription.id,stripe_customer_id:subscription.customer,tier:subscription.metadata.tier,
+      ...(access.graceEndsAt ? { payment_grace_ends_at: new Date(access.graceEndsAt*1000).toISOString(), stripe_status: "past_due" } : {}),
       price_label:subscription.metadata.tier === "founding" ? "$49/year · Founding member" : item.price.recurring?.interval === "year" ? "$99/year" : "$9.99/month"},
     external_ref:subscription.id,
     started_at: subscription.start_date ? new Date(subscription.start_date * 1000).toISOString() : null,
