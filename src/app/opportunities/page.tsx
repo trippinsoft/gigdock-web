@@ -12,32 +12,81 @@ import {
 import { loadActiveOpportunities } from "@/lib/load-opportunities";
 
 export const metadata: Metadata = {
-  title: "Browse Film & TV Casting Calls & Opportunities",
+  title: "Background Acting Opportunities | GigDock & ExtraJobs",
   description:
-    "Search current film & TV casting calls and background acting opportunities from across the web in one feed, matched to you with GigFit.",
+    "Looking for background acting opportunities? Browse them at ExtraJobs, or sign in to GigDock to find opportunities provided by ExtraJobs inside your gig workspace.",
   alternates: { canonical: "/opportunities" },
   openGraph: {
-    title: "Film & TV Casting Calls & Opportunities · GigDock",
+    title: "Background Acting Opportunities | GigDock & ExtraJobs",
     description:
-      "Current film & TV casting calls from many sources in one searchable feed, matched to you with GigFit.",
+      "Background acting opportunities are available at ExtraJobs and inside your GigDock account.",
     type: "website",
     siteName: "GigDock",
   },
 };
 
-// Opportunities is both a public/SEO surface and an in-app workspace. Signed-in
-// users get the authenticated AppShell (left nav) so it matches the rest of the
-// back-office; logged-out visitors and crawlers get the public shell (unchanged
-// content + metadata, so SEO is unaffected).
+// Preserve bookmarked /opportunities links: signed-out visitors see a clear
+// path to ExtraJobs, while signed-in users retain the existing in-app feed.
 export default async function OpportunitiesPage() {
   const user = await getSessionUser();
   const now = Date.now();
 
-  // Public / signed-out visitor: unchanged behavior. Opportunities remain
-  // a public SEO surface with the full feed and no gating.
+  // Public visitors no longer see a duplicate opportunity directory.
   if (!user) {
-    const opps = await loadActiveOpportunities();
-    return <OpportunitiesFeed initialOpps={opps} now={now} />;
+    return (
+      <div className="mx-auto max-w-3xl py-10 sm:py-16">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-7 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-12">
+          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-4xl">
+            Looking for background acting opportunities?
+          </h1>
+          <p className="mt-5 text-lg font-semibold text-zinc-800 dark:text-zinc-200">
+            They’re now at ExtraJobs.
+          </p>
+          <p className="mx-auto mt-3 max-w-xl text-base leading-relaxed text-zinc-600 dark:text-zinc-300">
+            Browse background acting opportunities on ExtraJobs, our dedicated opportunity-discovery site.
+          </p>
+          <a
+            href="https://extrajobs.co"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-7 inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+          >
+            Browse Opportunities on ExtraJobs →
+          </a>
+        </div>
+        <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-7 text-center dark:border-zinc-800 dark:bg-zinc-900 sm:p-9">
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
+            Already using GigDock?
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-300">
+            Find opportunities provided by{" "}
+            <a
+              href="https://extrajobs.co"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-blue-600 underline-offset-2 hover:underline dark:text-blue-400"
+            >
+              ExtraJobs
+            </a>{" "}
+            right inside GigDock. Manage your gigs, earnings, and payments in one place.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/login"
+              className="rounded-lg border border-zinc-300 px-5 py-2.5 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/signup"
+              className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              Create a Free Account
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Signed-in visitor: the ExtraJobs background connection gates the
