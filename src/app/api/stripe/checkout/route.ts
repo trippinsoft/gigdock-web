@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const tier = typeof body === "object" && body !== null && "tier" in body ? (body as { tier?: unknown }).tier : null;
     if (tier !== "monthly" && tier !== "annual") return NextResponse.json({ error: "Invalid plan." }, { status: 400 });
     const { data: entitlement, error: entitlementError } = await supabase.from("entitlements")
-      .select("id,provider").in("product", ["pro", "premium"]).in("status", ["active", "trialing"])
+      .select("id,provider").eq("user_id", user.id).in("product", ["pro", "premium"]).in("status", ["active", "trialing"])
       .or(`current_period_end.is.null,current_period_end.gt.${new Date().toISOString()}`).limit(1);
     if (entitlementError) throw entitlementError;
     if (entitlement?.some(row => !["beta", "admin", "promo", "partner"].includes(row.provider ?? ""))) return NextResponse.json({ error: "Pro is already active." }, { status: 409 });
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     // Existing annual Alerts subscribers receive a $30 one-time credit
     // toward a NEW annual Pro term. Monthly Alerts are not eligible.
     const { data: alerts, error: alertsError } = await supabase.from("entitlements")
-      .select("external_ref,current_period_end").eq("product", "extrajobs_alerts")
+      .select("external_ref,current_period_end").eq("user_id", user.id).eq("product", "extrajobs_alerts")
       .eq("status", "active").eq("plan_interval", "year")
       .gt("current_period_end", new Date().toISOString()).limit(1);
     if (alertsError) throw alertsError;
