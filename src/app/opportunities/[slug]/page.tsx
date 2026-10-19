@@ -1,8 +1,8 @@
+import { permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import type { Opportunity } from "@/lib/types";
 import OpportunitiesFeed from "@/components/OpportunitiesFeed";
-import LocationListing from "@/components/LocationListing";
 import TrackEvent from "@/components/TrackEvent";
 import { loadActiveOpportunities } from "@/lib/load-opportunities";
 import { codeForSlug } from "@/lib/markets";
@@ -52,16 +52,16 @@ export async function generateMetadata({
   // Location page metadata.
   const spec = resolveMarket(slug);
   if (spec) {
-    const title = `${spec.name} Casting Calls & Background Acting Jobs`;
+    const title = "Background Acting Opportunities | GigDock & ExtraJobs";
     // Market stubs we haven't deemed ready still render (to build capability) but
     // stay noindex so we never ship thin doorway pages; ready markets + states index.
     const noindex = spec.kind === "market" && !spec.indexable;
     return {
       title,
-      description: spec.content.intro,
-      alternates: { canonical: `/opportunities/${slug}` },
+      description: "Browse background acting opportunities at ExtraJobs.",
+      alternates: { canonical: "/opportunities" },
       ...(noindex ? { robots: { index: false, follow: true } } : {}),
-      openGraph: { title: `${spec.name} Casting Calls · GigDock`, description: spec.content.intro, type: "website", siteName: "GigDock" },
+      openGraph: { title, description: "Background acting opportunities are available at ExtraJobs.", type: "website", siteName: "GigDock" },
     };
   }
 
@@ -105,7 +105,7 @@ export default async function OpportunitySlugPage({
 
   // Region market (atlanta-ga) or whole state (georgia) → location landing page.
   const spec = resolveMarket(slug);
-  if (spec) return <LocationListing spec={spec} />;
+  if (spec) permanentRedirect("/opportunities");
 
   // Otherwise a shared gig link (or an unknown slug → feed with nothing selected).
   const [opp, opps] = await Promise.all([getOpportunity(slug), loadActiveOpportunities()]);
