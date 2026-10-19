@@ -5,7 +5,7 @@
  * for example 2027-04-01T00:00:00-05:00. Extend the offer by changing that
  * setting in the deployment environment; no Stripe price change is needed.
  *
- * No value or an invalid value means the offer is CLOSED (fail-safe).
+ * GIGDOCK_FOUNDING_OFFER_ACTIVE=true explicitly keeps founding pricing open\n * without an end date. Set it to false to close the offer manually.\n * If unset, the existing dated promotion behavior is preserved.
  * Checkout must evaluate this server-side immediately before creating a
  * Stripe session. The client-side paywall is not authoritative.
  */
@@ -19,6 +19,9 @@ export function getFoundingOfferEndsAt(): Date | null {
 }
 
 export function isFoundingOfferActive(now: Date = new Date()): boolean {
+  const manual = process.env.GIGDOCK_FOUNDING_OFFER_ACTIVE;
+  if (manual === "true") return true;
+  if (manual === "false") return false;
   const endsAt = getFoundingOfferEndsAt();
   return endsAt !== null && now.getTime() < endsAt.getTime();
 }
