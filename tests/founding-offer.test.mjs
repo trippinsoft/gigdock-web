@@ -7,9 +7,12 @@ import {
 } from "../src/lib/founding-offer.server.ts";
 
 const prior = process.env.GIGDOCK_FOUNDING_OFFER_ENDS_AT;
+const priorManual = process.env.GIGDOCK_FOUNDING_OFFER_ACTIVE;
 after(() => {
   if (prior === undefined) delete process.env.GIGDOCK_FOUNDING_OFFER_ENDS_AT;
   else process.env.GIGDOCK_FOUNDING_OFFER_ENDS_AT = prior;
+  if (priorManual === undefined) delete process.env.GIGDOCK_FOUNDING_OFFER_ACTIVE;
+  else process.env.GIGDOCK_FOUNDING_OFFER_ACTIVE = priorManual;
 });
 
 test("founding promotion is closed without a configured deadline", () => {
@@ -60,4 +63,14 @@ test("extending the single global deadline reopens founding pricing", () => {
 test("explicit timezone offset is interpreted correctly", () => {
   process.env.GIGDOCK_FOUNDING_OFFER_ENDS_AT = "2027-04-01T00:00:00-05:00";
   assert.equal(getFoundingOfferEndsAt()?.toISOString(), "2027-04-01T05:00:00.000Z");
+});
+
+test("manual founding offer stays active indefinitely without a deadline", () => {
+ delete process.env.GIGDOCK_FOUNDING_OFFER_ENDS_AT;
+ process.env.GIGDOCK_FOUNDING_OFFER_ACTIVE = "true";
+ assert.equal(isFoundingOfferActive(new Date("2035-01-01T00:00:00Z")), true);
+ assert.equal(getAnnualProOfferForCheckout().annualPriceCents, 4900);
+ process.env.GIGDOCK_FOUNDING_OFFER_ACTIVE = "false";
+ assert.equal(isFoundingOfferActive(), false);
+ delete process.env.GIGDOCK_FOUNDING_OFFER_ACTIVE;
 });
