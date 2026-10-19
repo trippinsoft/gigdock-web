@@ -78,8 +78,8 @@ export const PRO_PILLARS: {
   },
   {
     key: "alerts",
-    title: "Alerts",
-    blurb: "Get notified about opportunities you don't want to miss.",
+    title: "Opportunity Alerts",
+    blurb: "Get background opportunity alerts provided by ExtraJobs — also available separately.",
     icon: "bell",
   },
   {

@@ -1,0 +1,68 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createSupabaseServer } from "@/lib/supabase-server";
+import { getAnnualProOfferForCheckout } from "@/lib/founding-offer.server";
+import { getStripeKey, proPriceId, stripeRequest } from "@/lib/stripe-preview.server";
+
+export const dynamic = "force-dynamic";
+
+export async function POST(request: NextRequest) {
+  try {
+    getStripeKey();
+    const supabase = await createSupabaseServer();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user?.id || !user.email) return NextResponse.json({ error: "Sign in to subscribe." }, { status: 401 });
+    const body: unknown = await request.json();
+    const tier = typeof body === "object" && body !== null && "tier" in body ? (body as { tier?: unknown }).tier : null;
+    if (tier !== "monthly" && tier !== "annual") return NextResponse.json({ error: "Invalid plan." }, { status: 400 });
+    const { data: entitlement, error: entitlementError } = await supabase.from("entitlements")
+      .select("id,provider").eq("user_id", user.id).in("product", ["pro", "premium"]).in("status", ["active", "trialing"])
+      .or(`current_period_end.is.null,current_period_end.gt.${new Date().toISOString()}`).limit(1);
+    if (entitlementError) throw entitlementError;
+    if (entitlement?.some(row => !["beta", "admin", "promo", "partner"].includes(row.provider ?? ""))) return NextResponse.json({ error: "Pro is already active." }, { status: 409 });
+    // Complimentary grants do not block checkout; paid subscriptions do.
+    const founding = tier === "annual" && getAnnualProOfferForCheckout().founding;
+    const price = proPriceId(tier, founding);
+    // Existing annual Alerts subscribers receive a $30 one-time credit
+    // toward a NEW annual Pro term. Monthly Alerts are not eligible.
+    const { data: alerts, error: alertsError } = await supabase.from("entitlements")
+      .select("external_ref,current_period_end").eq("user_id", user.id).eq("product", "extrajobs_alerts")
+      .eq("status", "active").eq("plan_interval", "year")
+      .gt("current_period_end", new Date().toISOString()).limit(1);
+    if (alertsError) throw alertsError;
+    const alertsSubId = tier === "annual" && alerts?.[0]?.external_ref?.startsWith("sub_")
+      ? alerts[0].external_ref : null;
+    const origin = new URL(request.url).origin;
+    const params = new URLSearchParams({
+      mode: "subscription",
+      "line_items[0][price]": price,
+      "line_items[0][quantity]": "1",
+      customer_email: user.email,
+      client_reference_id: user.id,
+      "metadata[supabase_user_id]": user.id,
+      "metadata[product]": "pro",
+      "subscription_data[metadata][supabase_user_id]": user.id,
+      "subscription_data[metadata][product]": "pro",
+      "subscription_data[metadata][tier]": founding ? "founding" : tier,
+      success_url: origin + "/pro?checkout=success",
+      cancel_url: origin + "/pro?checkout=cancel",
+    });
+    if (alertsSubId) {
+      // Coupon is single-redemption, so it cannot be reused for a second purchase.
+      // Creating it with an idempotency key also handles repeated checkout requests.
+      const coupon = await stripeRequest<{ id: string }>("POST", "coupons",
+        new URLSearchParams({
+          amount_off: "3000", currency: "usd", duration: "once",
+          max_redemptions: "1", name: "ExtraJobs annual Alerts upgrade credit",
+          "metadata[alerts_subscription_id]": alertsSubId,
+        }), `gigdock-alerts-upgrade-coupon-${alertsSubId}`);
+      params.set("discounts[0][coupon]", coupon.id);
+      params.set("subscription_data[metadata][alerts_upgrade_subscription_id]", alertsSubId);
+    }
+    const session = await stripeRequest<{ url: string }>("POST", "checkout/sessions", params, `gigdock-pro-${user.id}-${tier}-${Math.floor(Date.now()/60000)}`);
+    if (!session.url) throw new Error("Missing checkout URL");
+    return NextResponse.json({ url: session.url }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    console.error("Stripe checkout unavailable", error);
+    return NextResponse.json({ error: "Checkout is currently unavailable." }, { status: 503 });
+  }
+}

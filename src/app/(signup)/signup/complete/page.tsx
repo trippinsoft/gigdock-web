@@ -4,10 +4,8 @@ import {
   getProfileWithWorkRoles,
   getSessionUser,
 } from "@/lib/backoffice";
-import {
-  persistOnboardingDraft,
-  type OnboardingPerformerPayload,
-} from "@/lib/backoffice-actions";
+import { persistOnboardingDraft } from "@/lib/backoffice-actions";
+import type { OnboardingPerformerPayload } from "@/lib/onboarding-performer-profile";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { safeNext } from "@/lib/workRolesLaunch";
 import CompleteRecoveryPanel from "./CompleteRecoveryPanel";
@@ -19,8 +17,11 @@ import CompleteRecoveryPanel from "./CompleteRecoveryPanel";
 //
 // Behavior — idempotent:
 //   1. Require an authenticated session (bounce to /signup otherwise).
-//   2. If work_roles_set_at is already populated, treat as a successful
-//      completion: clear any stale metadata and redirect to `next`.
+//   2. If work_roles_set_at is already populated AND no pending_draft_id
+//      remains, treat as a successful completion and redirect to `next`.
+//      A pending_draft_id is cleared only after every write succeeded, so
+//      when it is still present (e.g. roles saved but the performer
+//      profile failed) the handoff re-runs instead of dropping the rest.
 //   3. Otherwise, if the session carries a pending_draft_id, call
 //      claim_onboarding_draft(...) — the RPC verifies the caller's email
 //      hashes to the draft's owner hash before returning the JSON — then
@@ -145,13 +146,15 @@ export default async function CompleteSignupPage({
 
   const profile = await getProfileWithWorkRoles();
 
+  const draftId = readPendingDraftId(user!.user_metadata);
+  const rolesAlreadySet = Boolean(profile?.work_roles_set_at);
+
   // (1) Already done — clear stale metadata and redirect out.
-  if (profile?.work_roles_set_at) {
+  if (rolesAlreadySet && !draftId) {
     await clearPending();
     redirect(nextPath);
   }
 
-  const draftId = readPendingDraftId(user!.user_metadata);
   if (!draftId) {
     // No draft in metadata AND roles not set — the user is authenticated
     // but the handoff data is missing. Let them finish in /profile without
@@ -167,6 +170,12 @@ export default async function CompleteSignupPage({
     p_draft_id: draftId,
   });
   if (claimRes.error) {
+    // An account whose roles are already saved is never trapped here by a
+    // draft that can no longer be claimed (e.g. expired after 24h).
+    if (rolesAlreadySet) {
+      await clearPending();
+      redirect(nextPath);
+    }
     return (
       <CompleteRecoveryPanel
         reason="claim_failed"
@@ -203,13 +212,10 @@ export default async function CompleteSignupPage({
     connections: draft.connections,
   });
   if (!persistRes.ok) {
-    return (
-      <CompleteRecoveryPanel
-        reason="persist_failed"
-        nextPath={nextPath}
-        detail={persistRes.error}
-      />
-    );
+    // Keep the raw database message in server logs only; the panel's copy
+    // already explains the state and both recovery paths.
+    console.error("[signup/complete] persistOnboardingDraft failed:", persistRes.error);
+    return <CompleteRecoveryPanel reason="persist_failed" nextPath={nextPath} />;
   }
 
   await clearPending();
