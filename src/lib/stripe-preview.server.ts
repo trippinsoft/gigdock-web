@@ -7,7 +7,7 @@ export function getStripeKey(): string {
   }
   const key = process.env.STRIPE_SECRET_KEY;
   const validPrefixes = env === "production" ? ["sk_live_", "rk_live_"] : ["sk_test_", "rk_test_"];
-  if (!validPrefixes.some(prefix => key?.startsWith(prefix))) throw new Error("Stripe key does not match deployment environment");
+  if (!key || !validPrefixes.some(prefix => key.startsWith(prefix))) throw new Error("Stripe key does not match deployment environment");
   return key;
 }
 
