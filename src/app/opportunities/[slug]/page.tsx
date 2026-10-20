@@ -55,7 +55,6 @@ export async function generateMetadata({
     const title = "Background Acting Opportunities | GigDock & ExtraJobs";
     // Market stubs we haven't deemed ready still render (to build capability) but
     // stay noindex so we never ship thin doorway pages; ready markets + states index.
-    const noindex = spec.kind === "market" && !spec.indexable;
     return {
       title,
       description: "Browse background acting opportunities at ExtraJobs.",
