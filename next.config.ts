@@ -34,6 +34,9 @@ const nextConfig: NextConfig = {
         destination: "https://www.gigdock.co/:path*",
         permanent: true,
       },
+      { source: "/opportunities/locations", destination: "https://extrajobs.co/opportunities/locations", permanent: true },
+      { source: "/guides/how-to-get-background-acting-work-in-atlanta", destination: "https://extrajobs.co/guides/how-to-get-background-acting-work-in-atlanta", permanent: true },
+      { source: "/guides/where-to-find-atlanta-casting-calls", destination: "https://extrajobs.co/guides/where-to-find-atlanta-casting-calls", permanent: true },
       // Locations moved off the "casting-calls" path to the neutral
       // /opportunities/<state> namespace (room to grow beyond casting calls).
       { source: "/casting-calls", destination: "/opportunities/locations", permanent: true },

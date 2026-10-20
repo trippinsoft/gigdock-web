@@ -53,14 +53,12 @@ export async function generateMetadata({
   const spec = resolveMarket(slug);
   if (spec) {
     const title = "Background Acting Opportunities | GigDock & ExtraJobs";
-    // Market stubs we haven't deemed ready still render (to build capability) but
-    // stay noindex so we never ship thin doorway pages; ready markets + states index.
-    const noindex = spec.kind === "market" && !spec.indexable;
+    // Location requests redirect to matching ExtraJobs pages.
     return {
       title,
       description: "Browse background acting opportunities at ExtraJobs.",
-      alternates: { canonical: "/opportunities" },
-      ...(noindex ? { robots: { index: false, follow: true } } : {}),
+      alternates: { canonical: `https://extrajobs.co/opportunities/${slug}` },
+      
       openGraph: { title, description: "Background acting opportunities are available at ExtraJobs.", type: "website", siteName: "GigDock" },
     };
   }
@@ -79,7 +77,7 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: { canonical: `/opportunities/${slug}` },
+    alternates: { canonical: `https://extrajobs.co/opportunities/${slug}` },
     openGraph: {
       title,
       description,
@@ -105,7 +103,7 @@ export default async function OpportunitySlugPage({
 
   // Region market (atlanta-ga) or whole state (georgia) → location landing page.
   const spec = resolveMarket(slug);
-  if (spec) permanentRedirect("/opportunities");
+  if (spec) permanentRedirect(`https://extrajobs.co/opportunities/${slug}`);
 
   // Otherwise a shared gig link (or an unknown slug → feed with nothing selected).
   const [opp, opps] = await Promise.all([getOpportunity(slug), loadActiveOpportunities()]);
