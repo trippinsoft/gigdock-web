@@ -53,13 +53,11 @@ export async function generateMetadata({
   const spec = resolveMarket(slug);
   if (spec) {
     const title = "Background Acting Opportunities | GigDock & ExtraJobs";
-    // Market stubs we haven't deemed ready still render (to build capability) but
-    // stay noindex so we never ship thin doorway pages; ready markets + states index.
+    // Location requests redirect to matching ExtraJobs pages.
     return {
       title,
       description: "Browse background acting opportunities at ExtraJobs.",
       alternates: { canonical: `https://extrajobs.co/opportunities/${slug}` },
-      robots: { index: false, follow: true },
       
       openGraph: { title, description: "Background acting opportunities are available at ExtraJobs.", type: "website", siteName: "GigDock" },
     };
@@ -80,7 +78,6 @@ export async function generateMetadata({
     title,
     description,
     alternates: { canonical: `https://extrajobs.co/opportunities/${slug}` },
-    robots: { index: false, follow: true },
     openGraph: {
       title,
       description,
