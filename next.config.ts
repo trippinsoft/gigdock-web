@@ -34,6 +34,7 @@ const nextConfig: NextConfig = {
         destination: "https://www.gigdock.co/:path*",
         permanent: true,
       },
+      { source: "/opportunities/locations", destination: "https://extrajobs.co/opportunities/locations", permanent: true },
       // Locations moved off the "casting-calls" path to the neutral
       // /opportunities/<state> namespace (room to grow beyond casting calls).
       { source: "/casting-calls", destination: "/opportunities/locations", permanent: true },
