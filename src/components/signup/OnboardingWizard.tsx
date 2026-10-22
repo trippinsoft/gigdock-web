@@ -274,6 +274,7 @@ export default function OnboardingWizard({
         emailRedirectTo,
         data: {
           pending_draft_id: draftId,
+          acquisition_channel: "gigdock_web",
         },
       },
     });
