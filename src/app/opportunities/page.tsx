@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { permanentRedirect } from "next/navigation";
 import OpportunitiesFeed from "@/components/OpportunitiesFeed";
 import AppShell from "@/components/AppShell";
-import PublicShell from "@/components/PublicShell";
 import {
   getSessionUser,
   getPlan,
@@ -32,65 +32,8 @@ export default async function OpportunitiesPage() {
   const user = await getSessionUser();
   const now = Date.now();
 
-  // Public visitors no longer see a duplicate opportunity directory.
-  if (!user) {
-    return (
-      <PublicShell>
-      <div className="mx-auto max-w-3xl py-6 sm:py-10">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-7 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-12">
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-4xl">
-            Looking for background acting opportunities?
-          </h1>
-          <p className="mt-5 text-lg font-semibold text-zinc-800 dark:text-zinc-200">
-            They’re now at ExtraJobs.
-          </p>
-          <p className="mx-auto mt-3 max-w-xl text-base leading-relaxed text-zinc-600 dark:text-zinc-300">
-            Browse background acting opportunities on ExtraJobs, our dedicated opportunity-discovery site.
-          </p>
-          <a
-            href="https://extrajobs.co"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-7 inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
-          >
-            Browse Opportunities on ExtraJobs →
-          </a>
-        </div>
-        <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-7 text-center dark:border-zinc-800 dark:bg-zinc-900 sm:p-9">
-          <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-            Finding gigs is just the beginning.
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-base leading-relaxed text-zinc-600 dark:text-zinc-300">
-            GigDock helps background actors, stand-ins, and photo doubles manage everything that comes after finding work. Track gigs and work dates, monitor earnings and outstanding payments, organize documents, and understand your income — all in one place.
-          </p>
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-300">
-            You can also find opportunities provided by{" "}
-            <a href="https://extrajobs.co" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 underline-offset-2 hover:underline dark:text-blue-400">ExtraJobs</a>{" "}
-            right inside your GigDock account.
-          </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/features"
-              className="rounded-lg border border-zinc-300 px-5 py-2.5 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800"
-            >
-              Explore GigDock Features
-            </Link>
-            <Link
-              href="/signup"
-              className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
-            >
-              Create a Free Account
-            </Link>
-          </div>
-        </div>
-        <p className="mt-5 text-center text-sm text-zinc-600 dark:text-zinc-400">
-          Already have an account?{" "}
-          <Link href="/login" className="font-semibold text-blue-600 hover:underline dark:text-blue-400">Sign In</Link>
-        </p>
-      </div>
-      </PublicShell>
-    );
-  }
+  // Public opportunity discovery now belongs to ExtraJobs. Keep the GigDock route only for signed-in users.
+  if (!user) permanentRedirect("https://extrajobs.co/opportunities");
 
   // Signed-in visitor: the ExtraJobs background connection gates the
   // in-app feed. OFF means we do not fetch or render active
