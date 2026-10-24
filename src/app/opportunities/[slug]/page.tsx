@@ -7,6 +7,7 @@ import TrackEvent from "@/components/TrackEvent";
 import { loadActiveOpportunities } from "@/lib/load-opportunities";
 import { codeForSlug } from "@/lib/markets";
 import { getSeoMarket, stateSpec, type MarketSpec } from "@/lib/marketContent";
+import { getSessionUser } from "@/lib/backoffice";
 
 // A slug is a region market (atlanta-ga), a whole state (georgia), or a gig (uuid).
 function resolveMarket(slug: string): MarketSpec | null {
@@ -105,8 +106,15 @@ export default async function OpportunitySlugPage({
   const spec = resolveMarket(slug);
   if (spec) permanentRedirect(`https://extrajobs.co/opportunities/${slug}`);
 
-  // Otherwise a shared gig link (or an unknown slug → feed with nothing selected).
-  const [opp, opps] = await Promise.all([getOpportunity(slug), loadActiveOpportunities()]);
+  // Public shared opportunity links now belong to ExtraJobs. Signed-in GigDock
+  // users retain the in-app opportunity experience.
+  const opp = await getOpportunity(slug);
+  const user = await getSessionUser();
+  if (!user && opp) permanentRedirect(`https://extrajobs.co/opportunities/${slug}`);
+
+  // Otherwise render the signed-in GigDock opportunity experience (or an
+  // unknown slug with nothing selected).
+  const opps = await loadActiveOpportunities();
   return (
     <>
       {opp && (
